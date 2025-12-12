@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Tracker Pro</title>
+    <title>Golf Tracker Pro (WHS)</title>
     <style>
         :root {
             --primary: #2E7D32; /* Forest Green */
@@ -49,7 +49,7 @@
             margin-bottom: 20px;
         }
         
-        /* Main Card Header (for the entire card/section) */
+        /* Main Card Header */
         .card-header {
             font-weight: 700;
             font-size: 1.1rem;
@@ -64,7 +64,7 @@
             user-select: none;
         }
         
-        /* Sub-Headers within a main card */
+        /* Sub-Headers */
         .sub-header {
             font-weight: 600;
             font-size: 1rem;
@@ -161,7 +161,6 @@
             color: #555;
             font-style: italic;
         }
-
     </style>
 </head>
 <body>
@@ -404,7 +403,7 @@
         reader.readAsText(file);
     }
 
-    // --- 5. HANDICAP MATH (WHS Logic) ---
+    // --- 5. HANDICAP MATH (WHS Logic - UPDATED) ---
     function calculateHandicap() {
         if (scores.length === 0) {
             document.getElementById('displayIndex').innerText = "--";
@@ -412,30 +411,53 @@
             return;
         }
 
+        // Sort by date (newest first)
         let sorted = [...scores].sort((a, b) => new Date(b.date) - new Date(a.date));
-        let recent = sorted.slice(0, 20);
+        
+        // WHS only considers the most recent 20 rounds
+        let recent = sorted.slice(0, 20); 
+
+        // Sort differentials low-to-high to find the "best" ones
+        // Ensure we map to numbers so the sort works correctly
         let diffs = recent.map(s => parseFloat(s.diff)).sort((a, b) => a - b);
         
         let count = diffs.length;
         let index = 0;
+        let nToAvg = 0;    // Number of differentials to average
+        let adjust = 0;    // Adjustment factor (if any)
 
         if (count < 3) {
             document.getElementById('displayIndex').innerText = "--";
             document.getElementById('displayCount').innerText = `Need ${3-count} more`;
             return;
-        } else if (count === 3) index = diffs[0] - 2.0;
-        else if (count === 4) index = diffs[0] - 1.0;
-        else if (count === 5) index = diffs[0];
-        else if (count === 6) index = (diffs[0] + diffs[1]) / 2 - 1.0;
-        else if (count <= 8) index = (diffs[0] + diffs[1]) / 2;
-        else if (count <= 11) index = (diffs[0] + diffs[1] + diffs[2]) / 3;
-        else if (count <= 14) index = diffs.slice(0,4).reduce((a,b)=>a+b,0) / 4;
-        else if (count <= 16) index = diffs.slice(0,5).reduce((a,b)=>a+b,0) / 5;
-        else if (count <= 18) index = diffs.slice(0,6).reduce((a,b)=>a+b,0) / 6;
-        else index = diffs.slice(0,8).reduce((a,b)=>a+b,0) / 8;
+        } 
+        
+        // WHS Table 5.2a Logic:
+        if (count === 3)      { nToAvg = 1; adjust = -2.0; }
+        else if (count === 4) { nToAvg = 1; adjust = -1.0; }
+        else if (count === 5) { nToAvg = 1; adjust = 0; }
+        else if (count === 6) { nToAvg = 2; adjust = -1.0; }
+        else if (count <= 8)  { nToAvg = 2; adjust = 0; }
+        else if (count <= 11) { nToAvg = 3; adjust = 0; }
+        else if (count <= 14) { nToAvg = 4; adjust = 0; }
+        else if (count <= 16) { nToAvg = 5; adjust = 0; }
+        else if (count <= 18) { nToAvg = 6; adjust = 0; }
+        else if (count === 19){ nToAvg = 7; adjust = 0; }
+        else                  { nToAvg = 8; adjust = 0; } // count === 20
 
-        document.getElementById('displayIndex').innerText = index.toFixed(1);
-        document.getElementById('displayCount').innerText = `${count} rounds counted`;
+        // Calculate Average
+        const bestDiffs = diffs.slice(0, nToAvg);
+        const sum = bestDiffs.reduce((a, b) => a + b, 0);
+        const avg = sum / nToAvg;
+
+        // Apply adjustment (if any)
+        index = avg + adjust;
+        
+        // WHS truncates to one decimal place (it does not round up)
+        let finalIndex = Math.floor(index * 10) / 10; 
+
+        document.getElementById('displayIndex').innerText = finalIndex.toFixed(1);
+        document.getElementById('displayCount').innerText = `${nToAvg} of ${count} rounds counted`;
     }
 
     // --- 6. SCORE FORM LOGIC ---
@@ -478,7 +500,9 @@
         if (idx === "" || !date || !val) { alert("Please fill all required fields"); return; }
 
         const c = courses[idx];
-        const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
+        
+        // UPDATED: Calculate and store diff as a Number (Float), not a String
+        const diff = parseFloat(((val - c.rating) * 113 / c.slope).toFixed(1));
 
         const entry = {
             id: editId ? parseInt(editId) : Date.now(),
