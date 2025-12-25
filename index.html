@@ -47,29 +47,40 @@
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             padding: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
         .card-header {
             font-weight: 700;
             font-size: 1.1rem;
             color: var(--dark);
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
+            user-select: none;
+        }
+
+        .card-header.with-border {
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         .section-label {
             font-size: 0.85rem;
             text-transform: uppercase;
             color: #777;
-            margin: 25px 0 10px 5px;
+            margin: 20px 0 10px 5px;
             font-weight: bold;
             letter-spacing: 1px;
+        }
+
+        /* CHART CONTAINER - LIMIT HEIGHT */
+        .chart-container {
+            height: 220px;
+            position: relative;
+            margin-top: 15px;
         }
 
         /* FORM & INPUTS */
@@ -137,8 +148,6 @@
         .score-val { font-weight: bold; font-size: 1.1rem; }
         .score-diff { color: #666; font-size: 0.85rem; margin-left: 5px; }
         .score-notes { font-size: 0.85rem; color: #666; font-style: italic; border-top: 1px dashed #ccc; margin-top: 8px; padding-top: 5px; }
-
-        canvas { max-width: 100%; height: auto !important; }
     </style>
 </head>
 <body>
@@ -152,14 +161,19 @@
     </div>
 
     <div class="card" id="chartCard" style="display:none;">
-        <div class="card-header" style="border:none; margin-bottom:0;">
+        <div class="card-header collapsed" onclick="toggleSection('chartContent', this)">
             <span>📈 Handicap Progress</span>
+            <span class="arrow">▼</span>
         </div>
-        <canvas id="handicapChart"></canvas>
+        <div id="chartContent" class="card-content hidden">
+            <div class="chart-container">
+                <canvas id="handicapChart"></canvas>
+            </div>
+        </div>
     </div>
 
     <div class="card" id="scoreFormCard">
-        <div class="card-header" style="cursor: default; border-bottom: none; margin-bottom: 0;">
+        <div class="card-header with-border" style="cursor: default;">
             <span>⛳ Post New Score</span>
         </div>
         <input type="hidden" id="editScoreId">
@@ -194,25 +208,24 @@
     </div>
 
     <div class="card">
-        <div class="card-header" onclick="toggleSection('historyContent', this)">
+        <div class="card-header collapsed" onclick="toggleSection('historyContent', this)">
             <span>📝 Score History</span>
             <span class="arrow">▼</span>
         </div>
-        <div id="historyContent" class="card-content">
-            <ul id="scoreList" class="score-list"></ul>
+        <div id="historyContent" class="card-content hidden">
+            <ul id="scoreList" class="score-list" style="margin-top:15px;"></ul>
         </div>
     </div>
 
-    <div class="section-label">Database Management</div>
+    <div class="section-label">Management</div>
 
     <div class="card">
         <div class="card-header collapsed" onclick="toggleSection('courseDbContent', this)">
-            <span>⛳ Edit Courses</span>
+            <span>⛳ Edit Course Database</span>
             <span class="arrow">▼</span>
         </div>
         <div id="courseDbContent" class="card-content hidden">
-            <button class="btn-primary" style="margin-bottom:15px;" onclick="openCourseForm()">+ Add New Course</button>
-            
+            <button class="btn-primary" style="margin-top:15px; margin-bottom:15px;" onclick="openCourseForm()">+ Add New Course</button>
             <div id="courseForm" style="display:none; background:#fafafa; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">
                 <input type="hidden" id="cEditIndex">
                 <label>Course Name</label><input type="text" id="cName">
@@ -224,27 +237,22 @@
                 <button class="btn-primary" onclick="saveCourse()">Save Course</button>
                 <button style="margin-top:10px; background:#999; color:white;" onclick="document.getElementById('courseForm').style.display='none'">Cancel</button>
             </div>
-
             <ul id="courseDbList" class="score-list"></ul>
         </div>
     </div>
 
-    <div class="section-label">Data Tools & Privacy</div>
     <div class="card">
         <div class="card-header collapsed" onclick="toggleSection('backupContent', this)">
-            <span>💾 Backup, Restore & Reset</span>
+            <span>💾 Backup & Reset Tools</span>
             <span class="arrow">▼</span>
         </div>
         <div id="backupContent" class="card-content hidden">
-            <button class="btn-success" style="margin-bottom:15px;" onclick="exportData()">Download Backup (JSON)</button>
-            
+            <button class="btn-success" style="margin-top:15px; margin-bottom:15px;" onclick="exportData()">Download Backup (JSON)</button>
             <label>Restore from file:</label>
             <input type="file" id="importFile" accept=".json" style="padding:5px; border:none;">
             <button class="btn-primary" style="margin-bottom:20px;" onclick="importData()">Upload & Overwrite</button>
-
             <div style="border-top: 1px solid #eee; padding-top: 15px;">
                 <button class="btn-danger" onclick="clearAllData()">⚠️ Clear All Data</button>
-                <p style="font-size:0.8rem; color:#888; text-align:center; margin-top:5px;">Warning: This deletes everything permanently.</p>
             </div>
         </div>
     </div>
@@ -252,7 +260,6 @@
 </div>
 
 <script>
-    // INITIAL DATA
     const defaultCourses = [
         {'name': 'Beaver Creek', 'tee': 'Blue', 'slope': 130.0, 'rating': 72.0},
         {'name': 'Belle Terre', 'tee': 'Blue', 'slope': 131.0, 'rating': 72.2},
@@ -278,8 +285,8 @@
         {'name': 'Webb', 'tee': 'White', 'slope': 123.0, 'rating': 69.5}
     ];
 
-    let courses = JSON.parse(localStorage.getItem('golfCourses_v13')) || defaultCourses;
-    let scores = JSON.parse(localStorage.getItem('golfScores_v13')) || [];
+    let courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || defaultCourses;
+    let scores = JSON.parse(localStorage.getItem('golfScores_v14')) || [];
     let myChart = null;
 
     function init() {
@@ -301,13 +308,13 @@
     }
 
     function saveData() {
-        localStorage.setItem('golfCourses_v13', JSON.stringify(courses));
-        localStorage.setItem('golfScores_v13', JSON.stringify(scores));
+        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+        localStorage.setItem('golfScores_v14', JSON.stringify(scores));
         updateUI();
     }
 
     function clearAllData() {
-        if(confirm("Are you sure? This will delete ALL scores and reset the course list.")) {
+        if(confirm("Permanently delete everything?")) {
             localStorage.clear();
             location.reload();
         }
@@ -325,8 +332,7 @@
         let historyIndices = [];
         let runningScores = [];
 
-        // Track handicap index over time
-        sorted.forEach((s, i) => {
+        sorted.forEach((s) => {
             runningScores.push(s);
             let recent = runningScores.slice(-20);
             let diffs = recent.map(r => parseFloat(r.diff)).sort((a,b) => a-b);
@@ -353,33 +359,33 @@
 
         const final = historyIndices[historyIndices.length - 1];
         document.getElementById('displayIndex').innerText = final.val;
-        document.getElementById('displayCount').innerText = `${Math.min(scores.length, 20)} rounds used in calculation`;
-        
+        document.getElementById('displayCount').innerText = `${Math.min(scores.length, 20)} rounds used`;
+        document.getElementById('chartCard').style.display = 'block';
         renderChart(historyIndices);
     }
 
     function renderChart(data) {
-        document.getElementById('chartCard').style.display = 'block';
         const ctx = document.getElementById('handicapChart').getContext('2d');
         if (myChart) myChart.destroy();
-        
         myChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: data.map(d => d.date),
                 datasets: [{
-                    label: 'Handicap Index',
+                    label: 'Index',
                     data: data.map(d => d.val),
                     borderColor: '#2E7D32',
                     backgroundColor: 'rgba(46, 125, 50, 0.1)',
                     fill: true,
-                    tension: 0.3
+                    tension: 0.3,
+                    pointRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { y: { beginAtZero: false } }
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: false, ticks: { stepSize: 1 } } }
             }
         });
     }
@@ -391,7 +397,7 @@
         const val = parseFloat(document.getElementById('scoreVal').value);
         const notes = document.getElementById('scoreNotes').value;
 
-        if (idx === "" || !date || !val) { alert("Missing information"); return; }
+        if (idx === "" || !date || !val) { alert("Please complete form"); return; }
         const c = courses[idx];
         const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
 
@@ -420,10 +426,6 @@
         document.getElementById('cancelBtn').style.display = "none";
     }
 
-    function deleteScore(id) {
-        if(confirm("Delete round?")) { scores = scores.filter(s => s.id !== id); saveData(); }
-    }
-
     function editScore(id) {
         const s = scores.find(x => x.id === id);
         if(!s) return;
@@ -439,7 +441,10 @@
         window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
-    // LIST RENDERING
+    function deleteScore(id) {
+        if(confirm("Delete round?")) { scores = scores.filter(s => s.id !== id); saveData(); }
+    }
+
     function renderDropdown() {
         const sel = document.getElementById('courseSelect');
         const curr = sel.value;
@@ -493,7 +498,6 @@
         });
     }
 
-    // COURSE MANAGER
     function openCourseForm() { document.getElementById('courseForm').style.display = 'block'; document.getElementById('cEditIndex').value = "-1"; }
     function loadCourseEdit(i) {
         const c = courses[i];
@@ -508,7 +512,7 @@
         const i = parseInt(document.getElementById('cEditIndex').value);
         const name = document.getElementById('cName').value, tee = document.getElementById('cTee').value;
         const rating = parseFloat(document.getElementById('cRating').value), slope = parseFloat(document.getElementById('cSlope').value);
-        if(!name || !rating) return alert("Missing Info");
+        if(!name || !rating) return alert("Fill required fields");
         if (i === -1) courses.push({ name, tee, rating, slope }); else courses[i] = { name, tee, rating, slope };
         document.getElementById('courseForm').style.display = 'none';
         saveData();
@@ -538,9 +542,8 @@
         pre.style.display = "block";
     }
 
-    // BACKUP TOOLS
     function exportData() {
-        const data = { version: 'v13', courses, scores };
+        const data = { version: 'v14', courses, scores };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -554,12 +557,14 @@
         if (!file) return alert("Select file");
         const reader = new FileReader();
         reader.onload = function(e) {
-            const d = JSON.parse(e.target.result);
-            if (d.courses && d.scores) {
-                courses = d.courses; scores = d.scores;
-                saveData();
-                alert("Restored!");
-            }
+            try {
+                const d = JSON.parse(e.target.result);
+                if (d.courses && d.scores) {
+                    courses = d.courses; scores = d.scores;
+                    saveData();
+                    alert("Data Restored!");
+                }
+            } catch(err) { alert("Invalid file"); }
         };
         reader.readAsText(file);
     }
@@ -569,3 +574,4 @@
 
 </body>
 </html>
+
