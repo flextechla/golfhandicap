@@ -192,7 +192,14 @@
 
     async function sync() {
         if(!pName || !gKey) return alert("Enter Name/Key");
-        const binId = btoa(gKey === MASTER_PASS ? "COMMISSIONER_ROOM" : gKey).replace(/=/g, "");
+        
+        // This creates the "Locker Room" based on the Group Key
+        const binId = btoa(gKey).replace(/=/g, ""); 
+        
+        // We check the separate Admin Password box
+        const adminEntry = document.getElementById('adminPassInput').value;
+        isAdmin = (adminEntry === "golf2026");
+
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
@@ -282,6 +289,7 @@
 </body>
 </html>
    
+
 
 
 
