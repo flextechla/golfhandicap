@@ -45,6 +45,7 @@
         <label>Group Key (or golf2026)</label>
         <input type="password" id="keyIn" placeholder="Masters2026">
         <button onclick="sync()">☁️ Sync All Profiles</button>
+        <div id="cbList" style="margin-top:10px;"></div>
     </div>
 </div>
 
@@ -71,11 +72,11 @@
     <div id="course" class="content">
         <button onclick="menuToggle('nc')">+ Add New Course/Tee</button>
         <div id="nc" class="content" style="border:1px dashed #ccc; padding:10px; margin: 10px 0;">
-            <label>Course Name</label><input type="text" id="ncN" placeholder="Ex: Webb Park">
-            <label>Tee Color</label><input type="text" id="ncT" placeholder="Ex: Blue">
+            <label>Course Name</label><input type="text" id="ncN">
+            <label>Tee Color</label><input type="text" id="ncT">
             <div style="display:flex; gap:10px;">
-                <div style="flex:1;"><label>Rating</label><input type="number" id="ncR" step="0.1" placeholder="72.1"></div>
-                <div style="flex:1;"><label>Slope</label><input type="number" id="ncS" placeholder="125"></div>
+                <div style="flex:1;"><label>Rating</label><input type="number" id="ncR" step="0.1"></div>
+                <div style="flex:1;"><label>Slope</label><input type="number" id="ncS"></div>
             </div>
             <button onclick="addC()">Save Course</button>
         </div>
@@ -104,20 +105,16 @@
         if(pName && scores.length) {
             localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
         }
-
-        let inputName = manualName || document.getElementById('nameIn').value.trim();
+        pName = manualName || document.getElementById('nameIn').value.trim();
         let inputKey = document.getElementById('keyIn').value;
-
         isAdmin = (inputKey === ADMIN_PASS);
         gKey = isAdmin ? MASTER_KEY : (inputKey || MASTER_KEY);
-
-        pName = inputName;
-        if(pName && !knownUsers.includes(pName)) knownUsers.push(pName);
-        
         localStorage.setItem('golf_pname', pName);
         localStorage.setItem('golf_gkey', gKey);
-        localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
-        
+        if(pName && !knownUsers.includes(pName)) {
+            knownUsers.push(pName);
+            localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
+        }
         loadScores();
         render();
     }
@@ -147,13 +144,11 @@
         var sl = document.getElementById('sList');
         sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
         scores.forEach((s, i) => {
-            // THE FIX: Check for the color in multiple places, or look it up in the course DB
             let cName = s.courseName || s.course;
+            // SMART LOOKUP: Check round data first, then fallback to database match
             let finalTee = s.teeColor || s.tee || s.teeBox;
-            
-            // If still missing, try to find a match in the Course Database
             if (!finalTee || finalTee === "Tees") {
-                let match = courses.find(c => c.name === cName);
+                let match = courses.find(c => c.name.toLowerCase().trim() === cName.toLowerCase().trim());
                 finalTee = match ? match.tee : "";
             }
 
@@ -185,12 +180,17 @@
         calc();
     }
 
-    function calc() {
-        if (scores.length < 3) return document.getElementById('idx').innerText = "--";
-        var diffs = scores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        var n = scores.length >= 20 ? 8 : (scores.length >= 10 ? 3 : 1);
+    function calc(targetScores = scores) {
+        if (targetScores.length < 3) {
+            if(targetScores === scores) document.getElementById('idx').innerText = "--";
+            return "--";
+        }
+        var diffs = targetScores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
+        var n = targetScores.length >= 20 ? 8 : (targetScores.length >= 10 ? 3 : 1);
         var avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        document.getElementById('idx').innerText = (Math.floor(avg * 10) / 10).toFixed(1);
+        let res = (Math.floor(avg * 10) / 10).toFixed(1);
+        if(targetScores === scores) document.getElementById('idx').innerText = res;
+        return res;
     }
 
     function addS() {
@@ -200,8 +200,10 @@
         if(cIdx === "" || isNaN(val)) return alert("Select course and score");
         var c = courses[cIdx];
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
+        // PERMANENT STORAGE: Save the tee box directly into the score record
         scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
         localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
+        document.getElementById('sIn').value = "";
         render();
     }
 
@@ -223,6 +225,7 @@
         var t = document.getElementById('ncT').value;
         var r = parseFloat(document.getElementById('ncR').value);
         var s = parseInt(document.getElementById('ncS').value);
+        if(!n || isNaN(r)) return alert("Enter Name and Rating");
         courses.push({ name: n, tee: t, rating: r, slope: s });
         localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
         render();
@@ -238,9 +241,32 @@
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
             cloud.players[pName] = { index: document.getElementById('idx').innerText, history: scores.slice(0, 10) };
+            
+            // Sync course DB to/from cloud
+            let cmap = new Map();
+            [...cloud.courses, ...courses].forEach(c => cmap.set(c.name+c.tee, c));
+            cloud.courses = Array.from(cmap.values());
+            courses = cloud.courses;
+            localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+
             await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
+            renderClubhouse(cloud);
             alert("Sync Complete!");
         } catch (e) { alert("Sync Error"); }
+    }
+
+    function renderClubhouse(cloud) {
+        var list = document.getElementById('cbList');
+        list.innerHTML = "";
+        for (var name in cloud.players) {
+            if (name === pName) continue;
+            var p = cloud.players[name];
+            list.innerHTML += '<div class="score-item">👤 <b>'+name+'</b>: '+p.index + 
+            ' <button class="btn-outline" onclick="menuToggle(\'f-hist-'+name+'\')">History</button>' +
+            '<div id="f-hist-'+name+'" class="edit-drawer">' +
+            p.history.map((s, idx) => '<div style="font-size:0.75rem; border-bottom:1px solid #eee; padding:5px 0;">'+s.date+': '+s.score+' '+(isAdmin ? '<button style="color:red; background:none; border:none; font-size:0.6rem;" onclick="adminDel(\''+name+'\','+idx+')">DEL</button>' : '')+'</div>').join('') +
+            '</div></div>';
+        }
     }
 
     document.getElementById('dIn').valueAsDate = new Date();
@@ -249,6 +275,7 @@
 </script>
 </body>
 </html>
+
 
 
 
