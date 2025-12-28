@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Golf Tracker Commissioner</title>
     <style>
-        :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; }
+        :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; --accent: #FFA000; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
         .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; }
         .handicap { font-size: 3rem; font-weight: bold; margin: 10px 0; }
@@ -13,11 +13,11 @@
         .header { background: #eee; padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; }
         .content { padding: 15px; display: none; }
         label { display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; }
-        input, select { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 12px; }
-        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
         .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; list-style: none; }
         .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
-        .admin-box { background: #fffde7; border: 2px dashed var(--accent); padding: 10px; border-radius: 8px; margin-top: 10px; border-color: orange; }
+        .admin-box { background: #fffde7; border: 2px dashed orange; padding: 10px; border-radius: 8px; margin-top: 10px; }
         .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 5px 10px; font-size: 0.7rem; }
     </style>
 </head>
@@ -33,7 +33,7 @@
     <div class="header" onclick="toggle('sync')"><span>👥 Clubhouse Sync</span><span>▼</span></div>
     <div id="sync" class="content">
         <label>Your Name</label><input type="text" id="nameIn" onchange="saveSet()">
-        <label>Group Key (or Admin Password)</label><input type="password" id="keyIn" onchange="saveSet()">
+        <label>Group Key</label><input type="password" id="keyIn" onchange="saveSet()" placeholder="Masters2026 or Admin Pass">
         <button onclick="sync()">Sync Now</button>
         <div id="cbList" style="margin-top:10px;"></div>
     </div>
@@ -72,7 +72,8 @@
 </div>
 
 <script>
-    const MASTER_PASS = "golf2026";
+    const MASTER_KEY = "Masters2026";
+    const ADMIN_PASS = "golf2026";
     let isAdmin = false;
 
     function toggle(id) {
@@ -87,8 +88,17 @@
 
     function saveSet() {
         pName = document.getElementById('nameIn').value;
-        gKey = document.getElementById('keyIn').value;
-        isAdmin = (gKey === MASTER_PASS);
+        let inputKey = document.getElementById('keyIn').value;
+        
+        // If you type the admin pass, it treats the group key as the Master Key automatically
+        if (inputKey === ADMIN_PASS) {
+            isAdmin = true;
+            gKey = MASTER_KEY; 
+        } else {
+            isAdmin = false;
+            gKey = inputKey;
+        }
+        
         localStorage.setItem('golf_pname', pName);
         localStorage.setItem('golf_gkey', gKey);
         render();
@@ -191,15 +201,8 @@
     function delC(i) { if(confirm("Delete course?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); } }
 
     async function sync() {
-        if(!pName || !gKey) return alert("Enter Name/Key");
-        
-        // This creates the "Locker Room" based on the Group Key
-        const binId = btoa(gKey).replace(/=/g, ""); 
-        
-        // We check the separate Admin Password box
-        const adminEntry = document.getElementById('adminPassInput').value;
-        isAdmin = (adminEntry === "golf2026");
-
+        if(!pName || !gKey) return alert("Enter Name and Group Key");
+        const binId = btoa(gKey).replace(/=/g, "");
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
@@ -249,13 +252,11 @@
         const date = document.getElementById('ad-'+target).value;
         const c = courses[cIdx];
         const d = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        
-        const binId = btoa(isAdmin ? "COMMISSIONER_ROOM" : gKey).replace(/=/g, "");
+        const binId = btoa(gKey).replace(/=/g, "");
         const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
         let cloud = await res.json();
         cloud.players[target].history.unshift({ date, courseName: c.name, score: val, diff: d });
         cloud.players[target].index = calc(cloud.players[target].history);
-        
         await fetch("https://api.jsonstorage.net/v1/json/" + binId, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -266,7 +267,7 @@
 
     async function adminDel(target, idx) {
         if(!confirm("Delete?")) return;
-        const binId = btoa(isAdmin ? "COMMISSIONER_ROOM" : gKey).replace(/=/g, "");
+        const binId = btoa(gKey).replace(/=/g, "");
         const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
         let cloud = await res.json();
         cloud.players[target].history.splice(idx, 1);
@@ -279,16 +280,18 @@
         sync();
     }
 
-    // Init
     document.getElementById('dIn').valueAsDate = new Date();
     document.getElementById('nameIn').value = pName;
     document.getElementById('keyIn').value = gKey;
-    isAdmin = (gKey === MASTER_PASS);
+    let checkKey = document.getElementById('keyIn').value;
+    isAdmin = (checkKey === ADMIN_PASS || gKey === ADMIN_PASS);
+    if(isAdmin) gKey = MASTER_KEY;
     render();
 </script>
 </body>
 </html>
    
+
 
 
 
