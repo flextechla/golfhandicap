@@ -11,14 +11,16 @@
         .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
         .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; overflow: hidden; }
         .header { background: #eee; padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; }
-        .content { padding: 15px; display: none; } /* Hidden by default */
+        .content { padding: 15px; display: none; }
         label { display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; color: #444; }
         input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
         .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; list-style: none; }
         .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
         .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; }
-        .switch-area { background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #c8e6c9; }
+        .user-pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+        .user-pill:hover { background: var(--primary); color: white; }
+        .active-pill { background: var(--dark); color: white; border-color: var(--dark); }
     </style>
 </head>
 <body>
@@ -26,28 +28,31 @@
 <div class="dashboard">
     <div id="pDisp" style="font-size: 1.2rem; font-weight: bold;">Golfer</div>
     <div class="handicap" id="idx">--</div>
-    <div style="font-size: 0.8rem; opacity: 0.9; letter-spacing: 1px;">HANDICAP INDEX</div>
+    <div style="font-size: 0.8rem; opacity: 0.9; letter-spacing: 1px;">WHS HANDICAP INDEX</div>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('sync')"><span>👥 Clubhouse & User Switch</span><span>▼</span></div>
+    <div class="header" onclick="menuToggle('sync')"><span>👥 Switch Golfer & Sync</span><span>▼</span></div>
     <div id="sync" class="content">
-        <div class="switch-area">
-            <label>Profile Name</label>
-            <input type="text" id="nameIn" placeholder="Ex: Mike">
-            <button onclick="performSwitch()" style="background:var(--dark);">🔄 Load Profile</button>
+        <label>Quick Switch Profile:</label>
+        <div id="userList" style="margin-bottom:15px;"></div>
+        
+        <label>Or Enter New Name:</label>
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="nameIn" placeholder="Name" style="margin-bottom:0;">
+            <button onclick="performSwitch()" style="width:auto; margin-bottom:0; background:var(--dark);">Load</button>
         </div>
+        <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
         <label>Group Key (or golf2026)</label>
         <input type="password" id="keyIn" placeholder="Masters2026">
-        <button onclick="sync()">☁️ Sync to Cloud</button>
-        <div id="cbList" style="margin-top:10px;"></div>
+        <button onclick="sync()">☁️ Sync All Profiles</button>
     </div>
 </div>
 
 <div class="card">
     <div class="header" onclick="menuToggle('post')"><span>⛳ Post New Score</span><span>▼</span></div>
     <div id="post" class="content">
-        <label>Course</label><select id="cSel"></select>
+        <label>Course & Tee</label><select id="cSel"></select>
         <label>Date</label><input type="date" id="dIn">
         <label>Gross Score</label><input type="number" id="sIn">
         <button onclick="addS()">Save Round</button>
@@ -62,12 +67,12 @@
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('course')"><span>⛳ Manage Courses</span><span>▼</span></div>
+    <div class="header" onclick="menuToggle('course')"><span>⛳ Course Database</span><span>▼</span></div>
     <div id="course" class="content">
         <button onclick="menuToggle('nc')">+ Add New Course</button>
         <div id="nc" class="content" style="border:1px dashed #ccc; margin-top:10px;">
             <label>Name</label><input type="text" id="ncN">
-            <label>Tee</label><input type="text" id="ncT">
+            <label>Tee Color</label><input type="text" id="ncT" placeholder="Blue, White, etc.">
             <label>Rating</label><input type="number" id="ncR" step="0.1">
             <label>Slope</label><input type="number" id="ncS">
             <button onclick="addC()">Save Course</button>
@@ -77,18 +82,13 @@
 </div>
 
 <script>
-    // --- 1. TOP-LEVEL SAFETY ZONE (Menus) ---
+    // --- SAFETY TOGGLE ---
     function menuToggle(id) {
         var x = document.getElementById(id);
         if (!x) return;
-        if (x.style.display === "block") {
-            x.style.display = "none";
-        } else {
-            x.style.display = "block";
-        }
+        x.style.display = (x.style.display === "block") ? "none" : "block";
     }
 
-    // --- 2. DATA LOGIC ---
     const MASTER_KEY = "Masters2026";
     const ADMIN_PASS = "golf2026";
     let isAdmin = false;
@@ -97,28 +97,30 @@
     var pName = localStorage.getItem('golf_pname') || "";
     var gKey = localStorage.getItem('golf_gkey') || "";
     var scores = [];
+    var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || [];
 
-    function performSwitch() {
-        // Save old profile before moving
+    function performSwitch(manualName = null) {
         if(pName && scores.length) {
             localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
         }
 
-        let inputName = document.getElementById('nameIn').value.trim();
+        let inputName = manualName || document.getElementById('nameIn').value.trim();
         let inputKey = document.getElementById('keyIn').value;
 
-        // Admin check
         if (inputKey === ADMIN_PASS) {
             isAdmin = true;
             gKey = MASTER_KEY;
-        } else {
+        } else if (inputKey) {
             isAdmin = false;
-            gKey = inputKey || MASTER_KEY;
+            gKey = inputKey;
         }
 
         pName = inputName;
+        if(pName && !knownUsers.includes(pName)) knownUsers.push(pName);
+        
         localStorage.setItem('golf_pname', pName);
         localStorage.setItem('golf_gkey', gKey);
+        localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
         
         loadScores();
         render();
@@ -126,82 +128,82 @@
 
     function loadScores() {
         let saved = localStorage.getItem('scores_' + pName.trim());
-        if (saved) {
-            scores = JSON.parse(saved);
-        } else {
-            // Check if global data exists to migrate
-            let global = localStorage.getItem('golfScores_v14');
-            scores = global ? JSON.parse(global) : [];
-        }
+        scores = saved ? JSON.parse(saved) : [];
     }
 
     function render() {
-        document.getElementById('pDisp').innerHTML = (pName || "Golfer") + (isAdmin ? ' <span style="background:black; color:white; font-size:10px; padding:2px 5px; border-radius:3px;">COMMISSIONER</span>' : '');
+        document.getElementById('pDisp').innerHTML = (pName || "Select User") + (isAdmin ? ' <span style="background:black; color:white; font-size:10px; padding:2px 5px; border-radius:3px;">COMMISSIONER</span>' : '');
         document.getElementById('nameIn').value = pName;
         
+        // Render User Pills
+        var uL = document.getElementById('userList');
+        uL.innerHTML = "";
+        knownUsers.forEach(u => {
+            let active = (u === pName) ? "active-pill" : "";
+            uL.innerHTML += `<span class="user-pill ${active}" onclick="performSwitch('${u}')">${u}</span>`;
+        });
+
         // Render Course Dropdown
         var sel = document.getElementById('cSel');
         sel.innerHTML = '<option value="">-- Choose Course --</option>';
         courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
-            sel.innerHTML += '<option value="'+i+'">'+c.name+'</option>';
+            sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
         });
 
         // Render Scores
         var sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
+        sl.innerHTML = scores.length ? "" : "<small>No history for this profile.</small>";
         scores.forEach((s, i) => {
-            sl.innerHTML += '<div class="score-item"><b>'+s.score+'</b> at '+(s.courseName||s.course)+'<br><small>'+s.date+' (Diff: '+s.diff+')</small>' +
-                '<div style="text-align:right; margin-top:5px;">' +
-                '<button class="btn-outline" onclick="menuToggle(\'ed-s-'+i+'\')">Edit</button>' +
-                '<button class="btn-outline" style="color:red" onclick="delS('+i+')">Del</button></div>' +
-                '<div id="ed-s-'+i+'" class="edit-drawer">' +
-                '<label>New Score</label><input type="number" id="ev-'+i+'" value="'+s.score+'">' +
-                '<button onclick="updateS('+i+')">Save Changes</button></div></div>';
+            sl.innerHTML += `<div class="score-item">
+                <b>${s.score}</b> at ${s.courseName} <span style="color:var(--primary)">(${s.teeColor || 'Tees'})</span><br>
+                <small>${s.date} | Diff: ${s.diff}</small>
+                <div style="text-align:right; margin-top:5px;">
+                    <button class="btn-outline" onclick="menuToggle('ed-s-${i}')">Edit</button>
+                    <button class="btn-outline" style="color:red" onclick="delS(${i})">Del</button>
+                </div>
+                <div id="ed-s-${i}" class="edit-drawer">
+                    <input type="number" id="ev-${i}" value="${s.score}"><button onclick="updateS(${i})">Save Changes</button>
+                </div>
+            </div>`;
         });
 
         // Render Courses
         var cl = document.getElementById('cList');
         cl.innerHTML = "";
         courses.forEach((c, i) => {
-            cl.innerHTML += '<div class="score-item"><b>'+c.name+'</b><br><small>R: '+c.rating+' S: '+c.slope+'</small>' +
-                '<div style="text-align:right; margin-top:5px;">' +
-                '<button class="btn-outline" onclick="menuToggle(\'ed-c-'+i+'\')">Edit</button>' +
-                '<button class="btn-outline" style="color:red" onclick="delC('+i+')">Del</button></div>' +
-                '<div id="ed-c-'+i+'" class="edit-drawer">' +
-                '<label>Rating</label><input type="number" id="er-'+i+'" value="'+c.rating+'" step="0.1">' +
-                '<label>Slope</label><input type="number" id="es-'+i+'" value="'+c.slope+'">' +
-                '<button onclick="updateC('+i+')">Save Changes</button></div></div>';
+            cl.innerHTML += `<div class="score-item">
+                <b>${c.name}</b> (${c.tee})<br><small>R: ${c.rating} S: ${c.slope}</small>
+                <div style="text-align:right; margin-top:5px;">
+                    <button class="btn-outline" style="color:red" onclick="delC(${i})">Del</button>
+                </div>
+            </div>`;
         });
         calc();
     }
 
-    function calc(targetScores = scores) {
-        if (targetScores.length < 3) {
-            if(targetScores === scores) document.getElementById('idx').innerText = "--";
-            return "--";
-        }
-        var diffs = targetScores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        var n = targetScores.length >= 20 ? 8 : (targetScores.length >= 10 ? 3 : 1);
+    function calc() {
+        if (scores.length < 3) return document.getElementById('idx').innerText = "--";
+        var diffs = scores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
+        var n = scores.length >= 20 ? 8 : (scores.length >= 10 ? 3 : 1);
         var avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        let res = (Math.floor(avg * 10) / 10).toFixed(1);
-        if(targetScores === scores) document.getElementById('idx').innerText = res;
-        return res;
+        document.getElementById('idx').innerText = (Math.floor(avg * 10) / 10).toFixed(1);
     }
 
     function addS() {
         var cIdx = document.getElementById('cSel').value;
         var val = parseFloat(document.getElementById('sIn').value);
+        if(!pName) return alert("Select a user first");
         if(cIdx === "" || isNaN(val)) return alert("Select course and score");
         var c = courses[cIdx];
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, score: val, diff: d });
+        scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
         localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
         render();
     }
 
     function updateS(i) {
         var newVal = parseFloat(document.getElementById('ev-'+i).value);
-        var c = courses.find(x => x.name === (scores[i].courseName || scores[i].course));
+        var c = courses.find(x => x.name === scores[i].courseName && x.tee === scores[i].teeColor);
         if(c) {
             scores[i].score = newVal;
             scores[i].diff = ((newVal - c.rating) * 113 / c.slope).toFixed(1);
@@ -212,16 +214,10 @@
 
     function addC() {
         var n = document.getElementById('ncN').value;
+        var t = document.getElementById('ncT').value;
         var r = parseFloat(document.getElementById('ncR').value);
         var s = parseInt(document.getElementById('ncS').value);
-        courses.push({ name: n, tee: document.getElementById('ncT').value, rating: r, slope: s });
-        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-        render();
-    }
-
-    function updateC(i) {
-        courses[i].rating = parseFloat(document.getElementById('er-'+i).value);
-        courses[i].slope = parseInt(document.getElementById('es-'+i).value);
+        courses.push({ name: n, tee: t, rating: r, slope: s });
         localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
         render();
     }
@@ -235,35 +231,34 @@
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
+            
+            // Sync Current User
             cloud.players[pName] = { index: document.getElementById('idx').innerText, history: scores.slice(0, 10) };
-            await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-            renderClubhouse(cloud);
-            alert("Updated!");
+            
+            // Update Known Users from Cloud
+            Object.keys(cloud.players).forEach(u => {
+                if(!knownUsers.includes(u)) knownUsers.push(u);
+            });
+            localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
+
+            await fetch("https://api.jsonstorage.net/v1/json/" + binId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cloud)
+            });
+            alert("Sync Complete!");
+            render();
         } catch (e) { alert("Sync Error"); }
     }
 
-    function renderClubhouse(cloud) {
-        var list = document.getElementById('cbList');
-        list.innerHTML = "";
-        for (var name in cloud.players) {
-            if (name === pName) continue;
-            var p = cloud.players[name];
-            list.innerHTML += '<div class="score-item">👤 <b>'+name+'</b>: '+p.index + 
-            ' <button class="btn-outline" onclick="menuToggle(\'f-hist-'+name+'\')">History</button>' +
-            '<div id="f-hist-'+name+'" class="edit-drawer">' +
-            p.history.map((s, idx) => '<div style="font-size:0.75rem; border-bottom:1px solid #eee; padding:5px 0;">'+s.date+': '+s.score+'</div>').join('') +
-            '</div></div>';
-        }
-    }
-
-    // Startup
+    // Start
     document.getElementById('dIn').valueAsDate = new Date();
-    document.getElementById('nameIn').value = pName;
     loadScores();
     render();
 </script>
 </body>
 </html>
+
 
 
 
