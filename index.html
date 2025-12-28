@@ -3,295 +3,359 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Tracker Master</title>
+    <title>Golf Tracker Pro (WHS Sync)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #2E7D32; --dark: #1B5E20; --accent: #FFA000; --bg: #f4f6f8; --text: #333; --white: #ffffff; --danger: #d32f2f; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; line-height: 1.4; }
+        :root {
+            --primary: #2E7D32; --dark: #1B5E20; --accent: #FFA000;
+            --bg: #f4f6f8; --text: #333; --white: #ffffff;
+            --danger: #d32f2f; --success: #4CAF50; --info: #0288d1;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg); color: var(--text); margin: 0; padding: 15px;
+        }
+
         .container { max-width: 600px; margin: 0 auto; }
-        
-        /* Cards & UI */
-        .card { background: var(--white); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 15px; margin-bottom: 15px; }
-        .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 16px; text-align: center; margin-bottom: 15px; }
-        .handicap-number { font-size: 3.5rem; font-weight: 800; margin: 0; }
-        
-        h3 { margin: 0 0 10px 0; color: var(--dark); border-bottom: 2px solid #eee; padding-bottom: 5px; font-size: 1.1rem; display: flex; justify-content: space-between; }
-        
-        /* Forms */
-        label { display: block; font-size: 0.8rem; font-weight: bold; color: #666; margin-bottom: 4px; }
-        input, select { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; margin-bottom: 12px; background: #fff; }
-        
-        /* Buttons */
-        button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+
+        /* DASHBOARD */
+        .dashboard-card {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white; padding: 20px; border-radius: 16px; text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-bottom: 20px;
+        }
+        .handicap-number { font-size: 3.5rem; font-weight: 800; line-height: 1; margin: 5px 0; }
+        .handicap-sub { font-size: 0.9rem; opacity: 0.9; }
+
+        /* CARDS */
+        .card { background: var(--white); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 15px; }
+        .card-header { font-weight: 700; font-size: 1.1rem; color: var(--dark); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+        .card-header.with-border { border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 15px; }
+
+        .section-label { font-size: 0.85rem; text-transform: uppercase; color: #777; margin: 20px 0 10px 5px; font-weight: bold; letter-spacing: 1px; }
+
+        /* FORM & INPUTS */
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: #555; }
+        select, input, textarea { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 15px; background: #fff; font-family: inherit; }
+
+        .course-details-box { background: #e8f5e9; border: 1px solid #c8e6c9; color: var(--dark); padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 15px; font-weight: bold; display: none; }
+        .row { display: flex; gap: 15px; }
+        .col { flex: 1; }
+
+        /* BUTTONS */
+        button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
-        .btn-sync { background: #0288d1; color: white; }
-        .btn-outline { background: none; border: 1px solid #ccc; color: #666; padding: 8px; font-size: 0.8rem; }
-        .btn-danger { color: var(--danger); font-size: 0.8rem; width: auto; background: none; padding: 0; }
-        
-        /* Lists */
-        .score-item { background: #fefefe; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 8px; list-style: none; position: relative; }
-        .row { display: flex; gap: 10px; }
-        .clubhouse-tag { background: #e8f5e9; color: var(--dark); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-        
+        .btn-sync { background: var(--info); color: white; margin-top: 10px; }
+        .btn-update { background: var(--accent); color: #000; }
+        .btn-cancel { background: #9e9e9e; color: white; margin-top: 10px; display: none; }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; width: auto; border-radius: 4px; border: 1px solid #ddd; background: white; margin-left: 5px;}
+        .btn-del { color: var(--danger); border-color: var(--danger); }
+
+        /* LISTS */
+        .score-list { list-style: none; padding: 0; margin: 0; }
+        .score-item { background: #f9f9f9; border-radius: 8px; border: 1px solid #eee; padding: 12px; margin-bottom: 10px; }
+        .score-top { display: flex; justify-content: space-between; align-items: center; }
+        .score-val { font-weight: bold; font-size: 1.1rem; }
+        .score-diff { color: #666; font-size: 0.85rem; margin-left: 5px; }
         .hidden { display: none; }
-        canvas { max-height: 180px; }
+        .arrow { transition: transform 0.3s; font-size: 0.8rem; color: #888; }
+        .collapsed .arrow { transform: rotate(-90deg); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="dashboard">
-        <div id="pNameDisplay" style="font-weight:bold; font-size: 1.2rem;">Golfer</div>
+
+    <div class="dashboard-card">
+        <div id="pNameDisplay" style="font-weight:bold; margin-bottom:5px;">Golfer</div>
         <div class="handicap-number" id="displayIndex">--</div>
-        <div style="font-size: 0.8rem; opacity: 0.8; letter-spacing: 1px;">HANDICAP INDEX</div>
-        <div style="margin-top:10px;"><canvas id="progChart"></canvas></div>
+        <div class="handicap-sub" id="displayCount">No scores entered</div>
     </div>
 
     <div class="card">
-        <h3>⚙️ Clubhouse Settings</h3>
-        <div class="row">
-            <div style="flex:1"><label>Your Name</label><input type="text" id="pName" onchange="updateProfile()"></div>
-            <div style="flex:1"><label>Group Key</label><input type="text" id="gKey" onchange="updateProfile()"></div>
+        <div class="card-header" onclick="toggleSection('syncContent', this)">
+            <span>👥 Clubhouse Setup & Sync</span>
+            <span class="arrow">▼</span>
         </div>
-        <button class="btn-sync" id="syncBtn" onclick="syncData()">🔄 Sync with Clubhouse</button>
+        <div id="syncContent" class="hidden" style="margin-top:15px;">
+            <label>Your Display Name</label>
+            <input type="text" id="playerNameInput" placeholder="Enter your name" onchange="saveSyncSettings()">
+            <label>Group Secret Key</label>
+            <input type="text" id="groupKeyInput" placeholder="Shared with friends" onchange="saveSyncSettings()">
+            <button class="btn-sync" id="syncBtn" onclick="syncWithFriends()">🔄 Sync with Clubhouse</button>
+        </div>
     </div>
 
     <div id="clubhouseCard" class="card hidden">
-        <h3>👥 Friends Leaderboard</h3>
-        <div id="clubhouseList"></div>
+        <div class="card-header"><span>🏆 Friends Leaderboard</span></div>
+        <div id="clubhouseList" style="margin-top:15px;"></div>
     </div>
 
-    <div class="card">
-        <h3>⛳ Post New Round</h3>
-        <label>Course</label>
-        <select id="courseSelect"></select>
+    <div class="card" id="scoreFormCard">
+        <div class="card-header with-border"><span>⛳ Post New Score</span></div>
+        <input type="hidden" id="editScoreId">
+        <label>Select Course</label>
+        <select id="courseSelect" onchange="handleCourseSelect()"></select>
+        <div id="courseInfoBox" class="course-details-box"></div>
         <div class="row">
-            <div style="flex:1"><label>Date</label><input type="date" id="scoreDate"></div>
-            <div style="flex:1"><label>Gross Score</label><input type="number" id="scoreVal" placeholder="Ex: 85"></div>
+            <div class="col"><label>Date</label><input type="date" id="scoreDate"></div>
+            <div class="col"><label>Score</label><input type="number" id="scoreVal" placeholder="--" oninput="updateDiffPreview()"></div>
         </div>
-        <button class="btn-primary" onclick="submitScore()">Post Score</button>
+        <button id="postBtn" class="btn-primary" onclick="submitScore()">Post Score</button>
+        <button id="cancelBtn" class="btn-cancel" onclick="resetForm()">Cancel Edit</button>
     </div>
 
     <div class="card">
-        <h3>📝 Score History</h3>
-        <ul id="scoreList" style="padding:0; margin:0;"></ul>
+        <div class="card-header collapsed" onclick="toggleSection('historyContent', this)">
+            <span>📝 My Score History</span>
+            <span class="arrow">▼</span>
+        </div>
+        <div id="historyContent" class="card-content hidden">
+            <ul id="scoreList" class="score-list" style="margin-top:15px;"></ul>
+        </div>
     </div>
 
+    <div class="section-label">Management</div>
     <div class="card">
-        <h3>🏗️ Course Database <button class="btn-outline" style="width:auto" onclick="toggleElement('courseForm')">+ Add</button></h3>
-        <div id="courseForm" class="hidden" style="background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-            <label>Course Name</label><input type="text" id="ncName">
-            <label>Tee</label><input type="text" id="ncTee">
-            <div class="row">
-                <div><label>Rating</label><input type="number" id="ncRating" step="0.1"></div>
-                <div><label>Slope</label><input type="number" id="ncSlope"></div>
+        <div class="card-header collapsed" onclick="toggleSection('courseDbContent', this)">
+            <span>⛳ Edit Course Database</span>
+            <span class="arrow">▼</span>
+        </div>
+        <div id="courseDbContent" class="card-content hidden">
+            <button class="btn-primary" style="margin-top:15px; margin-bottom:15px;" onclick="openCourseForm()">+ Add New Course</button>
+            <div id="courseForm" style="display:none; background:#fafafa; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">
+                <input type="hidden" id="cEditIndex">
+                <label>Course Name</label><input type="text" id="cName">
+                <label>Tee Color</label><input type="text" id="cTee">
+                <div class="row">
+                    <div class="col"><label>Rating</label><input type="number" id="cRating" step="0.1"></div>
+                    <div class="col"><label>Slope</label><input type="number" id="cSlope"></div>
+                </div>
+                <button class="btn-primary" onclick="saveCourse()">Save Course</button>
             </div>
-            <button class="btn-primary" onclick="addCourse()">Save Course</button>
+            <ul id="courseDbList" class="score-list"></ul>
         </div>
-        <div id="fullCourseList" style="max-height: 200px; overflow-y: auto;"></div>
     </div>
 
-    <div class="card" style="text-align:center; background:none; box-shadow:none;">
-        <button class="btn-outline" onclick="exportData()">💾 Download Data Backup</button>
-        <button class="btn-danger" style="margin-top:20px" onclick="clearData()">⚠️ Reset App Memory</button>
-    </div>
 </div>
 
 <script>
-    // --- DATA RECOVERY ENGINE ---
-    function recoverAllData() {
-        const scoreSlots = ['FINAL_SCORES', 'main_scores', 'golfScores_v14', 'golf_scores', 'golfScores'];
-        const courseSlots = ['FINAL_COURSES', 'main_courses', 'golfCourses_v14', 'golf_courses_custom', 'golfCourses'];
-        
-        let foundScores = [];
-        let foundCourses = [];
-
-        scoreSlots.forEach(slot => {
-            const d = localStorage.getItem(slot);
-            if(d) {
-                const p = JSON.parse(d);
-                if(Array.isArray(p) && p.length > foundScores.length) foundScores = p;
-            }
-        });
-
-        courseSlots.forEach(slot => {
-            const d = localStorage.getItem(slot);
-            if(d) {
-                const p = JSON.parse(d);
-                if(Array.isArray(p) && p.length > foundCourses.length) foundCourses = p;
-            }
-        });
-
-        // If data was found, save it to the NEW MASTER KEYS
-        if(foundScores.length > 0) localStorage.setItem('MASTER_SCORES', JSON.stringify(foundScores));
-        if(foundCourses.length > 0) localStorage.setItem('MASTER_COURSES', JSON.stringify(foundCourses));
-    }
-    recoverAllData();
-
-    // --- GLOBAL STATE ---
-    const API = "https://api.jsonstorage.net/v1/json/";
-    let scores = JSON.parse(localStorage.getItem('MASTER_SCORES')) || [];
-    let playerName = localStorage.getItem('MASTER_PNAME') || "";
-    let groupKey = localStorage.getItem('MASTER_GKEY') || "";
-    let myChart = null;
-
-    const defaults = [
-        {name: 'Beaver Creek', tee: 'Blue', slope: 130, rating: 72.0},
-        {name: 'Santa Maria', tee: 'Blue', slope: 128, rating: 71.5},
-        {name: 'Greystone', tee: 'Blue', slope: 128, rating: 70.8},
-        {name: 'Carter Plantation', tee: 'Blue', slope: 126, rating: 69.7},
-        {name: 'The Island', tee: 'Blue', slope: 135, rating: 73.1}
+    // --- DATA INITIALIZATION ---
+    const API_BASE = "https://api.jsonstorage.net/v1/json/";
+    
+    const defaultCourses = [
+        {'name': 'Beaver Creek', 'tee': 'Blue', 'slope': 130.0, 'rating': 72.0},
+        {'name': 'Santa Maria', 'tee': 'Blue', 'slope': 128.0, 'rating': 71.5},
+        {'name': 'The Island', 'tee': 'Blue', 'slope': 135.0, 'rating': 73.1}
     ];
-    let courses = JSON.parse(localStorage.getItem('MASTER_COURSES')) || defaults;
+
+    let courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || defaultCourses;
+    let scores = JSON.parse(localStorage.getItem('golfScores_v14')) || [];
+    let playerName = localStorage.getItem('golf_pname') || "";
+    let groupKey = localStorage.getItem('golf_gkey') || "";
 
     function init() {
-        document.getElementById('pName').value = playerName;
-        document.getElementById('gKey').value = groupKey;
         document.getElementById('scoreDate').valueAsDate = new Date();
-        renderCourses();
+        document.getElementById('playerNameInput').value = playerName;
+        document.getElementById('groupKeyInput').value = groupKey;
         updateUI();
-        if(playerName && groupKey) syncData();
+        if(playerName && groupKey) syncWithFriends();
     }
 
-    function toggleElement(id) { document.getElementById(id).classList.toggle('hidden'); }
+    function toggleSection(id, header) {
+        document.getElementById(id).classList.toggle('hidden');
+        if(header) header.classList.toggle('collapsed');
+    }
 
-    function updateProfile() {
-        playerName = document.getElementById('pName').value;
-        groupKey = document.getElementById('gKey').value;
-        localStorage.setItem('MASTER_PNAME', playerName);
-        localStorage.setItem('MASTER_GKEY', groupKey);
+    function saveSyncSettings() {
+        playerName = document.getElementById('playerNameInput').value;
+        groupKey = document.getElementById('groupKeyInput').value;
+        localStorage.setItem('golf_pname', playerName);
+        localStorage.setItem('golf_gkey', groupKey);
         updateUI();
-    }
-
-    function renderCourses() {
-        const sel = document.getElementById('courseSelect');
-        const list = document.getElementById('fullCourseList');
-        sel.innerHTML = '<option value="">-- Select Course --</option>';
-        list.innerHTML = "";
-        courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
-            sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
-            list.innerHTML += `<div style="font-size:0.8rem; border-bottom:1px solid #eee; padding:8px 0; display:flex; justify-content:space-between">
-                <span>${c.name} (${c.tee}) - ${c.rating}/${c.slope}</span>
-                <button class="btn-danger" onclick="deleteCourse(${i})">✕</button>
-            </div>`;
-        });
-    }
-
-    function addCourse() {
-        const name = document.getElementById('ncName').value;
-        const tee = document.getElementById('ncTee').value;
-        const rat = parseFloat(document.getElementById('ncRating').value);
-        const slo = parseInt(document.getElementById('ncSlope').value);
-        if(!name || !rat || !slo) return alert("Fill all fields");
-        courses.push({name, tee, rating: rat, slope: slo});
-        localStorage.setItem('MASTER_COURSES', JSON.stringify(courses));
-        renderCourses();
-        toggleElement('courseForm');
-    }
-
-    function deleteCourse(i) {
-        if(confirm("Delete course?")) { courses.splice(i,1); localStorage.setItem('MASTER_COURSES', JSON.stringify(courses)); renderCourses(); }
-    }
-
-    function calculateIndex(sList) {
-        if (sList.length < 3) return "--";
-        let diffs = [...sList].map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        let n = sList.length >= 20 ? 8 : (sList.length >= 15 ? 5 : (sList.length >= 10 ? 3 : 1));
-        let avg = diffs.slice(0, n).reduce((a,b) => a+b, 0) / n;
-        return (Math.floor(avg * 10) / 10).toFixed(1);
     }
 
     function updateUI() {
-        const index = calculateIndex(scores);
-        document.getElementById('displayIndex').innerText = index;
         document.getElementById('pNameDisplay').innerText = playerName || "Golfer";
-        
-        const list = document.getElementById('scoreList');
-        list.innerHTML = scores.length === 0 ? '<li style="color:gray; font-size:0.8rem">No scores yet</li>' : "";
-        
-        const chartData = [];
-        
-        scores.forEach((s, i) => {
-            chartData.unshift(s.diff);
-            list.innerHTML += `<li class="score-item">
-                <div style="display:flex; justify-content:space-between">
-                    <strong>${s.score}</strong> <span>${s.courseName}</span>
-                    <button class="btn-danger" onclick="deleteScore(${i})">✕</button>
-                </div>
-                <div style="font-size:0.75rem; color:#666">${s.date} | Diff: ${s.diff} | ${s.rating}/${s.slope}</div>
-            </li>`;
-        });
-        updateChart(chartData);
+        courses.sort((a, b) => a.name.localeCompare(b.name));
+        renderDropdown();
+        renderScoreList();
+        renderCourseDb();
+        calculateHandicap();
     }
 
-    function updateChart(data) {
-        const ctx = document.getElementById('progChart').getContext('2d');
-        if(myChart) myChart.destroy();
-        myChart = new Chart(ctx, {
-            type: 'line',
-            data: { labels: data.map((_,i)=>i+1), datasets: [{ label: 'Diff', data: data, borderColor: 'white', tension: 0.3, fill: false, pointRadius: 2 }] },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { ticks: { color: 'rgba(255,255,255,0.7)' } } } }
-        });
+    function saveData() {
+        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+        localStorage.setItem('golfScores_v14', JSON.stringify(scores));
+        updateUI();
     }
 
+    function calculateHandicap() {
+        if (scores.length < 3) {
+            document.getElementById('displayIndex').innerText = "--";
+            document.getElementById('displayCount').innerText = `Post ${3 - scores.length} more rounds`;
+            return;
+        }
+        let diffs = [...scores].map(r => parseFloat(r.diff)).sort((a,b) => a-b);
+        let n = scores.length >= 20 ? 8 : (scores.length >= 15 ? 5 : (scores.length >= 10 ? 3 : 1));
+        let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
+        document.getElementById('displayIndex').innerText = (Math.floor(avg * 10) / 10).toFixed(1);
+        document.getElementById('displayCount').innerText = `${Math.min(scores.length, 20)} rounds used`;
+    }
+
+    // --- SCORE ACTIONS ---
     function submitScore() {
+        const editId = document.getElementById('editScoreId').value;
         const idx = document.getElementById('courseSelect').value;
-        const val = document.getElementById('scoreVal').value;
-        if(idx === "" || !val) return alert("Select course and enter score");
+        const date = document.getElementById('scoreDate').value;
+        const val = parseFloat(document.getElementById('scoreVal').value);
+        if (idx === "" || !date || !val) { alert("Please complete form"); return; }
         const c = courses[idx];
         const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        scores.unshift({ date: document.getElementById('scoreDate').value, courseName: c.name, score: val, diff: diff, rating: c.rating, slope: c.slope });
-        localStorage.setItem('MASTER_SCORES', JSON.stringify(scores));
-        updateUI();
-        syncData();
+        const entry = { id: editId ? parseInt(editId) : Date.now(), date, courseName: c.name, tee: c.tee, rating: c.rating, slope: c.slope, score: val, diff };
+        
+        if (editId) {
+            const i = scores.findIndex(s => s.id == editId);
+            if (i > -1) scores[i] = entry;
+        } else {
+            scores.unshift(entry);
+        }
+        resetForm();
+        saveData();
+        if(playerName && groupKey) syncWithFriends();
+    }
+
+    function resetForm() {
+        document.getElementById('editScoreId').value = "";
         document.getElementById('scoreVal').value = "";
+        document.getElementById('courseSelect').value = "";
+        document.getElementById('courseInfoBox').style.display = "none";
+        document.getElementById('postBtn').innerText = "Post Score";
+        document.getElementById('cancelBtn').style.display = "none";
     }
 
-    function deleteScore(i) {
-        if(confirm("Delete score?")) { scores.splice(i,1); localStorage.setItem('MASTER_SCORES', JSON.stringify(scores)); updateUI(); syncData(); }
+    function deleteScore(id) {
+        if(confirm("Delete round?")) { scores = scores.filter(s => s.id !== id); saveData(); syncWithFriends(); }
     }
 
-    async function syncData() {
-        if(!playerName || !groupKey) return;
-        const groupID = btoa(groupKey).replace(/=/g, "");
+    // --- SYNC LOGIC ---
+    async function syncWithFriends() {
+        if(!playerName || !groupKey) return alert("Enter Name and Group Key to sync!");
+        const binId = btoa(groupKey).replace(/=/g, "");
         const btn = document.getElementById('syncBtn');
         btn.innerText = "Syncing...";
+
         try {
-            const res = await fetch(`${API}${groupID}`);
-            let data = res.ok ? await res.json() : {};
-            data[playerName] = { index: calculateIndex(scores), history: scores.slice(0,10), updated: new Date().toLocaleTimeString() };
-            await fetch(`${API}${groupID}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            renderClubhouse(data);
-        } catch (e) { console.error("Sync Error", e); }
+            const res = await fetch(`${API_BASE}${binId}`);
+            let cloudData = res.ok ? await res.json() : { players: {}, sharedCourses: [] };
+
+            // 1. Upload my data
+            cloudData.players[playerName] = {
+                index: document.getElementById('displayIndex').innerText,
+                history: scores.slice(0, 20),
+                updated: new Date().toLocaleTimeString()
+            };
+
+            // 2. Merge Courses (Shared Database)
+            let courseMap = new Map();
+            [...cloudData.sharedCourses, ...courses].forEach(c => courseMap.set(`${c.name}-${c.tee}`, c));
+            cloudData.sharedCourses = Array.from(courseMap.values());
+            courses = cloudData.sharedCourses;
+
+            // 3. Save to Cloud
+            await fetch(`${API_BASE}${binId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cloudData)
+            });
+
+            renderClubhouse(cloudData.players);
+            saveData();
+        } catch (e) { console.error(e); }
         btn.innerText = "🔄 Sync with Clubhouse";
     }
 
-    function renderClubhouse(data) {
-        const container = document.getElementById('clubhouseList');
+    function renderClubhouse(players) {
+        const list = document.getElementById('clubhouseList');
         document.getElementById('clubhouseCard').classList.remove('hidden');
-        container.innerHTML = "";
-        for (let f in data) {
-            if (f === playerName) continue;
-            const friend = data[f];
-            container.innerHTML += `<div style="border-bottom: 1px solid #eee; padding: 10px 0;">
-                <div style="display:flex; justify-content:space-between">
-                    <strong>${f}</strong> <span class="clubhouse-tag">${friend.index}</span>
+        list.innerHTML = "";
+        for (let name in players) {
+            if (name === playerName) continue;
+            const p = players[name];
+            const div = document.createElement('div');
+            div.className = "score-item";
+            div.innerHTML = `
+                <div class="card-header" onclick="toggleSection('friend_${name}')">
+                    <span>👤 ${name} <strong>(${p.index})</strong></span>
+                    <span class="arrow">▼</span>
                 </div>
-                <div style="font-size:0.7rem; color:gray">Last: ${friend.history.map(s => s.score).join(', ')}</div>
-            </div>`;
+                <div id="friend_${name}" class="hidden" style="margin-top:10px">
+                    ${p.history.map(s => `<div style="font-size:0.8rem; border-bottom:1px solid #eee; padding:5px 0;">${s.date}: <strong>${s.score}</strong> (${s.courseName})</div>`).join('')}
+                </div>`;
+            list.appendChild(div);
         }
     }
 
-    function exportData() {
-        const data = JSON.stringify({scores, courses, playerName, groupKey});
-        const blob = new Blob([data], {type: 'application/json'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'golf_master_backup.json';
-        a.click();
+    // --- ORIGINAL MANAGEMENT FUNCTIONS ---
+    function renderDropdown() {
+        const sel = document.getElementById('courseSelect');
+        const curr = sel.value;
+        sel.innerHTML = '<option value="">-- Choose Course --</option>';
+        courses.forEach((c, i) => {
+            const opt = document.createElement('option');
+            opt.value = i; opt.innerText = `${c.name} (${c.tee})`;
+            sel.appendChild(opt);
+        });
+        sel.value = curr;
     }
 
-    function clearData() { if(confirm("Wipe all data?")) { localStorage.clear(); location.reload(); } }
+    function handleCourseSelect() {
+        const idx = document.getElementById('courseSelect').value;
+        const box = document.getElementById('courseInfoBox');
+        if (idx === "") box.style.display = "none";
+        else {
+            const c = courses[idx];
+            box.innerHTML = `${c.tee} Tees | Rating: ${c.rating} | Slope: ${c.slope}`;
+            box.style.display = "block";
+        }
+    }
+
+    function renderScoreList() {
+        const list = document.getElementById('scoreList');
+        list.innerHTML = "";
+        scores.forEach(s => {
+            const li = document.createElement('li');
+            li.className = "score-item";
+            li.innerHTML = `<div class="score-top"><div><small>${s.date}</small><br><strong>${s.courseName}</strong></div>
+                <div style="text-align:right"><span class="score-val">${s.score}</span><br><span class="score-diff">Diff: ${s.diff}</span></div></div>
+                <div style="text-align:right; margin-top:5px;"><button class="btn-sm btn-del" onclick="deleteScore(${s.id})">Del</button></div>`;
+            list.appendChild(li);
+        });
+    }
+
+    function renderCourseDb() {
+        const list = document.getElementById('courseDbList');
+        list.innerHTML = "";
+        courses.forEach((c, i) => {
+            const li = document.createElement('li');
+            li.className = "score-item";
+            li.innerHTML = `<div class="score-top"><div><strong>${c.name}</strong> (${c.tee})</div>
+                <button class="btn-sm btn-del" onclick="deleteCourse(${i})">Del</button></div>`;
+            list.appendChild(li);
+        });
+    }
+
+    function openCourseForm() { document.getElementById('courseForm').style.display = 'block'; }
+    function saveCourse() {
+        const name = document.getElementById('cName').value, tee = document.getElementById('cTee').value;
+        const rating = parseFloat(document.getElementById('cRating').value), slope = parseFloat(document.getElementById('cSlope').value);
+        if(!name || !rating) return alert("Fill fields");
+        courses.push({ name, tee, rating, slope });
+        document.getElementById('courseForm').style.display = 'none';
+        saveData();
+    }
+    function deleteCourse(i) { if(confirm("Delete course?")) { courses.splice(i, 1); saveData(); } }
 
     init();
 </script>
