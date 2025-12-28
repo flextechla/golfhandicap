@@ -16,12 +16,12 @@
         .handicap-number { font-size: 3.5rem; font-weight: 800; line-height: 1; margin: 5px 0; }
         .card { background: var(--white); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 15px; }
         .card-header { font-weight: 700; font-size: 1.1rem; color: var(--dark); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .card-header.with-border { border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 15px; cursor: default; }
         label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.85rem; color: #555; }
         select, input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 12px; }
         .row { display: flex; gap: 10px; }
         .col { flex: 1; }
         button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        button:disabled { background: #ccc !important; cursor: not-allowed; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-sync { background: var(--info); color: white; margin-top: 10px; }
         .btn-sm { padding: 6px 10px; font-size: 0.75rem; width: auto; border-radius: 4px; border: 1px solid #ddd; background: white; }
@@ -38,7 +38,7 @@
     <div class="dashboard-card">
         <div id="pNameDisplay" style="font-weight:bold; margin-bottom:5px;">Golfer</div>
         <div class="handicap-number" id="displayIndex">--</div>
-        <div id="debugStatus" style="font-size: 0.7rem; opacity: 0.8;">WHS HANDICAP INDEX</div>
+        <div style="font-size: 0.8rem; opacity: 0.8;">WHS HANDICAP INDEX</div>
     </div>
 
     <div class="card">
@@ -47,10 +47,10 @@
         </div>
         <div id="syncBox" class="hidden" style="margin-top:15px;">
             <label>Display Name</label>
-            <input type="text" id="playerNameInput" onchange="saveSyncSettings()">
+            <input type="text" id="playerNameInput" placeholder="Your Name">
             <label>Group Secret Key</label>
-            <input type="text" id="groupKeyInput" onchange="saveSyncSettings()">
-            <button class="btn-sync" onclick="syncWithFriends()">🔄 Sync Now</button>
+            <input type="text" id="groupKeyInput" placeholder="Room Password">
+            <button class="btn-sync" id="syncBtn" onclick="syncWithFriends()">🔄 Sync Now</button>
         </div>
     </div>
 
@@ -60,15 +60,19 @@
     </div>
 
     <div class="card">
-        <div class="card-header with-border"><span>⛳ Post New Score</span></div>
-        <label>Course</label>
-        <select id="mainCourseSelect" onchange="updateCoursePreview('mainCoursePre', 'mainCourseSelect')"></select>
-        <div id="mainCoursePre" style="font-size:0.8rem; text-align:center; color:var(--primary); margin-bottom:10px; font-weight:bold;"></div>
-        <div class="row">
-            <div class="col"><label>Date</label><input type="date" id="mainScoreDate"></div>
-            <div class="col"><label>Score</label><input type="number" id="mainScoreVal" placeholder="Gross"></div>
+        <div class="card-header collapsed" onclick="toggleSection('postNewScoreBox', this)">
+            <span>⛳ Post New Score</span><span class="arrow">▼</span>
         </div>
-        <button class="btn-primary" onclick="submitNewScore()">Post Score</button>
+        <div id="postNewScoreBox" class="hidden" style="margin-top:15px;">
+            <label>Select Course</label>
+            <select id="mainCourseSelect" onchange="updateCoursePreview('mainCoursePre', 'mainCourseSelect')"></select>
+            <div id="mainCoursePre" style="font-size:0.8rem; text-align:center; color:var(--primary); margin-bottom:10px; font-weight:bold;"></div>
+            <div class="row">
+                <div class="col"><label>Date</label><input type="date" id="mainScoreDate"></div>
+                <div class="col"><label>Score</label><input type="number" id="mainScoreVal" placeholder="Gross"></div>
+            </div>
+            <button id="mainPostBtn" class="btn-primary" onclick="submitNewScore()" disabled>Post Score</button>
+        </div>
     </div>
 
     <div class="card">
@@ -113,20 +117,12 @@
         document.getElementById('playerNameInput').value = playerName;
         document.getElementById('groupKeyInput').value = groupKey;
         updateUI();
-        if(playerName && groupKey) syncWithFriends();
+        if(playerName && groupKey) syncWithFriends(true); // Silent sync on load
     }
 
     function toggleSection(id, header) {
         document.getElementById(id).classList.toggle('hidden');
         if(header) header.classList.toggle('collapsed');
-    }
-
-    function saveSyncSettings() {
-        playerName = document.getElementById('playerNameInput').value;
-        groupKey = document.getElementById('groupKeyInput').value;
-        localStorage.setItem('golf_pname', playerName);
-        localStorage.setItem('golf_gkey', groupKey);
-        document.getElementById('pNameDisplay').innerText = playerName || "Golfer";
     }
 
     function updateUI() {
@@ -138,39 +134,12 @@
         calculateHandicap();
     }
 
-    // --- REPAIRED HANDICAP LOGIC ---
     function calculateHandicap() {
-        if (scores.length < 3) {
-            document.getElementById('displayIndex').innerText = "--";
-            return;
-        }
-
-        // 1. Sort by date to get the most recent rounds correctly
-        let sortedScores = [...scores].sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        // 2. Take the most recent 20
-        let recentScores = sortedScores.slice(0, 20);
-        
-        // 3. Extract differentials and sort numerically
-        let diffs = recentScores.map(s => parseFloat(s.diff)).sort((a, b) => a - b);
-        
-        // 4. Determine how many to average based on WHS rules
-        let count = recentScores.length;
-        let numToUse = 8;
-        if (count <= 3) numToUse = 1;
-        else if (count <= 5) numToUse = 1;
-        else if (count <= 6) numToUse = 2;
-        else if (count <= 8) numToUse = 2;
-        else if (count <= 11) numToUse = 3;
-        else if (count <= 14) numToUse = 4;
-        else if (count <= 16) numToUse = 5;
-        else if (count <= 18) numToUse = 6;
-        else if (count == 19) numToUse = 7;
-
-        let avg = diffs.slice(0, numToUse).reduce((a, b) => a + b, 0) / numToUse;
-        let result = (Math.floor(avg * 10) / 10).toFixed(1);
-        
-        document.getElementById('displayIndex').innerText = result;
+        if (scores.length < 3) return document.getElementById('displayIndex').innerText = "--";
+        let diffs = [...scores].map(r => parseFloat(r.diff)).sort((a,b) => a-b);
+        let n = scores.length >= 20 ? 8 : (scores.length >= 15 ? 5 : (scores.length >= 10 ? 3 : 1));
+        let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
+        document.getElementById('displayIndex').innerText = (Math.floor(avg * 10) / 10).toFixed(1);
     }
 
     function renderDropdowns() {
@@ -188,12 +157,33 @@
     function updateCoursePreview(previewId, selectId) {
         const idx = document.getElementById(selectId).value;
         const box = document.getElementById(previewId);
-        if (idx === "") { box.innerText = ""; return; }
+        const btn = document.getElementById('mainPostBtn');
+        
+        if (idx === "") { 
+            box.innerText = ""; 
+            if(btn) btn.disabled = true;
+            return; 
+        }
+        
         const c = courses[idx];
         box.innerText = `R: ${c.rating} / S: ${c.slope}`;
+        if(btn) btn.disabled = false;
     }
 
-    // --- SCORE HISTORY ---
+    // --- SCORE ACTIONS ---
+    function submitNewScore() {
+        const cIdx = document.getElementById('mainCourseSelect').value;
+        const val = parseFloat(document.getElementById('mainScoreVal').value);
+        if(cIdx === "" || !val) return alert("Select course and score");
+        const c = courses[cIdx];
+        const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
+        scores.unshift({ date: document.getElementById('mainScoreDate').value, courseName: c.name, score: val, diff: diff });
+        localStorage.setItem('golfScores_v14', JSON.stringify(scores));
+        document.getElementById('mainScoreVal').value = "";
+        updateUI();
+        syncWithFriends(true);
+    }
+
     function renderScoreList() {
         const list = document.getElementById('scoreList');
         list.innerHTML = "";
@@ -213,140 +203,8 @@
                         <select id="edit-score-sel-${i}" onchange="updateCoursePreview('edit-score-pre-${i}', 'edit-score-sel-${i}')"></select>
                         <div id="edit-score-pre-${i}" style="font-size:0.75rem; text-align:center; color:var(--primary); margin-bottom:5px; font-weight:bold;"></div>
                         <div class="row">
-                            <div class="col"><label>Date</label><input type="date" id="edit-score-date-${i}" value="${s.date}"></div>
-                            <div class="col"><label>Score</label><input type="number" id="edit-score-val-${i}" value="${s.score}"></div>
-                        </div>
-                        <button class="btn-primary" onclick="updateRound(${i})">Save Changes</button>
-                    </div>
-                </li>`;
-            
-            setTimeout(() => {
-                const sel = document.getElementById(`edit-score-sel-${i}`);
-                sel.innerHTML = '<option value="">-- Choose Course --</option>';
-                courses.forEach((c, idx) => {
-                    sel.innerHTML += `<option value="${idx}">${c.name} (${c.tee})</option>`;
-                });
-                const cIdx = courses.findIndex(c => c.name === s.courseName);
-                if(cIdx !== -1) {
-                    sel.value = cIdx;
-                    updateCoursePreview(`edit-score-pre-${i}`, `edit-score-sel-${i}`);
-                }
-            }, 0);
-        });
-    }
+                            <div class="col"><label>Date</label><input type="date" id="edit-score-
 
-    function submitNewScore() {
-        const cIdx = document.getElementById('mainCourseSelect').value;
-        const val = parseFloat(document.getElementById('mainScoreVal').value);
-        if(cIdx === "" || !val) return alert("Select course and score");
-        const c = courses[cIdx];
-        const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        scores.unshift({ date: document.getElementById('mainScoreDate').value, courseName: c.name, score: val, diff: diff });
-        localStorage.setItem('golfScores_v14', JSON.stringify(scores));
-        document.getElementById('mainScoreVal').value = "";
-        updateUI();
-        syncWithFriends();
-    }
-
-    function updateRound(i) {
-        const cIdx = document.getElementById(`edit-score-sel-${i}`).value;
-        const val = parseFloat(document.getElementById(`edit-score-val-${i}`).value);
-        if(cIdx === "" || !val) return alert("Select course and score");
-        const c = courses[cIdx];
-        const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        scores[i] = { date: document.getElementById(`edit-score-date-${i}`).value, courseName: c.name, score: val, diff: diff };
-        localStorage.setItem('golfScores_v14', JSON.stringify(scores));
-        updateUI();
-        syncWithFriends();
-    }
-
-    function deleteScore(i) { if(confirm("Delete round?")) { scores.splice(i, 1); localStorage.setItem('golfScores_v14', JSON.stringify(scores)); updateUI(); syncWithFriends(); } }
-
-    // --- COURSE DATABASE ---
-    function renderCourseDb() {
-        const list = document.getElementById('courseDbList');
-        list.innerHTML = "";
-        courses.forEach((c, i) => {
-            list.innerHTML += `
-                <li class="score-item">
-                    <div class="score-top">
-                        <div><strong>${c.name}</strong> (${c.tee})<br><small>R: ${c.rating} / S: ${c.slope}</small></div>
-                        <div>
-                            <button class="btn-sm" onclick="toggleSection('edit-course-box-${i}')">Edit</button>
-                            <button class="btn-sm" style="color:red" onclick="deleteCourse(${i})">Del</button>
-                        </div>
-                    </div>
-                    <div id="edit-course-box-${i}" class="hidden edit-drawer">
-                        <label>Name</label><input type="text" id="edit-cname-${i}" value="${c.name}">
-                        <label>Tee</label><input type="text" id="edit-ctee-${i}" value="${c.tee}">
-                        <div class="row">
-                            <div class="col"><label>Rating</label><input type="number" id="edit-crat-${i}" step="0.1" value="${c.rating}"></div>
-                            <div class="col"><label>Slope</label><input type="number" id="edit-cslo-${i}" value="${c.slope}"></div>
-                        </div>
-                        <button class="btn-primary" onclick="updateCourse(${i})">Save Course</button>
-                    </div>
-                </li>`;
-        });
-    }
-
-    function addNewCourse() {
-        const name = document.getElementById('ncName').value;
-        const tee = document.getElementById('ncTee').value;
-        const rat = parseFloat(document.getElementById('ncRating').value);
-        const slo = parseInt(document.getElementById('ncSlope').value);
-        if(!name || !rat || !slo) return alert("Fill all fields");
-        courses.push({name, tee, rating: rat, slope: slo});
-        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-        document.getElementById('ncName').value = "";
-        toggleSection('newCourseForm');
-        updateUI();
-    }
-
-    function updateCourse(i) {
-        courses[i] = {
-            name: document.getElementById(`edit-cname-${i}`).value,
-            tee: document.getElementById(`edit-ctee-${i}`).value,
-            rating: parseFloat(document.getElementById(`edit-crat-${i}`).value),
-            slope: parseInt(document.getElementById(`edit-cslo-${i}`).value)
-        };
-        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-        updateUI();
-    }
-
-    function deleteCourse(i) { if(confirm("Delete course?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); updateUI(); } }
-
-    async function syncWithFriends() {
-        if(!playerName || !groupKey) return;
-        const binId = btoa(groupKey).replace(/=/g, "");
-        try {
-            const res = await fetch(`${API_BASE}${binId}`);
-            let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
-            cloud.players[playerName] = { index: document.getElementById('displayIndex').innerText, history: scores.slice(0, 10) };
-            let cmap = new Map();
-            [...cloud.courses, ...courses].forEach(c => cmap.set(`${c.name}-${c.tee}`, c));
-            cloud.courses = Array.from(cmap.values());
-            courses = cloud.courses;
-            await fetch(`${API_BASE}${binId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-            renderClubhouse(cloud.players);
-            localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-            updateUI();
-        } catch (e) { console.error(e); }
-    }
-
-    function renderClubhouse(players) {
-        const list = document.getElementById('clubhouseList');
-        document.getElementById('clubhouseCard').classList.remove('hidden');
-        list.innerHTML = "";
-        for (let name in players) {
-            if (name === playerName) continue;
-            list.innerHTML += `<div class="score-item">👤 <strong>${name}</strong>: ${players[name].index}</div>`;
-        }
-    }
-
-    init();
-</script>
-</body>
-</html>
 
 
 
