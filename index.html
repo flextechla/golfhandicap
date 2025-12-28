@@ -68,7 +68,7 @@
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('course')"><span>⛳ Course Database</span><span>▼</span></div>
+    <div class="header" onclick="menuToggle('course')"><span>⛳ Manage Courses</span><span>▼</span></div>
     <div id="course" class="content">
         <button onclick="menuToggle('nc')">+ Add New Course/Tee</button>
         <div id="nc" class="content" style="border:1px dashed #ccc; padding:10px; margin: 10px 0;">
@@ -166,12 +166,16 @@
             </div>`;
         });
 
+        // REPAIRED COURSE RENDERER
         var cl = document.getElementById('cList');
         cl.innerHTML = "";
         courses.forEach((c, i) => {
             cl.innerHTML += `<div class="score-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div><b>${c.name}</b> (${c.tee})<br><small>R: ${c.rating} S: ${c.slope}</small></div>
+                    <div>
+                        <b>${c.name}</b> (${c.tee})<br>
+                        <small>Rating: ${c.rating} / Slope: ${c.slope}</small>
+                    </div>
                     <div>
                         <button class="btn-outline" onclick="menuToggle('ed-c-${i}')">Edit</button>
                         <button class="btn-outline" style="color:red" onclick="delC(${i})">Del</button>
@@ -233,8 +237,8 @@
     }
 
     function updateC(i) {
-        courses[i].rating = parseFloat(document.getElementById('er-'+i).value);
-        courses[i].slope = parseInt(document.getElementById('es-'+i).value);
+        courses[i].rating = parseFloat(document.getElementById('er-${i}').value || document.getElementById('er-' + i).value);
+        courses[i].slope = parseInt(document.getElementById('es-${i}').value || document.getElementById('es-' + i).value);
         localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
         render();
     }
@@ -282,6 +286,8 @@
 </script>
 </body>
 </html>
+   
+
 
 
 
