@@ -14,8 +14,9 @@
         .container { max-width: 600px; margin: 0 auto; }
         .dashboard-card { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-bottom: 20px; }
         .handicap-number { font-size: 3.5rem; font-weight: 800; line-height: 1; margin: 5px 0; }
-        .card { background: var(--white); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 15px; overflow: hidden; }
-        .card-header { font-weight: 700; font-size: 1.1rem; color: var(--dark); display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 10px 0; user-select: none; }
+        .card { background: var(--white); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; overflow: hidden; }
+        .card-header { font-weight: 700; font-size: 1.1rem; color: var(--dark); display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 20px; user-select: none; }
+        .card-content { padding: 0 20px 20px 20px; }
         label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.85rem; color: #555; }
         select, input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 12px; }
         .row { display: flex; gap: 10px; }
@@ -31,7 +32,6 @@
         .collapsed .arrow { transform: rotate(-90deg); }
         .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 15px; border-radius: 8px; margin-top: 10px; }
         .admin-tag { background: #000; color: #fff; font-size: 0.6rem; padding: 2px 5px; border-radius: 3px; vertical-align: middle; }
-        .admin-box { background: #fffde7; border: 1px dashed #fbc02d; padding: 10px; border-radius: 8px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -44,30 +44,30 @@
     </div>
 
     <div class="card">
-        <div class="card-header collapsed" onclick="toggleSection('syncBox', this)">
+        <div id="syncHeader" class="card-header collapsed" onclick="toggleSection('syncBox', 'syncHeader')">
             <span>👥 Clubhouse Setup & Sync</span><span class="arrow">▼</span>
         </div>
-        <div id="syncBox" class="hidden" style="padding-top:10px;">
+        <div id="syncBox" class="card-content hidden">
             <label>Your Name</label>
-            <input type="text" id="playerNameInput" onchange="saveSyncSettings()" placeholder=" Tiger">
+            <input type="text" id="playerNameInput" placeholder="Tiger" onchange="saveSyncSettings()">
             <label>Group Secret Key</label>
-            <input type="text" id="groupKeyInput" onchange="saveSyncSettings()" placeholder="Room Password">
+            <input type="text" id="groupKeyInput" placeholder="Room Password" onchange="saveSyncSettings()">
             <button class="btn-sync" id="syncBtn" onclick="syncWithFriends()">🔄 Sync with Clubhouse</button>
         </div>
     </div>
 
     <div id="clubhouseCard" class="card hidden">
         <div class="card-header"><span>🏆 Friend Leaderboard</span></div>
-        <div id="clubhouseList" style="padding:15px 0;"></div>
+        <div id="clubhouseList" class="card-content"></div>
     </div>
 
     <div class="card">
-        <div class="card-header collapsed" onclick="toggleSection('postNewScoreBox', this)">
+        <div id="postHeader" class="card-header collapsed" onclick="toggleSection('postNewScoreBox', 'postHeader')">
             <span>⛳ Post New Score</span><span class="arrow">▼</span>
         </div>
-        <div id="postNewScoreBox" class="hidden" style="padding-top:10px;">
+        <div id="postNewScoreBox" class="card-content hidden">
             <label>Course</label>
-            <select id="mainCourseSelect" onchange="updateCoursePreview('mainCoursePre', 'mainCourseSelect')"></select>
+            <select id="mainCourseSelect" onchange="updateCoursePreview()"></select>
             <div id="mainCoursePre" style="font-size:0.8rem; text-align:center; color:var(--primary); margin-bottom:10px; font-weight:bold;"></div>
             <div class="row">
                 <div class="col"><label>Date</label><input type="date" id="mainScoreDate"></div>
@@ -78,20 +78,20 @@
     </div>
 
     <div class="card">
-        <div class="card-header collapsed" onclick="toggleSection('historyContent', this)">
+        <div id="historyHeader" class="card-header collapsed" onclick="toggleSection('historyContent', 'historyHeader')">
             <span>📝 Score History</span><span class="arrow">▼</span>
         </div>
-        <div id="historyContent" class="hidden">
-            <ul id="scoreList" class="score-list" style="padding:0;"></ul>
+        <div id="historyContent" class="card-content hidden">
+            <ul id="scoreList" style="padding:0; margin:0;"></ul>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-header collapsed" onclick="toggleSection('courseDbContent', this)">
+        <div id="courseHeader" class="card-header collapsed" onclick="toggleSection('courseDbContent', 'courseHeader')">
             <span>⛳ Manage Course Database</span><span class="arrow">▼</span>
         </div>
-        <div id="courseDbContent" class="hidden">
-            <button class="btn-primary" style="margin:15px 0;" onclick="toggleSection('newCourseForm', null)">+ Add New Course</button>
+        <div id="courseDbContent" class="card-content hidden">
+            <button class="btn-primary" style="margin:15px 0;" onclick="toggleSection('newCourseForm')">+ Add New Course</button>
             <div id="newCourseForm" class="hidden edit-drawer">
                 <label>Course Name</label><input type="text" id="ncName">
                 <label>Tee Color</label><input type="text" id="ncTee">
@@ -101,7 +101,7 @@
                 </div>
                 <button class="btn-primary" onclick="addNewCourse()">Save Course</button>
             </div>
-            <ul id="courseDbList" class="score-list" style="padding:0;"></ul>
+            <ul id="courseDbList" style="padding:0; margin:0;"></ul>
         </div>
     </div>
 </div>
@@ -110,29 +110,8 @@
     const API_BASE = "https://api.jsonstorage.net/v1/json/";
     const ADMIN_USER = "Admin"; 
 
-    let courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
-    let playerName = localStorage.getItem('golf_pname') || "";
-    let groupKey = localStorage.getItem('golf_gkey') || "";
-    let scores = JSON.parse(localStorage.getItem('golfScores_v14')) || [];
+    let courses = JSON.parse(localStorage.getItem('golfCourses
 
-    function init() {
-        document.getElementById('mainScoreDate').valueAsDate = new Date();
-        document.getElementById('playerNameInput').value = playerName;
-        document.getElementById('groupKeyInput').value = groupKey;
-        updateUI();
-        if(playerName && groupKey) syncWithFriends(true); 
-    }
-
-    function toggleSection(id, header) {
-        const el = document.getElementById(id);
-        if(!el) return;
-        el.classList.toggle('hidden');
-        if(header) header.classList.toggle('collapsed');
-    }
-
-    function saveSyncSettings() {
-        playerName = document.getElementById('playerNameInput').value;
-        groupKey = document.getElementById('groupKeyInput').value;
 
 
 
