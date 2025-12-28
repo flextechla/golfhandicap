@@ -21,7 +21,7 @@
         .user-pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
         .user-pill:hover { background: var(--primary); color: white; }
         .active-pill { background: var(--dark); color: white; border-color: var(--dark); }
-        .tee-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #555; color: #fff; margin-left: 5px; vertical-align: middle; text-transform: uppercase; }
+        .tee-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #333; color: #fff; margin-left: 5px; vertical-align: middle; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -70,12 +70,12 @@
     <div class="header" onclick="menuToggle('course')"><span>⛳ Course Database</span><span>▼</span></div>
     <div id="course" class="content">
         <button onclick="menuToggle('nc')">+ Add New Course/Tee</button>
-        <div id="nc" class="content" style="border:1px dashed #ccc; margin-top:10px;">
-            <label>Course Name</label><input type="text" id="ncN">
-            <label>Tee Color</label><input type="text" id="ncT">
+        <div id="nc" class="content" style="border:1px dashed #ccc; padding:10px; margin: 10px 0;">
+            <label>Course Name</label><input type="text" id="ncN" placeholder="Ex: Webb Park">
+            <label>Tee Color</label><input type="text" id="ncT" placeholder="Ex: Blue">
             <div style="display:flex; gap:10px;">
-                <div style="flex:1;"><label>Rating</label><input type="number" id="ncR" step="0.1"></div>
-                <div style="flex:1;"><label>Slope</label><input type="number" id="ncS"></div>
+                <div style="flex:1;"><label>Rating</label><input type="number" id="ncR" step="0.1" placeholder="72.1"></div>
+                <div style="flex:1;"><label>Slope</label><input type="number" id="ncS" placeholder="125"></div>
             </div>
             <button onclick="addC()">Save Course</button>
         </div>
@@ -147,11 +147,19 @@
         var sl = document.getElementById('sList');
         sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
         scores.forEach((s, i) => {
-            // Check all possible variable names for the tee color
-            let displayTee = s.teeColor || s.tee || s.teeBox || "";
+            // THE FIX: Check for the color in multiple places, or look it up in the course DB
+            let cName = s.courseName || s.course;
+            let finalTee = s.teeColor || s.tee || s.teeBox;
+            
+            // If still missing, try to find a match in the Course Database
+            if (!finalTee || finalTee === "Tees") {
+                let match = courses.find(c => c.name === cName);
+                finalTee = match ? match.tee : "";
+            }
+
             sl.innerHTML += `<div class="score-item">
                 <div style="display:flex; justify-content:space-between;">
-                    <div><b>${s.score}</b> at ${s.courseName || s.course} ${displayTee ? `<span class="tee-badge">${displayTee}</span>` : ''}<br><small>${s.date}</small></div>
+                    <div><b>${s.score}</b> at ${cName} ${finalTee ? `<span class="tee-badge">${finalTee}</span>` : ''}<br><small>${s.date}</small></div>
                     <div style="text-align:right"><small>Diff: ${s.diff}</small></div>
                 </div>
                 <div style="text-align:right; margin-top:5px;">
@@ -192,7 +200,6 @@
         if(cIdx === "" || isNaN(val)) return alert("Select course and score");
         var c = courses[cIdx];
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        // Ensure we save it as teeColor consistently
         scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
         localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
         render();
@@ -242,6 +249,7 @@
 </script>
 </body>
 </html>
+
 
 
 
