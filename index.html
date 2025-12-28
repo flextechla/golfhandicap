@@ -22,6 +22,7 @@
         button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-bottom: 10px; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-sync { background: #0288d1; color: white; }
+        .btn-del { background: none; color: var(--danger); font-size: 0.8rem; width: auto; padding: 5px; margin: 0; }
         .score-item { background: #f9f9f9; border-radius: 8px; padding: 12px; margin-bottom: 10px; border: 1px solid #eee; list-style: none; }
         .hidden { display: none; }
         .clubhouse-tag { background: #e8f5e9; color: var(--dark); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
@@ -61,7 +62,7 @@
     </div>
 
     <div class="card">
-        <div class="card-header" onclick="toggleSection('myHistory')"><span>📝 My Score History</span><span>▼</span></div>
+        <div class="card-header"><span>📝 My Score History</span></div>
         <div id="myHistory" style="margin-top:15px;">
             <ul id="scoreList" style="padding:0"></ul>
         </div>
@@ -70,41 +71,67 @@
 
 <script>
     const API_BASE = "https://api.jsonstorage.net/v1/json/";
-    
-    // --- 1. MIGRATION LOGIC (BRINGING BACK YOUR OLD DATA) ---
-    function migrateOldData() {
-        const oldScores = localStorage.getItem('golfScores_v14');
-        const oldCourses = localStorage.getItem('golfCourses_v14');
-        
-        if (oldScores && !localStorage.getItem('golf_scores')) {
-            localStorage.setItem('golf_scores', oldScores);
-        }
-        if (oldCourses && !localStorage.getItem('golf_courses_custom')) {
-            localStorage.setItem('golf_courses_custom', oldCourses);
-        }
-    }
-    migrateOldData();
 
-    // --- 2. DATA SETUP ---
+    // --- DEEP SCAN RECOVERY ---
+    function deepScanRecover() {
+        const scoreKeys = ['golfScores_v14', 'golf_scores', 'golfScores'];
+        const courseKeys = ['golfCourses_v14', 'golf_courses_custom', 'golfCourses'];
+        
+        let foundScores = [];
+        let foundCourses = [];
+
+        scoreKeys.forEach(k => {
+            const data = localStorage.getItem(k);
+            if(data) {
+                const parsed = JSON.parse(data);
+                if(Array.isArray(parsed) && parsed.length > foundScores.length) foundScores = parsed;
+            }
+        });
+
+        courseKeys.forEach(k => {
+            const data = localStorage.getItem(k);
+            if(data) {
+                const parsed = JSON.parse(data);
+                if(Array.isArray(parsed) && parsed.length > foundCourses.length) foundCourses = parsed;
+            }
+        });
+
+        if(foundScores.length > 0) localStorage.setItem('main_scores', JSON.stringify(foundScores));
+        if(foundCourses.length > 0) localStorage.setItem('main_courses', JSON.stringify(foundCourses));
+    }
+    deepScanRecover();
+
     let playerName = localStorage.getItem('golf_player_name') || "";
     let groupKey = localStorage.getItem('golf_group_key') || "";
-    let scores = JSON.parse(localStorage.getItem('golf_scores')) || [];
+    let scores = JSON.parse(localStorage.getItem('main_scores')) || [];
     
-    // The default course list you had before
     const defaultCourses = [
         {'name': 'Beaver Creek', 'tee': 'Blue', 'slope': 130.0, 'rating': 72.0},
         {'name': 'Belle Terre', 'tee': 'Blue', 'slope': 131.0, 'rating': 72.2},
         {'name': 'Cam2', 'tee': 'White', 'slope': 118.0, 'rating': 67.7},
         {'name': 'Carter Plantation', 'tee': 'Blue', 'slope': 115.0, 'rating': 66.7},
+        {'name': 'Carter Plantation', 'tee': 'Blue/Gold', 'slope': 126.0, 'rating': 69.7},
+        {'name': 'Carter Plantation', 'tee': 'Gold', 'slope': 128.0, 'rating': 70.9},
         {'name': 'City Park', 'tee': 'Blue', 'slope': 125.0, 'rating': 70.0},
         {'name': 'Coppermill', 'tee': 'Gold', 'slope': 129.0, 'rating': 71.8},
+        {'name': 'Covington County Club', 'tee': 'Blue', 'slope': 127.0, 'rating': 71.9},
+        {'name': 'Fenwood', 'tee': 'White/Blue', 'slope': 127.5, 'rating': 71.0},
         {'name': 'Greystone', 'tee': 'Blue', 'slope': 128.0, 'rating': 70.8},
+        {'name': 'Greystone', 'tee': 'Gold', 'slope': 132.0, 'rating': 72.5},
+        {'name': 'JS Clark', 'tee': 'White', 'slope': 120.0, 'rating': 68.5},
+        {'name': 'Oak Knoll', 'tee': 'White', 'slope': 124.0, 'rating': 70.1},
+        {'name': 'Oak Lake', 'tee': 'White/Blue', 'slope': 122.0, 'rating': 69.8},
+        {'name': 'Pelican Point', 'tee': 'Gold', 'slope': 124.0, 'rating': 70.0},
+        {'name': 'Pelican Point', 'tee': 'White', 'slope': 116.0, 'rating': 68.5},
         {'name': 'Santa Maria', 'tee': 'Blue', 'slope': 128.0, 'rating': 71.5},
-        {'name': 'The Island', 'tee': 'Blue', 'slope': 135.0, 'rating': 73.1},
+        {'name': 'Santa Maria', 'tee': 'White', 'slope': 118.0, 'rating': 65},
+        {'name': 'The Island (Plaquemine)', 'tee': 'Blue', 'slope': 135.0, 'rating': 73.1},
+        {'name': 'The Island (Plaquemine)', 'tee': 'Gold', 'slope': 130.0, 'rating': 71.8},
+        {'name': 'The Island (Plaquemine)', 'tee': 'White', 'slope': 130.0, 'rating': 71.3},
+        {'name': 'The Pines', 'tee': 'White/Blue', 'slope': 125.0, 'rating': 70.5},
         {'name': 'Webb', 'tee': 'White', 'slope': 123.0, 'rating': 69.5}
     ];
-    // Merge your custom ones if you added any
-    let customCourses = JSON.parse(localStorage.getItem('golf_courses_custom')) || [];
+    let customCourses = JSON.parse(localStorage.getItem('main_courses')) || [];
     let courses = customCourses.length > 0 ? customCourses : defaultCourses;
 
     function init() {
@@ -128,6 +155,7 @@
 
     function renderCourses() {
         const sel = document.getElementById('courseSelect');
+        sel.innerHTML = "";
         courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
             sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
         });
@@ -135,73 +163,17 @@
 
     function calculateIndex(scoreArr) {
         if (scoreArr.length < 3) return "--";
-        let diffs = scoreArr.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
+        let diffs = [...scoreArr].map(s => parseFloat(s.diff)).sort((a,b) => a-b);
         let n = scoreArr.length >= 20 ? 8 : Math.ceil(scoreArr.length / 3);
         let avg = diffs.slice(0, n).reduce((a,b) => a+b, 0) / n;
         return (Math.floor(avg * 10) / 10).toFixed(1);
     }
 
     function updateUI() {
-        const index = calculateIndex(scores);
-        document.getElementById('displayIndex').innerText = index;
+        document.getElementById('displayIndex').innerText = calculateIndex(scores);
         document.getElementById('playerDisplayName').innerText = playerName || "Player";
         const list = document.getElementById('scoreList');
         list.innerHTML = "";
-        scores.forEach((s) => {
+        scores.forEach((s, i) => {
             list.innerHTML += `<li class="score-item">
-                <strong>${s.score}</strong> at ${s.courseName} <br>
-                <small>${s.date} | Diff: ${s.diff}</small>
-            </li>`;
-        });
-    }
-
-    function submitScore() {
-        const c = courses[document.getElementById('courseSelect').value];
-        const val = document.getElementById('scoreVal').value;
-        if(!val) return;
-        const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        scores.unshift({ date: document.getElementById('scoreDate').value, courseName: c.name, score: val, diff: diff });
-        localStorage.setItem('golf_scores', JSON.stringify(scores));
-        updateUI();
-        syncData();
-    }
-
-    async function syncData() {
-        if(!playerName || !groupKey) return alert("Setup Name and Group Key!");
-        const groupID = btoa(groupKey).replace(/=/g, "");
-        const btn = document.getElementById('syncBtn');
-        btn.innerText = "Syncing...";
-        try {
-            const res = await fetch(`${API_BASE}${groupID}`);
-            let cloudData = res.ok ? await res.json() : {};
-            cloudData[playerName] = { index: calculateIndex(scores), history: scores.slice(0, 20), updated: new Date().toLocaleTimeString() };
-            await fetch(`${API_BASE}${groupID}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cloudData) });
-            renderClubhouse(cloudData);
-        } catch (e) { console.error(e); }
-        btn.innerText = "🔄 Sync with Friends";
-    }
-
-    function renderClubhouse(data) {
-        const container = document.getElementById('clubhouseList');
-        document.getElementById('clubhouseSection').classList.remove('hidden');
-        container.innerHTML = "";
-        for (let friend in data) {
-            if (friend === playerName) continue;
-            const f = data[friend];
-            container.innerHTML += `
-                <div class="card">
-                    <div class="card-header" onclick="toggleSection('friend_${friend}')">
-                        <span>👤 ${friend} <span class="clubhouse-tag">Index: ${f.index}</span></span><span>▼</span>
-                    </div>
-                    <div id="friend_${friend}" class="hidden" style="margin-top:10px">
-                        <ul style="padding:0; font-size: 0.9rem;">
-                            ${f.history.map(s => `<li class="score-item"><strong>${s.score}</strong> (${s.courseName})</li>`).join('')}
-                        </ul>
-                    </div>
-                </div>`;
-        }
-    }
-    init();
-</script>
-</body>
-</html>
+                <div style="display:flex; justify-content:space
