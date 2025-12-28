@@ -22,6 +22,7 @@
         .user-pill:hover { background: var(--primary); color: white; }
         .active-pill { background: var(--dark); color: white; border-color: var(--dark); }
         .tee-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #333; color: #fff; margin-left: 5px; vertical-align: middle; text-transform: uppercase; }
+        .lock-notice { background: #fff3e0; padding: 10px; border-radius: 8px; border: 1px solid #ffe0b2; font-size: 0.8rem; text-align: center; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -37,14 +38,19 @@
     <div id="sync" class="content">
         <label>Quick Switch Profile:</label>
         <div id="userList" style="margin-bottom:15px;"></div>
+        
         <div style="display:flex; gap:5px;">
             <input type="text" id="nameIn" placeholder="New Name" style="margin-bottom:0;">
             <button onclick="performSwitch()" style="width:auto; margin-bottom:0; background:var(--dark);">Load</button>
         </div>
+        
         <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-        <label>Group Key (Enter Admin Password here for edits)</label>
-        <input type="password" id="keyIn" placeholder="Masters2026">
-        <button onclick="sync()">☁️ Sync All Profiles</button>
+        
+        <label>Access Key / Admin Pass</label>
+        <input type="password" id="keyIn" placeholder="Enter Key to See Group">
+        <button onclick="sync()">☁️ Sync & View Clubhouse</button>
+        
+        <div id="lockMsg" class="lock-notice">Enter key and Sync to unlock Clubhouse list.</div>
         <div id="cbList" style="margin-top:10px;"></div>
     </div>
 </div>
@@ -92,38 +98,20 @@
     
     var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
     var pName = localStorage.getItem('golf_pname') || "";
-    var gKey = localStorage.getItem('golf_gkey') || "";
+    var gKey = ""; // Key is now volatile - wiped on refresh
     var scores = [];
     var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || [];
     var isAdmin = false;
 
     function performSwitch(manualName = null) {
-        // Save current data before switching
         if(pName && scores.length) localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
-
-        // Get Name
-        let inputName = manualName || document.getElementById('nameIn').value.trim();
-        if(!inputName) return;
-        pName = inputName;
+        pName = manualName || document.getElementById('nameIn').value.trim();
+        if(!pName) return;
         localStorage.setItem('golf_pname', pName);
-
-        // Security Check
-        let inputKey = document.getElementById('keyIn').value;
-        if (inputKey === ADMIN_PASS) {
-            isAdmin = true;
-            gKey = MASTER_KEY;
-        } else {
-            isAdmin = false;
-            gKey = inputKey || MASTER_KEY;
-        }
-        localStorage.setItem('golf_gkey', gKey);
-
-        // Add to bubbles if new
         if(!knownUsers.includes(pName)) {
             knownUsers.push(pName);
             localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
         }
-
         loadScores();
         render();
     }
@@ -135,21 +123,17 @@
 
     function calc() {
         if (!scores || scores.length < 3) return "--";
-        // Sort by date to get most recent for index calculation
-        let sorted = [...scores].sort((a,b) => new Date(b.date) - new Date(a.date));
-        let diffs = sorted.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        let n = sorted.length >= 20 ? 8 : (sorted.length >= 10 ? 3 : 1);
+        let diffs = [...scores].map(s => parseFloat(s.diff)).sort((a,b) => a-b);
+        let n = scores.length >= 20 ? 8 : (scores.length >= 10 ? 3 : 1);
         let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
         return (Math.floor(avg * 10) / 10).toFixed(1);
     }
 
     function render() {
-        let currentIdx = calc();
-        document.getElementById('idx').innerText = currentIdx;
+        document.getElementById('idx').innerText = calc();
         document.getElementById('pDisp').innerHTML = pName + (isAdmin ? ' <span style="background:black; color:white; font-size:10px; padding:2px 5px; border-radius:3px;">COMMISSIONER</span>' : '');
         document.getElementById('nameIn').value = pName;
         
-        // Render User Pills
         var uL = document.getElementById('userList');
         uL.innerHTML = "";
         knownUsers.sort().forEach(u => {
@@ -157,22 +141,18 @@
             uL.innerHTML += `<span class="user-pill ${active}" onclick="performSwitch('${u}')">${u}</span>`;
         });
 
-        // Render Course Dropdown
         var sel = document.getElementById('cSel');
         sel.innerHTML = '<option value="">-- Choose Course --</option>';
         courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
             sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
         });
 
-        // Render Scores
         var sl = document.getElementById('sList');
         sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
         scores.forEach((s, i) => {
-            let cName = s.courseName || s.course;
-            let finalTee = s.teeColor || s.tee || s.teeBox;
             sl.innerHTML += `<div class="score-item">
                 <div style="display:flex; justify-content:space-between;">
-                    <div><b>${s.score}</b> at ${cName} <span class="tee-badge">${finalTee}</span><br><small>${s.date}</small></div>
+                    <div><b>${s.score}</b> at ${s.courseName||s.course} <span class="tee-badge">${s.teeColor||''}</span><br><small>${s.date}</small></div>
                     <div style="text-align:right"><small>Diff: ${s.diff}</small></div>
                 </div>
                 <div style="text-align:right; margin-top:5px;">
@@ -185,7 +165,6 @@
             </div>`;
         });
 
-        // Render Courses
         var cl = document.getElementById('cList');
         cl.innerHTML = "";
         courses.forEach((c, i) => {
@@ -199,10 +178,53 @@
                 </div>
                 <div id="ed-c-${i}" class="edit-drawer">
                     <input type="number" id="er-${i}" value="${c.rating}" step="0.1"><input type="number" id="es-${i}" value="${c.slope}">
-                    <button onclick="updateC(${i})">Save Changes</button>
+                    <button onclick="updateC(${i})">Save</button>
                 </div>
             </div>`;
         });
+    }
+
+    async function sync() {
+        let inputKey = document.getElementById('keyIn').value;
+        if(!inputKey) return alert("You must enter a Group Key to sync.");
+
+        // SECURITY LOGIC
+        isAdmin = (inputKey === ADMIN_PASS);
+        gKey = isAdmin ? MASTER_KEY : inputKey;
+        
+        const binId = btoa(gKey).replace(/=/g, "");
+        try {
+            const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
+            let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
+            
+            // Upload current player data
+            cloud.players[pName] = { index: calc(), history: scores.slice(0, 10) };
+            
+            // Update cloud
+            await fetch("https://api.jsonstorage.net/v1/json/" + binId, { 
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(cloud) 
+            });
+
+            document.getElementById('lockMsg').style.display = "none";
+            renderClubhouse(cloud);
+            render(); // Update Dashboard
+            alert("Sync Complete! Clubhouse Unlocked.");
+        } catch (e) { alert("Sync Error - check your internet/key"); }
+    }
+
+    function renderClubhouse(cloud) {
+        var list = document.getElementById('cbList');
+        list.innerHTML = "";
+        for (var name in cloud.players) {
+            if (name === pName) continue;
+            var p = cloud.players[name];
+            list.innerHTML += `<div class="score-item">👤 <b>${name}</b>: ${p.index} 
+            <button class="btn-outline" onclick="menuToggle('f-hist-${name}')">History</button>
+            <div id="f-hist-${name}" class="edit-drawer">
+            ${p.history.map((s, idx) => `<div style="font-size:0.75rem; border-bottom:1px solid #eee; padding:5px 0;">${s.date}: ${s.score} ${isAdmin ? `<button style="color:red; background:none; border:none; font-size:0.6rem;" onclick="adminDel('${name}',${idx})">DEL</button>` : ''}</div>`).join('')}
+            </div></div>`;
+        }
     }
 
     function addS() {
@@ -213,7 +235,6 @@
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
         scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
         localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
-        document.getElementById('sIn').value = "";
         render();
     }
 
@@ -247,97 +268,20 @@
     function delS(i) { if(confirm("Delete?")) { scores.splice(i, 1); localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores)); render(); } }
     function delC(i) { if(confirm("Delete?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); } }
 
-    async function sync() {
-        if(!pName || !gKey) return alert("Enter Name/Key");
-        const binId = btoa(gKey).replace(/=/g, "");
-        try {
-            const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
-            let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
-            cloud.players[pName] = { index: calc(), history: scores.slice(0, 10) };
-            
-            // Sync course DB
-            let cmap = new Map();
-            [...cloud.courses, ...courses].forEach(c => cmap.set(c.name+c.tee, c));
-            cloud.courses = Array.from(cmap.values());
-            courses = cloud.courses;
-            localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-
-            await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-            renderClubhouse(cloud);
-            alert("Sync Complete!");
-        } catch (e) { alert("Sync Error"); }
-    }
-
-    function renderClubhouse(cloud) {
-        var list = document.getElementById('cbList');
-        list.innerHTML = "";
-        for (var name in cloud.players) {
-            if (name === pName) continue;
-            var p = cloud.players[name];
-            list.innerHTML += `<div class="score-item">👤 <b>${name}</b>: ${p.index} 
-            <button class="btn-outline" onclick="menuToggle('f-hist-${name}')">History</button>
-            <div id="f-hist-${name}" class="edit-drawer">
-            ${p.history.map((s, idx) => `<div style="font-size:0.75rem; border-bottom:1px solid #eee; padding:5px 0;">${s.date}: ${s.score} ${isAdmin ? `<button style="color:red; background:none; border:none; font-size:0.6rem;" onclick="adminDel('${name}',${idx})">DEL</button>` : ''}</div>`).join('')}
-            </div></div>`;
-        }
-    }
-
     async function adminDel(target, idx) {
-        if(!confirm("Delete?")) return;
+        if(!confirm("Delete friend's score from cloud?")) return;
         const binId = btoa(gKey).replace(/=/g, "");
         const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
         let cloud = await res.json();
         cloud.players[target].history.splice(idx, 1);
-        // Recalculate their index using the same calc logic
-        let diffs = cloud.players[target].history.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        let n = cloud.players[target].history.length >= 20 ? 8 : (cloud.players[target].history.length >= 10 ? 3 : 1);
-        let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        cloud.players[target].index = (Math.floor(avg * 10) / 10).toFixed(1);
-        
         await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
         sync();
     }
 
     // Initialize
     document.getElementById('dIn').valueAsDate = new Date();
-    // Re-check security on first load
-    let initialKey = document.getElementById('keyIn').value;
-    isAdmin = (initialKey === ADMIN_PASS);
     loadScores();
     render();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
