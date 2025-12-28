@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Tracker Pro (WHS Sync)</title>
+    <title>Golf Tracker Pro (Admin Sync)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -11,105 +11,76 @@
             --bg: #f4f6f8; --text: #333; --white: #ffffff;
             --danger: #d32f2f; --success: #4CAF50; --info: #0288d1;
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg); color: var(--text); margin: 0; padding: 15px;
-        }
-
+        body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 15px; }
         .container { max-width: 600px; margin: 0 auto; }
-
-        /* DASHBOARD */
-        .dashboard-card {
-            background: linear-gradient(135deg, var(--primary), var(--dark));
-            color: white; padding: 20px; border-radius: 16px; text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-bottom: 20px;
-        }
+        .dashboard-card { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-bottom: 20px; }
         .handicap-number { font-size: 3.5rem; font-weight: 800; line-height: 1; margin: 5px 0; }
-
-        /* CARDS */
         .card { background: var(--white); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 15px; }
-        .card-header { font-weight: 700; font-size: 1.1rem; color: var(--dark); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
-        .card-header.with-border { border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 15px; }
-
-        .section-label { font-size: 0.85rem; text-transform: uppercase; color: #777; margin: 20px 0 10px 5px; font-weight: bold; }
-
+        .card-header { font-weight: 700; font-size: 1.1rem; color: var(--dark); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: #555; }
-        select, input, textarea { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 15px; background: #fff; font-family: inherit; }
-
+        select, input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 15px; }
         .course-details-box { background: #e8f5e9; border: 1px solid #c8e6c9; color: var(--dark); padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 15px; font-weight: bold; display: none; }
         .row { display: flex; gap: 15px; }
         .col { flex: 1; }
-
-        button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
         .btn-primary { background: var(--primary); color: white; }
-        .btn-update { background: var(--accent); color: #000; }
-        .btn-sm { padding: 5px 10px; font-size: 0.8rem; width: auto; border-radius: 4px; border: 1px solid #ddd; background: white; margin-left: 5px;}
-        .btn-del { color: var(--danger); border-color: var(--danger); }
         .btn-sync { background: var(--info); color: white; margin-top: 10px; }
-
+        .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; border-radius: 4px; border: 1px solid #ddd; background: white; }
         .score-list { list-style: none; padding: 0; margin: 0; }
         .score-item { background: #f9f9f9; border-radius: 8px; border: 1px solid #eee; padding: 12px; margin-bottom: 10px; }
-        .score-top { display: flex; justify-content: space-between; align-items: center; }
         .hidden { display: none; }
-        .arrow { transition: transform 0.3s; font-size: 0.8rem; color: #888; }
-        .collapsed .arrow { transform: rotate(-90deg); }
+        .admin-badge { background: #000; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; vertical-align: middle; }
     </style>
 </head>
 <body>
 
 <div class="container">
-
     <div class="dashboard-card">
-        <div id="pNameDisplay" style="font-weight:bold; margin-bottom:5px;">Golfer</div>
+        <div id="pNameDisplay">Golfer</div>
         <div class="handicap-number" id="displayIndex">--</div>
-        <div id="displayCount" style="font-size:0.8rem; opacity:0.8;">No scores entered</div>
+        <div style="font-size:0.8rem; opacity:0.8;">CURRENT INDEX</div>
     </div>
 
     <div class="card">
-        <div class="card-header" onclick="toggleSection('syncBox', this)">
-            <span>👥 Clubhouse Sync</span><span class="arrow">▼</span>
+        <div class="card-header" onclick="toggleSection('syncBox')">
+            <span>👥 Clubhouse Sync</span><span>▼</span>
         </div>
         <div id="syncBox" class="hidden" style="margin-top:15px;">
-            <label>Player Name</label>
-            <input type="text" id="playerNameInput" placeholder="Enter your name" onchange="saveSyncSettings()">
-            <label>Group Secret Key</label>
-            <input type="text" id="groupKeyInput" placeholder="Shared with friends" onchange="saveSyncSettings()">
-            <button class="btn-sync" id="syncBtn" onclick="syncWithFriends()">🔄 Sync Now</button>
+            <label>Your Name</label><input type="text" id="playerNameInput" onchange="saveSyncSettings()">
+            <label>Group Key</label><input type="text" id="groupKeyInput" onchange="saveSyncSettings()">
+            <button class="btn-sync" onclick="syncWithFriends()">🔄 Sync with Friends</button>
         </div>
     </div>
 
     <div id="clubhouseCard" class="card hidden">
-        <div class="card-header"><span>🏆 Leaderboard</span></div>
+        <div class="card-header"><span>🏆 Friend Leaderboard</span></div>
         <div id="clubhouseList" style="margin-top:15px;"></div>
     </div>
 
     <div class="card">
-        <div class="card-header with-border"><span>⛳ Post New Score</span></div>
+        <div class="card-header"><span>⛳ Post Score</span></div>
         <input type="hidden" id="editScoreId">
-        <label>Course</label>
-        <select id="courseSelect" onchange="handleCourseSelect()"></select>
+        <label>Course</label><select id="courseSelect" onchange="handleCourseSelect()"></select>
         <div id="courseInfoBox" class="course-details-box"></div>
         <div class="row">
             <div class="col"><label>Date</label><input type="date" id="scoreDate"></div>
-            <div class="col"><label>Score</label><input type="number" id="scoreVal" placeholder="--" oninput="updateDiffPreview()"></div>
+            <div class="col"><label>Score</label><input type="number" id="scoreVal"></div>
         </div>
         <button id="postBtn" class="btn-primary" onclick="submitScore()">Post Score</button>
     </div>
 
     <div class="card">
-        <div class="card-header collapsed" onclick="toggleSection('historyContent', this)">
-            <span>📝 My History</span><span class="arrow">▼</span>
+        <div class="card-header" onclick="toggleSection('historyContent')">
+            <span>📝 My History</span><span>▼</span>
         </div>
         <div id="historyContent" class="hidden">
             <ul id="scoreList" class="score-list" style="margin-top:15px;"></ul>
         </div>
     </div>
 
-    <div class="section-label">Management</div>
     <div class="card">
-        <div class="card-header collapsed" onclick="toggleSection('courseDbContent', this)">
-            <span>⛳ Manage Courses</span><span class="arrow">▼</span>
+        <div class="card-header" onclick="toggleSection('courseDbContent')">
+            <span>⛳ Manage Courses</span><span>▼</span>
         </div>
         <div id="courseDbContent" class="hidden">
             <button class="btn-primary" style="margin:15px 0;" onclick="openCourseForm()">+ Add New Course</button>
@@ -130,11 +101,13 @@
 
 <script>
     const API_BASE = "https://api.jsonstorage.net/v1/json/";
-    
+    const ADMIN_NAME = "Admin"; // CHANGE THIS to your preferred admin name
+
     let courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
     let scores = JSON.parse(localStorage.getItem('golfScores_v14')) || [];
     let playerName = localStorage.getItem('golf_pname') || "";
     let groupKey = localStorage.getItem('golf_gkey') || "";
+    let globalCloudData = null;
 
     function init() {
         document.getElementById('scoreDate').valueAsDate = new Date();
@@ -144,10 +117,7 @@
         if(playerName && groupKey) syncWithFriends();
     }
 
-    function toggleSection(id, header) {
-        document.getElementById(id).classList.toggle('hidden');
-        if(header) header.classList.toggle('collapsed');
-    }
+    function toggleSection(id) { document.getElementById(id).classList.toggle('hidden'); }
 
     function saveSyncSettings() {
         playerName = document.getElementById('playerNameInput').value;
@@ -158,35 +128,106 @@
     }
 
     function updateUI() {
-        document.getElementById('pNameDisplay').innerText = playerName || "Golfer";
-        courses.sort((a,b) => a.name.localeCompare(b.name));
+        const isAdmin = (playerName === ADMIN_NAME);
+        document.getElementById('pNameDisplay').innerHTML = playerName + (isAdmin ? ' <span class="admin-badge">ADMIN</span>' : '');
         renderDropdown();
         renderScoreList();
         renderCourseDb();
         calculateHandicap();
     }
 
-    function saveData() {
+    function calculateHandicap(dataArr = scores) {
+        if (dataArr.length < 3) return "--";
+        let diffs = [...dataArr].map(r => parseFloat(r.diff)).sort((a,b) => a-b);
+        let n = dataArr.length >= 20 ? 8 : (dataArr.length >= 15 ? 5 : (dataArr.length >= 10 ? 3 : 1));
+        let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
+        return (Math.floor(avg * 10) / 10).toFixed(1);
+    }
+
+    // --- CLOUD ADMIN LOGIC ---
+    async function syncWithFriends() {
+        if(!playerName || !groupKey) return;
+        const binId = btoa(groupKey).replace(/=/g, "");
+        try {
+            const res = await fetch(`${API_BASE}${binId}`);
+            globalCloudData = res.ok ? await res.json() : { players: {}, courses: [] };
+            
+            // Sync my data up
+            globalCloudData.players[playerName] = { 
+                index: calculateHandicap(), 
+                history: scores.slice(0,20) 
+            };
+
+            // Sync shared courses
+            let cmap = new Map();
+            [...globalCloudData.courses, ...courses].forEach(c => cmap.set(`${c.name}-${c.tee}`, c));
+            globalCloudData.courses = Array.from(cmap.values());
+            courses = globalCloudData.courses;
+
+            await updateCloud(binId);
+            renderClubhouse();
+            saveDataLocal();
+        } catch (e) { console.error(e); }
+    }
+
+    async function updateCloud(binId) {
+        await fetch(`${API_BASE}${binId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(globalCloudData)
+        });
+    }
+
+    function renderClubhouse() {
+        const list = document.getElementById('clubhouseList');
+        document.getElementById('clubhouseCard').classList.remove('hidden');
+        list.innerHTML = "";
+        const isAdmin = (playerName === ADMIN_NAME);
+
+        for (let name in globalCloudData.players) {
+            if (name === playerName) continue;
+            const p = globalCloudData.players[name];
+            list.innerHTML += `
+                <div class="score-item">
+                    <div class="score-top">
+                        <strong>${name} (${p.index})</strong>
+                        <button class="btn-sm" onclick="toggleSection('f_hist_${name}')">View History</button>
+                    </div>
+                    <div id="f_hist_${name}" class="hidden" style="margin-top:10px; font-size:0.8rem;">
+                        ${p.history.map((s, i) => `
+                            <div style="border-bottom:1px solid #eee; padding:5px 0; display:flex; justify-content:space-between;">
+                                <span>${s.date}: ${s.score} (${s.courseName})</span>
+                                ${isAdmin ? `<button style="color:red; border:none; background:none; font-size:0.7rem;" onclick="adminDeleteScore('${name}', ${i})">Delete</button>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+        }
+    }
+
+    async function adminDeleteScore(targetPlayer, scoreIndex) {
+        if(confirm(`Admin: Delete ${targetPlayer}'s score?`)) {
+            globalCloudData.players[targetPlayer].history.splice(scoreIndex, 1);
+            // Recalculate their index
+            globalCloudData.players[targetPlayer].index = calculateHandicap(globalCloudData.players[targetPlayer].history);
+            const binId = btoa(groupKey).replace(/=/g, "");
+            await updateCloud(binId);
+            renderClubhouse();
+        }
+    }
+
+    // --- STANDARD FUNCTIONS ---
+    function saveDataLocal() {
         localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
         localStorage.setItem('golfScores_v14', JSON.stringify(scores));
         updateUI();
-    }
-
-    function calculateHandicap() {
-        if (scores.length < 3) return document.getElementById('displayIndex').innerText = "--";
-        let diffs = [...scores].map(r => parseFloat(r.diff)).sort((a,b) => a-b);
-        let n = scores.length >= 20 ? 8 : (scores.length >= 15 ? 5 : (scores.length >= 10 ? 3 : 1));
-        let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        document.getElementById('displayIndex').innerText = (Math.floor(avg * 10) / 10).toFixed(1);
     }
 
     function renderDropdown() {
         const sel = document.getElementById('courseSelect');
         const curr = sel.value;
         sel.innerHTML = '<option value="">-- Choose Course --</option>';
-        courses.forEach((c, i) => {
-            sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
-        });
+        courses.forEach((c, i) => { sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`; });
         sel.value = curr;
     }
 
@@ -199,42 +240,6 @@
         box.style.display = "block";
     }
 
-    function renderScoreList() {
-        const list = document.getElementById('scoreList');
-        list.innerHTML = "";
-        scores.forEach(s => {
-            list.innerHTML += `<li class="score-item"><div class="score-top"><div><small>${s.date}</small><br><strong>${s.courseName}</strong></div><div style="text-align:right"><strong>${s.score}</strong><br><small>Diff: ${s.diff}</small></div></div><div style="text-align:right; margin-top:5px;"><button class="btn-sm" onclick="editScore(${s.id})">Edit</button><button class="btn-sm btn-del" onclick="deleteScore(${s.id})">Del</button></div></li>`;
-        });
-    }
-
-    function renderCourseDb() {
-        const list = document.getElementById('courseDbList');
-        list.innerHTML = "";
-        courses.forEach((c, i) => {
-            list.innerHTML += `<li class="score-item"><div class="score-top"><div><strong>${c.name}</strong> (${c.tee})<br><small>Rating: ${c.rating} / Slope: ${c.slope}</small></div><div><button class="btn-sm" onclick="loadCourseEdit(${i})">Edit</button><button class="btn-sm btn-del" onclick="deleteCourse(${i})">Del</button></div></div></li>`;
-        });
-    }
-
-    function openCourseForm() { document.getElementById('cEditIndex').value = "-1"; document.getElementById('courseForm').classList.remove('hidden'); }
-
-    function loadCourseEdit(i) {
-        const c = courses[i];
-        document.getElementById('cEditIndex').value = i;
-        document.getElementById('cName').value = c.name; document.getElementById('cTee').value = c.tee;
-        document.getElementById('cRating').value = c.rating; document.getElementById('cSlope').value = c.slope;
-        document.getElementById('courseForm').classList.remove('hidden');
-    }
-
-    function saveCourse() {
-        const i = parseInt(document.getElementById('cEditIndex').value);
-        const data = { name: document.getElementById('cName').value, tee: document.getElementById('cTee').value, rating: parseFloat(document.getElementById('cRating').value), slope: parseInt(document.getElementById('cSlope').value) };
-        if (i === -1) courses.push(data); else courses[i] = data;
-        document.getElementById('courseForm').classList.add('hidden');
-        saveData();
-    }
-
-    function deleteCourse(i) { if(confirm("Delete?")) { courses.splice(i, 1); saveData(); } }
-
     function submitScore() {
         const id = document.getElementById('editScoreId').value;
         const c = courses[document.getElementById('courseSelect').value];
@@ -242,8 +247,17 @@
         const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
         const entry = { id: id ? parseInt(id) : Date.now(), date: document.getElementById('scoreDate').value, courseName: c.name, score: val, diff };
         if (id) scores[scores.findIndex(s => s.id == id)] = entry; else scores.unshift(entry);
-        saveData(); syncWithFriends();
-        document.getElementById('editScoreId').value = ""; document.getElementById('scoreVal').value = "";
+        document.getElementById('editScoreId').value = "";
+        document.getElementById('scoreVal').value = "";
+        saveDataLocal(); syncWithFriends();
+    }
+
+    function renderScoreList() {
+        const list = document.getElementById('scoreList');
+        list.innerHTML = "";
+        scores.forEach((s) => {
+            list.innerHTML += `<li class="score-item"><div class="score-top"><div><strong>${s.score}</strong> at ${s.courseName}</div><div><button class="btn-sm" onclick="editScore(${s.id})">Edit</button><button class="btn-sm" style="color:red" onclick="deleteScore(${s.id})">Del</button></div></div><small>${s.date} | Diff: ${s.diff}</small></li>`;
+        });
     }
 
     function editScore(id) {
@@ -254,40 +268,32 @@
         window.scrollTo(0,0);
     }
 
-    function deleteScore(id) { if(confirm("Delete round?")) { scores = scores.filter(s => s.id !== id); saveData(); syncWithFriends(); } }
+    function deleteScore(id) { if(confirm("Delete?")) { scores = scores.filter(s => s.id !== id); saveDataLocal(); syncWithFriends(); } }
 
-    async function syncWithFriends() {
-        if(!playerName || !groupKey) return;
-        const binId = btoa(groupKey).replace(/=/g, "");
-        const btn = document.getElementById('syncBtn');
-        btn.innerText = "Syncing...";
-        try {
-            const res = await fetch(`${API_BASE}${binId}`);
-            let cloud = res.ok ? await res.json() : { players: {}, sharedCourses: [] };
-            
-            cloud.players[playerName] = { index: document.getElementById('displayIndex').innerText, history: scores.slice(0, 10) };
-            
-            let cmap = new Map();
-            [...cloud.sharedCourses, ...courses].forEach(c => cmap.set(`${c.name}-${c.tee}`, c));
-            cloud.sharedCourses = Array.from(cmap.values());
-            courses = cloud.sharedCourses;
-
-            await fetch(`${API_BASE}${binId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-            renderClubhouse(cloud.players);
-            saveData();
-        } catch (e) { console.error(e); }
-        btn.innerText = "🔄 Sync Now";
-    }
-
-    function renderClubhouse(players) {
-        const list = document.getElementById('clubhouseList');
-        document.getElementById('clubhouseCard').classList.remove('hidden');
+    function renderCourseDb() {
+        const list = document.getElementById('courseDbList');
         list.innerHTML = "";
-        for (let name in players) {
-            if (name === playerName) continue;
-            list.innerHTML += `<div class="score-item">👤 <strong>${name}</strong>: ${players[name].index}</div>`;
-        }
+        courses.forEach((c, i) => {
+            list.innerHTML += `<li class="score-item"><div class="score-top"><div><strong>${c.name}</strong> (${c.tee})<br><small>R: ${c.rating} / S: ${c.slope}</small></div><div><button class="btn-sm" onclick="loadCourseEdit(${i})">Edit</button><button class="btn-sm" style="color:red" onclick="deleteCourse(${i})">Del</button></div></div></li>`;
+        });
     }
+
+    function openCourseForm() { document.getElementById('cEditIndex').value = "-1"; document.getElementById('courseForm').classList.remove('hidden'); }
+    function loadCourseEdit(i) {
+        const c = courses[i];
+        document.getElementById('cEditIndex').value = i;
+        document.getElementById('cName').value = c.name; document.getElementById('cTee').value = c.tee;
+        document.getElementById('cRating').value = c.rating; document.getElementById('cSlope').value = c.slope;
+        document.getElementById('courseForm').classList.remove('hidden');
+    }
+    function saveCourse() {
+        const i = parseInt(document.getElementById('cEditIndex').value);
+        const d = { name: document.getElementById('cName').value, tee: document.getElementById('cTee').value, rating: parseFloat(document.getElementById('cRating').value), slope: parseInt(document.getElementById('cSlope').value) };
+        if (i === -1) courses.push(d); else courses[i] = d;
+        document.getElementById('courseForm').classList.add('hidden');
+        saveDataLocal(); syncWithFriends();
+    }
+    function deleteCourse(i) { if(confirm("Delete course?")) { courses.splice(i, 1); saveDataLocal(); } }
 
     init();
 </script>
