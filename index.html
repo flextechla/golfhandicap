@@ -16,6 +16,7 @@
         input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
         .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; }
+        .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
         .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; margin-right: 4px; }
         .user-pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
         .active-pill { background: var(--dark); color: white; border-color: var(--dark); }
@@ -33,10 +34,8 @@
 <div id="setupCard" class="card" style="display:none;">
     <div class="header"><span>🚀 Initial Setup</span></div>
     <div class="content" style="display:block;">
-        <label>Your Name:</label>
-        <input type="text" id="setupName" placeholder="Ex: Don">
-        <label>Group Key ( golf2026 for Admin ):</label>
-        <input type="text" id="setupKey" placeholder="Masters2026">
+        <label>Your Name:</label><input type="text" id="setupName" placeholder="Ex: Don">
+        <label>Group Key (golf2026 for Admin):</label><input type="text" id="setupKey" placeholder="Masters2026">
         <button onclick="firstTimeSetup()">Start Using App</button>
     </div>
 </div>
@@ -109,18 +108,9 @@
         location.reload();
     }
 
-    function resetApp() {
-        if(confirm("Erase identity and start over?")) {
-            localStorage.clear();
-            location.reload();
-        }
-    }
+    function resetApp() { if(confirm("Erase identity?")) { localStorage.clear(); location.reload(); } }
 
-    function switchView(target) {
-        currentViewing = target;
-        loadScores();
-        render();
-    }
+    function switchView(target) { currentViewing = target; loadScores(); render(); }
 
     function loadScores() {
         let storageKey = (currentViewing === myName) ? 'scores_' + myName : 'cloud_' + currentViewing;
@@ -155,14 +145,34 @@
         scores.forEach((s, i) => {
             sl.innerHTML += `<div class="score-item">
                 <b>${s.score}</b> at ${s.courseName||s.course} (${s.teeColor||''})<br><small>${s.date} | Diff: ${s.diff}</small>
-                ${canEdit ? `<div style="text-align:right;"><button class="btn-outline" style="color:red" onclick="delS(${i})">Del</button></div>` : ''}
+                ${canEdit ? `<div style="text-align:right; margin-top:5px;">
+                    <button class="btn-outline" onclick="menuToggle('ed-s-${i}')">Edit</button>
+                    <button class="btn-outline" style="color:red" onclick="delS(${i})">Del</button>
+                </div>
+                <div id="ed-s-${i}" class="edit-drawer">
+                    <label>New Score</label><input type="number" id="ev-${i}" value="${s.score}">
+                    <button onclick="updateS(${i})">Save Changes</button>
+                </div>` : ''}
             </div>`;
         });
 
         var cl = document.getElementById('cList');
         cl.innerHTML = "";
         courses.forEach((c, i) => {
-            cl.innerHTML += `<div class="score-item">${c.name} (${c.tee}) <button class="btn-outline" style="color:red" onclick="delC(${i})">Del</button></div>`;
+            cl.innerHTML += `<div class="score-item">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div><b>${c.name}</b> (${c.tee})<br><small>R: ${c.rating} S: ${c.slope}</small></div>
+                    <div>
+                        <button class="btn-outline" onclick="menuToggle('ed-c-${i}')">Edit</button>
+                        <button class="btn-outline" style="color:red" onclick="delC(${i})">Del</button>
+                    </div>
+                </div>
+                <div id="ed-c-${i}" class="edit-drawer">
+                    <label>Rating</label><input type="number" id="er-${i}" value="${c.rating}" step="0.1">
+                    <label>Slope</label><input type="number" id="es-${i}" value="${c.slope}">
+                    <button onclick="updateC(${i})">Update Course</button>
+                </div>
+            </div>`;
         });
     }
 
@@ -179,69 +189,61 @@
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
-            
-            // If I'm commish editing someone else
-            if(isCommish && currentViewing !== myName) {
-                cloud.players[currentViewing] = { index: calc(), history: scores };
-            } else {
-                // Regular user sync
-                loadScores();
-                cloud.players[myName] = { index: calc(), history: scores.slice(0, 10) };
-            }
-
-            // Sync Database & Users
+            if(isCommish && currentViewing !== myName) { cloud.players[currentViewing] = { index: calc(), history: scores }; }
+            else { loadScores(); cloud.players[myName] = { index: calc(), history: scores.slice(0, 10) }; }
             let cmap = new Map();
             [...cloud.courses, ...courses].forEach(c => cmap.set(c.name+c.tee, c));
-            cloud.courses = Array.from(cmap.values());
-            courses = cloud.courses;
+            cloud.courses = Array.from(cmap.values()); courses = cloud.courses;
             localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-            
             knownUsers = Object.keys(cloud.players);
-            knownUsers.forEach(u => {
-                if(u !== myName && !isCommish) localStorage.setItem('cloud_' + u, JSON.stringify(cloud.players[u].history));
-            });
-
-            await fetch("https://api.jsonstorage.net/v1/json/" + binId, { 
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(cloud) 
-            });
-            render();
-            alert("Clubhouse Updated!");
+            knownUsers.forEach(u => { if(u !== myName && !isCommish) localStorage.setItem('cloud_' + u, JSON.stringify(cloud.players[u].history)); });
+            await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
+            render(); alert("Clubhouse Updated!");
         } catch (e) { alert("Sync Error"); }
     }
 
     function addS() {
-        var cIdx = document.getElementById('cSel').value;
-        var val = parseFloat(document.getElementById('sIn').value);
+        var cIdx = document.getElementById('cSel').value; var val = parseFloat(document.getElementById('sIn').value);
         if(cIdx === "" || isNaN(val)) return;
         var c = courses[cIdx];
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
         scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
-        localStorage.setItem((currentViewing === myName) ? 'scores_' + myName : 'cloud_' + currentViewing, JSON.stringify(scores));
-        render();
+        localStorage.setItem((currentViewing === myName) ? 'scores_' + myName : 'cloud_' + currentViewing, JSON.stringify(scores)); render();
+    }
+
+    function updateS(i) {
+        var newVal = parseFloat(document.getElementById('ev-'+i).value);
+        let s = scores[i];
+        var c = courses.find(x => x.name === s.courseName && x.tee === s.teeColor);
+        if(c && !isNaN(newVal)) {
+            scores[i].score = newVal;
+            scores[i].diff = ((newVal - c.rating) * 113 / c.slope).toFixed(1);
+            localStorage.setItem((currentViewing === myName) ? 'scores_' + myName : 'cloud_' + currentViewing, JSON.stringify(scores));
+            render();
+        }
     }
 
     function addC() {
-        var n = document.getElementById('ncN').value; var t = document.getElementById('ncT').value;
-        courses.push({ name: n, tee: t, rating: parseFloat(document.getElementById('ncR').value), slope: parseInt(document.getElementById('ncS').value) });
-        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-        render();
+        courses.push({ name: document.getElementById('ncN').value, tee: document.getElementById('ncT').value, rating: parseFloat(document.getElementById('ncR').value), slope: parseInt(document.getElementById('ncS').value) });
+        localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render();
+    }
+
+    function updateC(i) {
+        courses[i].rating = parseFloat(document.getElementById('er-'+i).value);
+        courses[i].slope = parseInt(document.getElementById('es-'+i).value);
+        localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render();
     }
 
     function delS(i) { if(confirm("Delete?")) { scores.splice(i, 1); localStorage.setItem((currentViewing === myName) ? 'scores_' + myName : 'cloud_' + currentViewing, JSON.stringify(scores)); render(); } }
     function delC(i) { if(confirm("Delete?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); } }
 
-    // Init
     document.getElementById('dIn').valueAsDate = new Date();
-    if(!myName) {
-        document.getElementById('setupCard').style.display = "block";
-    } else {
-        document.getElementById('mainApp').style.display = "block";
-        loadScores();
-        render();
-    }
+    if(!myName) document.getElementById('setupCard').style.display = "block";
+    else { document.getElementById('mainApp').style.display = "block"; loadScores(); render(); }
 </script>
 </body>
 </html>
+   
+
 
 
