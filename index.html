@@ -18,8 +18,8 @@
         .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; list-style: none; }
         .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
         .admin-box { background: #fffde7; border: 2px dashed orange; padding: 10px; border-radius: 8px; margin-top: 10px; }
-        .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 5px 10px; font-size: 0.7rem; margin-right: 5px; }
-        .switch-row { display: flex; gap: 5px; margin-bottom: 12px; }
+        .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 5px 10px; font-size: 0.7rem; }
+        .switch-area { background: #e8f5e9; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #c8e6c9; }
     </style>
 </head>
 <body>
@@ -31,16 +31,18 @@
 </div>
 
 <div class="card">
-    <div class="header" onclick="toggle('sync')"><span>👥 Clubhouse Sync</span><span>▼</span></div>
+    <div class="header" onclick="toggle('sync')"><span>👥 Clubhouse & User Switch</span><span>▼</span></div>
     <div id="sync" class="content">
-        <label>Your Name</label>
-        <div class="switch-row">
-            <input type="text" id="nameIn" placeholder="Enter Name" style="margin-bottom:0;">
-            <button onclick="saveSet()" style="width:auto; margin-bottom:0; background:var(--dark);">Switch</button>
+        <div class="switch-area">
+            <label>Current User Name</label>
+            <input type="text" id="nameIn" placeholder="Enter Name to Switch">
+            <button onclick="performSwitch()" style="background:var(--dark);">🔄 Load This Profile</button>
+            <small style="color:#666; font-size:0.7rem;">Enter "Mike" and click load to see Mike's scores.</small>
         </div>
-        <label>Group Key</label>
-        <input type="password" id="keyIn" onchange="saveSet()" placeholder="Masters2026 or golf2026">
-        <button onclick="sync()">Sync Now</button>
+        
+        <label>Group Key (or golf2026)</label>
+        <input type="password" id="keyIn" onchange="performSwitch()" placeholder="Masters2026">
+        <button onclick="sync()">☁️ Sync to Cloud</button>
         <div id="cbList" style="margin-top:10px;"></div>
     </div>
 </div>
@@ -90,33 +92,39 @@
     var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
     var pName = localStorage.getItem('golf_pname') || "";
     var gKey = localStorage.getItem('golf_gkey') || "";
-    var scores = JSON.parse(localStorage.getItem('scores_' + pName)) || [];
+    var scores = [];
 
-    function saveSet() {
-        // Save current user's data before switching
+    function performSwitch() {
+        // 1. Save current state
         if(pName) localStorage.setItem('scores_' + pName, JSON.stringify(scores));
 
-        pName = document.getElementById('nameIn').value;
+        // 2. Get new inputs
+        let newName = document.getElementById('nameIn').value;
         let inputKey = document.getElementById('keyIn').value;
-        
+
         if (inputKey === ADMIN_PASS) {
             isAdmin = true;
             gKey = MASTER_KEY; 
         } else {
             isAdmin = false;
-            gKey = inputKey;
+            gKey = inputKey || MASTER_KEY;
         }
-        
+
+        // 3. Update global variables
+        pName = newName;
         localStorage.setItem('golf_pname', pName);
         localStorage.setItem('golf_gkey', gKey);
 
-        // Load new user's specific data
+        // 4. Wipe current list and LOAD new profile scores
         scores = JSON.parse(localStorage.getItem('scores_' + pName)) || [];
+        
         render();
+        console.log("Switched to: " + pName);
     }
 
     function render() {
         document.getElementById('pDisp').innerHTML = pName + (isAdmin ? ' <span style="background:black; color:white; font-size:10px; padding:2px 5px; border-radius:3px;">COMMISSIONER</span>' : '');
+        document.getElementById('nameIn').value = pName;
         
         var sel = document.getElementById('cSel');
         sel.innerHTML = '<option value="">-- Choose Course --</option>';
@@ -125,7 +133,7 @@
         });
 
         var sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores for this user yet.</small>";
+        sl.innerHTML = scores.length ? "" : "<small>No scores found for " + pName + "</small>";
         scores.forEach((s, i) => {
             var nameToDisplay = s.courseName || s.course || "Unknown Course";
             sl.innerHTML += '<div class="score-item"><b>'+s.score+'</b> at '+nameToDisplay+'<br><small>'+s.date+' (Diff: '+s.diff+')</small>' +
@@ -157,7 +165,7 @@
     }
 
     function calc(targetScores = scores) {
-        if (targetScores.length < 3) return "--";
+        if (targetScores.length < 3) return document.getElementById('idx').innerText = "--";
         var diffs = targetScores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
         var n = targetScores.length >= 20 ? 8 : (targetScores.length >= 10 ? 3 : 1);
         var avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
@@ -169,6 +177,7 @@
     function addS() {
         var cIdx = document.getElementById('cSel').value;
         var val = parseFloat(document.getElementById('sIn').value);
+        if(!pName) return alert("Please enter a name first!");
         if(cIdx === "" || isNaN(val)) return alert("Select course and score");
         var c = courses[cIdx];
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
@@ -232,7 +241,7 @@
             renderClubhouse(cloud);
             localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
             render();
-            alert("Clubhouse Updated!");
+            alert("Updated Clubhouse for " + pName);
         } catch (e) { alert("Sync Error"); }
     }
 
@@ -245,61 +254,8 @@
             list.innerHTML += '<div class="score-item">👤 <b>'+name+'</b>: '+p.index + 
             ' <button class="btn-outline" onclick="toggle(\'f-hist-'+name+'\')">View History</button>' +
             '<div id="f-hist-'+name+'" class="edit-drawer">' +
-            p.history.map((s, idx) => '<div style="font-size:0.75rem; border-bottom:1px solid #eee; padding:5px 0;">'+s.date+': '+s.score+' '+(isAdmin ? '<button style="color:red; background:none; border:none; font-size:0.6rem;" onclick="adminDel(\''+name+'\','+idx+')">DEL</button>' : '')+'</div>').join('') +
-            (isAdmin ? '<div class="admin-box"><label>Add for '+name+'</label><select id="ac-'+name+'"></select><div style="display:flex; gap:5px;"><input type="date" id="ad-'+name+'"><input type="number" id="as-'+name+'" placeholder="Scr"></div><button onclick="adminAdd(\''+name+'\')">Add Score</button></div>' : '') +
-            '</div></div>';
-            
-            if(isAdmin) {
-                const sel = document.getElementById('ac-'+name);
-                courses.forEach((c, idx) => { sel.innerHTML += '<option value="'+idx+'">'+c.name+'</option>'; });
-                document.getElementById('ad-'+name).valueAsDate = new Date();
-            }
-        }
-    }
+            p.history.map((s, idx) => '<div style="font-size:0.75rem; border-bottom:1px solid #eee; padding:5px 0;">'+s.date+': '+s.score+' '+(isAdmin ? '<button style
 
-    async function adminAdd(target) {
-        const cIdx = document.getElementById('ac-'+target).value;
-        const val = parseFloat(document.getElementById('as-'+target).value);
-        const date = document.getElementById('ad-'+target).value;
-        const c = courses[cIdx];
-        const d = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        const binId = btoa(gKey).replace(/=/g, "");
-        const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
-        let cloud = await res.json();
-        cloud.players[target].history.unshift({ date, courseName: c.name, score: val, diff: d });
-        cloud.players[target].index = calc(cloud.players[target].history);
-        await fetch("https://api.jsonstorage.net/v1/json/" + binId, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(cloud)
-        });
-        sync();
-    }
-
-    async function adminDel(target, idx) {
-        if(!confirm("Delete?")) return;
-        const binId = btoa(gKey).replace(/=/g, "");
-        const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
-        let cloud = await res.json();
-        cloud.players[target].history.splice(idx, 1);
-        cloud.players[target].index = calc(cloud.players[target].history);
-        await fetch("https://api.jsonstorage.net/v1/json/" + binId, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(cloud)
-        });
-        sync();
-    }
-
-    document.getElementById('dIn').valueAsDate = new Date();
-    document.getElementById('nameIn').value = pName;
-    document.getElementById('keyIn').value = gKey;
-    isAdmin = (gKey === ADMIN_PASS);
-    render();
-</script>
-</body>
-</html>
-   
 
 
 
