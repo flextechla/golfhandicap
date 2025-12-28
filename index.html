@@ -18,7 +18,8 @@
         .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; list-style: none; }
         .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
         .admin-box { background: #fffde7; border: 2px dashed orange; padding: 10px; border-radius: 8px; margin-top: 10px; }
-        .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 5px 10px; font-size: 0.7rem; }
+        .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 5px 10px; font-size: 0.7rem; margin-right: 5px; }
+        .switch-row { display: flex; gap: 5px; margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -32,8 +33,13 @@
 <div class="card">
     <div class="header" onclick="toggle('sync')"><span>👥 Clubhouse Sync</span><span>▼</span></div>
     <div id="sync" class="content">
-        <label>Your Name</label><input type="text" id="nameIn" onchange="saveSet()">
-        <label>Group Key</label><input type="password" id="keyIn" onchange="saveSet()" placeholder="Masters2026 or Admin Pass">
+        <label>Your Name</label>
+        <div class="switch-row">
+            <input type="text" id="nameIn" placeholder="Enter Name" style="margin-bottom:0;">
+            <button onclick="saveSet()" style="width:auto; margin-bottom:0; background:var(--dark);">Switch</button>
+        </div>
+        <label>Group Key</label>
+        <input type="password" id="keyIn" onchange="saveSet()" placeholder="Masters2026 or golf2026">
         <button onclick="sync()">Sync Now</button>
         <div id="cbList" style="margin-top:10px;"></div>
     </div>
@@ -82,15 +88,17 @@
     }
 
     var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
-    var scores = JSON.parse(localStorage.getItem('golfScores_v14')) || [];
     var pName = localStorage.getItem('golf_pname') || "";
     var gKey = localStorage.getItem('golf_gkey') || "";
+    var scores = JSON.parse(localStorage.getItem('scores_' + pName)) || [];
 
     function saveSet() {
+        // Save current user's data before switching
+        if(pName) localStorage.setItem('scores_' + pName, JSON.stringify(scores));
+
         pName = document.getElementById('nameIn').value;
         let inputKey = document.getElementById('keyIn').value;
         
-        // If you type the admin pass, it treats the group key as the Master Key automatically
         if (inputKey === ADMIN_PASS) {
             isAdmin = true;
             gKey = MASTER_KEY; 
@@ -101,6 +109,9 @@
         
         localStorage.setItem('golf_pname', pName);
         localStorage.setItem('golf_gkey', gKey);
+
+        // Load new user's specific data
+        scores = JSON.parse(localStorage.getItem('scores_' + pName)) || [];
         render();
     }
 
@@ -109,12 +120,12 @@
         
         var sel = document.getElementById('cSel');
         sel.innerHTML = '<option value="">-- Choose Course --</option>';
-        courses.forEach((c, i) => {
+        courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
             sel.innerHTML += '<option value="'+i+'">'+c.name+' ('+c.tee+')</option>';
         });
 
         var sl = document.getElementById('sList');
-        sl.innerHTML = "";
+        sl.innerHTML = scores.length ? "" : "<small>No scores for this user yet.</small>";
         scores.forEach((s, i) => {
             var nameToDisplay = s.courseName || s.course || "Unknown Course";
             sl.innerHTML += '<div class="score-item"><b>'+s.score+'</b> at '+nameToDisplay+'<br><small>'+s.date+' (Diff: '+s.diff+')</small>' +
@@ -162,7 +173,7 @@
         var c = courses[cIdx];
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
         scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, score: val, diff: d });
-        localStorage.setItem('golfScores_v14', JSON.stringify(scores));
+        localStorage.setItem('scores_' + pName, JSON.stringify(scores));
         document.getElementById('sIn').value = "";
         render();
     }
@@ -173,7 +184,7 @@
         if(c && !isNaN(newVal)) {
             scores[i].score = newVal;
             scores[i].diff = ((newVal - c.rating) * 113 / c.slope).toFixed(1);
-            localStorage.setItem('golfScores_v14', JSON.stringify(scores));
+            localStorage.setItem('scores_' + pName, JSON.stringify(scores));
             render();
         }
     }
@@ -197,7 +208,7 @@
         render();
     }
 
-    function delS(i) { if(confirm("Delete round?")) { scores.splice(i, 1); localStorage.setItem('golfScores_v14', JSON.stringify(scores)); render(); } }
+    function delS(i) { if(confirm("Delete round?")) { scores.splice(i, 1); localStorage.setItem('scores_' + pName, JSON.stringify(scores)); render(); } }
     function delC(i) { if(confirm("Delete course?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); } }
 
     async function sync() {
@@ -283,14 +294,13 @@
     document.getElementById('dIn').valueAsDate = new Date();
     document.getElementById('nameIn').value = pName;
     document.getElementById('keyIn').value = gKey;
-    let checkKey = document.getElementById('keyIn').value;
-    isAdmin = (checkKey === ADMIN_PASS || gKey === ADMIN_PASS);
-    if(isAdmin) gKey = MASTER_KEY;
+    isAdmin = (gKey === ADMIN_PASS);
     render();
 </script>
 </body>
 </html>
    
+
 
 
 
