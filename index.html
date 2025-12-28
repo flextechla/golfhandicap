@@ -18,12 +18,10 @@
         .card { background: var(--white); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 15px; }
         .card-header { font-weight: 700; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .section-label { font-size: 0.85rem; text-transform: uppercase; color: #777; margin: 20px 0 10px 5px; font-weight: bold; }
-        input, select, textarea { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 10px; }
+        input, select { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 10px; }
         button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-bottom: 10px; }
         .btn-primary { background: var(--primary); color: white; }
-        .btn-update { background: var(--accent); color: #000; }
         .btn-sync { background: #0288d1; color: white; }
-        .btn-sm { padding: 5px 10px; width: auto; font-size: 0.8rem; }
         .score-item { background: #f9f9f9; border-radius: 8px; padding: 12px; margin-bottom: 10px; border: 1px solid #eee; list-style: none; }
         .hidden { display: none; }
         .clubhouse-tag { background: #e8f5e9; color: var(--dark); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
@@ -34,16 +32,16 @@
 <div class="container">
     <div class="card">
         <label>Your Name</label>
-        <input type="text" id="playerName" placeholder="Enter your name" onchange="savePlayerName()">
-        <label>Group Secret Key</label>
-        <input type="text" id="groupKey" placeholder="e.g., SundayBoys2025" onchange="saveGroupKey()">
+        <input type="text" id="playerName" placeholder="Your Name" onchange="saveSettings()">
+        <label>Group Key</label>
+        <input type="text" id="groupKey" placeholder="e.g., SundayGolfers" onchange="saveSettings()">
         <button class="btn-sync" id="syncBtn" onclick="syncData()">🔄 Sync with Friends</button>
     </div>
 
     <div class="dashboard-card">
         <div id="playerDisplayName" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">Player</div>
-        <div style="font-size: 0.8rem; text-transform: uppercase;">Current Index</div>
         <div class="handicap-number" id="displayIndex">--</div>
+        <div style="font-size: 0.8rem; opacity: 0.8;">CURRENT INDEX</div>
     </div>
 
     <div id="clubhouseSection" class="hidden">
@@ -52,12 +50,8 @@
     </div>
 
     <div class="section-label">My Actions</div>
-    
     <div class="card">
-        <div class="card-header" onclick="toggleSection('postForm')">
-            <span>⛳ Post New Score</span>
-            <span>▼</span>
-        </div>
+        <div class="card-header" onclick="toggleSection('postForm')"><span>⛳ Post New Score</span><span>▼</span></div>
         <div id="postForm" class="hidden" style="margin-top:15px;">
             <select id="courseSelect"></select>
             <input type="date" id="scoreDate">
@@ -67,58 +61,74 @@
     </div>
 
     <div class="card">
-        <div class="card-header" onclick="toggleSection('myHistory')">
-            <span>📝 My Score History</span>
-            <span>▼</span>
-        </div>
-        <div id="myHistory" class="hidden" style="margin-top:15px;">
+        <div class="card-header" onclick="toggleSection('myHistory')"><span>📝 My Score History</span><span>▼</span></div>
+        <div id="myHistory" style="margin-top:15px;">
             <ul id="scoreList" style="padding:0"></ul>
         </div>
     </div>
 </div>
 
 <script>
-    // --- APP DATA ---
     const API_BASE = "https://api.jsonstorage.net/v1/json/";
-    // This is a public read/write key for the demo. 
-    // For a private group, you'd generate a unique ID.
-    let groupID = localStorage.getItem('golf_group_id') || ""; 
+    
+    // --- 1. MIGRATION LOGIC (BRINGING BACK YOUR OLD DATA) ---
+    function migrateOldData() {
+        const oldScores = localStorage.getItem('golfScores_v14');
+        const oldCourses = localStorage.getItem('golfCourses_v14');
+        
+        if (oldScores && !localStorage.getItem('golf_scores')) {
+            localStorage.setItem('golf_scores', oldScores);
+        }
+        if (oldCourses && !localStorage.getItem('golf_courses_custom')) {
+            localStorage.setItem('golf_courses_custom', oldCourses);
+        }
+    }
+    migrateOldData();
+
+    // --- 2. DATA SETUP ---
     let playerName = localStorage.getItem('golf_player_name') || "";
+    let groupKey = localStorage.getItem('golf_group_key') || "";
     let scores = JSON.parse(localStorage.getItem('golf_scores')) || [];
-    let courses = [
-        {name: 'Beaver Creek', tee: 'Blue', slope: 130, rating: 72.0},
-        {name: 'Santa Maria', tee: 'Blue', slope: 128, rating: 71.5}
+    
+    // The default course list you had before
+    const defaultCourses = [
+        {'name': 'Beaver Creek', 'tee': 'Blue', 'slope': 130.0, 'rating': 72.0},
+        {'name': 'Belle Terre', 'tee': 'Blue', 'slope': 131.0, 'rating': 72.2},
+        {'name': 'Cam2', 'tee': 'White', 'slope': 118.0, 'rating': 67.7},
+        {'name': 'Carter Plantation', 'tee': 'Blue', 'slope': 115.0, 'rating': 66.7},
+        {'name': 'City Park', 'tee': 'Blue', 'slope': 125.0, 'rating': 70.0},
+        {'name': 'Coppermill', 'tee': 'Gold', 'slope': 129.0, 'rating': 71.8},
+        {'name': 'Greystone', 'tee': 'Blue', 'slope': 128.0, 'rating': 70.8},
+        {'name': 'Santa Maria', 'tee': 'Blue', 'slope': 128.0, 'rating': 71.5},
+        {'name': 'The Island', 'tee': 'Blue', 'slope': 135.0, 'rating': 73.1},
+        {'name': 'Webb', 'tee': 'White', 'slope': 123.0, 'rating': 69.5}
     ];
+    // Merge your custom ones if you added any
+    let customCourses = JSON.parse(localStorage.getItem('golf_courses_custom')) || [];
+    let courses = customCourses.length > 0 ? customCourses : defaultCourses;
 
     function init() {
         document.getElementById('playerName').value = playerName;
-        document.getElementById('groupKey').value = localStorage.getItem('golf_group_key') || "";
+        document.getElementById('groupKey').value = groupKey;
         document.getElementById('scoreDate').valueAsDate = new Date();
         renderCourses();
         updateUI();
-        if(groupID) syncData();
+        if(groupKey && playerName) syncData();
     }
 
     function toggleSection(id) { document.getElementById(id).classList.toggle('hidden'); }
 
-    function savePlayerName() {
+    function saveSettings() {
         playerName = document.getElementById('playerName').value;
+        groupKey = document.getElementById('groupKey').value;
         localStorage.setItem('golf_player_name', playerName);
+        localStorage.setItem('golf_group_key', groupKey);
         updateUI();
-    }
-
-    function saveGroupKey() {
-        // We create a unique ID based on their "Secret Word"
-        const key = document.getElementById('groupKey').value;
-        localStorage.setItem('golf_group_key', key);
-        // Simple way to turn a word into a URL-friendly ID
-        groupID = btoa(key).replace(/=/g, ""); 
-        localStorage.setItem('golf_group_id', groupID);
     }
 
     function renderCourses() {
         const sel = document.getElementById('courseSelect');
-        courses.forEach((c, i) => {
+        courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
             sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
         });
     }
@@ -135,10 +145,9 @@
         const index = calculateIndex(scores);
         document.getElementById('displayIndex').innerText = index;
         document.getElementById('playerDisplayName').innerText = playerName || "Player";
-        
         const list = document.getElementById('scoreList');
         list.innerHTML = "";
-        scores.slice(0,20).forEach((s, i) => {
+        scores.forEach((s) => {
             list.innerHTML += `<li class="score-item">
                 <strong>${s.score}</strong> at ${s.courseName} <br>
                 <small>${s.date} | Diff: ${s.diff}</small>
@@ -149,86 +158,49 @@
     function submitScore() {
         const c = courses[document.getElementById('courseSelect').value];
         const val = document.getElementById('scoreVal').value;
+        if(!val) return;
         const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        
-        scores.unshift({
-            date: document.getElementById('scoreDate').value,
-            courseName: c.name,
-            score: val,
-            diff: diff
-        });
-        
+        scores.unshift({ date: document.getElementById('scoreDate').value, courseName: c.name, score: val, diff: diff });
         localStorage.setItem('golf_scores', JSON.stringify(scores));
         updateUI();
-        syncData(); // Automatically push to friends
+        syncData();
     }
 
-    // --- SYNC LOGIC ---
     async function syncData() {
-        if(!playerName || !groupID) return alert("Enter Name and Group Key first!");
+        if(!playerName || !groupKey) return alert("Setup Name and Group Key!");
+        const groupID = btoa(groupKey).replace(/=/g, "");
         const btn = document.getElementById('syncBtn');
         btn.innerText = "Syncing...";
-
         try {
-            // 1. Get current Group Data
             const res = await fetch(`${API_BASE}${groupID}`);
-            let cloudData = {};
-            if(res.ok) {
-                cloudData = await res.json();
-            }
-
-            // 2. Add your data
-            cloudData[playerName] = {
-                index: calculateIndex(scores),
-                history: scores.slice(0, 20),
-                updated: new Date().toLocaleTimeString()
-            };
-
-            // 3. Push back to cloud
-            await fetch(`${API_BASE}${groupID}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(cloudData)
-            });
-
+            let cloudData = res.ok ? await res.json() : {};
+            cloudData[playerName] = { index: calculateIndex(scores), history: scores.slice(0, 20), updated: new Date().toLocaleTimeString() };
+            await fetch(`${API_BASE}${groupID}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cloudData) });
             renderClubhouse(cloudData);
-        } catch (e) {
-            console.log("New group created!");
-            // If group doesn't exist, create it
-            await fetch(`${API_BASE}${groupID}?apiKey=dummy`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({[playerName]: {index: calculateIndex(scores), history: scores.slice(0,20)}})
-            });
-        }
+        } catch (e) { console.error(e); }
         btn.innerText = "🔄 Sync with Friends";
     }
 
     function renderClubhouse(data) {
         const container = document.getElementById('clubhouseList');
-        const section = document.getElementById('clubhouseSection');
+        document.getElementById('clubhouseSection').classList.remove('hidden');
         container.innerHTML = "";
-        section.classList.remove('hidden');
-
         for (let friend in data) {
             if (friend === playerName) continue;
             const f = data[friend];
             container.innerHTML += `
                 <div class="card">
                     <div class="card-header" onclick="toggleSection('friend_${friend}')">
-                        <span>👤 ${friend} <span class="clubhouse-tag">Index: ${f.index}</span></span>
-                        <span>▼</span>
+                        <span>👤 ${friend} <span class="clubhouse-tag">Index: ${f.index}</span></span><span>▼</span>
                     </div>
                     <div id="friend_${friend}" class="hidden" style="margin-top:10px">
                         <ul style="padding:0; font-size: 0.9rem;">
-                            ${f.history.map(s => `<li class="score-item">${s.score} (${s.courseName})</li>`).join('')}
+                            ${f.history.map(s => `<li class="score-item"><strong>${s.score}</strong> (${s.courseName})</li>`).join('')}
                         </ul>
                     </div>
-                </div>
-            `;
+                </div>`;
         }
     }
-
     init();
 </script>
 </body>
