@@ -3,128 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Tracker Cloud Rescue</title>
+    <title>Golf Tracker Master Recovery</title>
     <style>
-        :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; --accent: #FFA000; }
-        body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
-        .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; border-bottom: 4px solid var(--accent); }
-        .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; min-height: 4rem; }
-        .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; overflow: hidden; }
-        .header { background: #eee; padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; }
-        .content { padding: 15px; display: none; }
-        label { display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; color: #444; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
-        .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; }
-        .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; }
-        .user-pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
-        .active-pill { background: var(--dark); color: white; border-color: var(--dark); }
-        .status-msg { font-size: 0.8rem; color: #d32f2f; text-align: center; margin-bottom: 10px; font-weight: bold; }
+        :root { --primary: #d32f2f; --dark: #b71c1c; --bg: #fdfdfd; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg); padding: 15px; color: #333; }
+        .dashboard { background: #333; color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; border-bottom: 5px solid red; }
+        .handicap { font-size: 3rem; font-weight: bold; }
+        .card { background: white; border-radius: 10px; margin-bottom: 15px; border: 1px solid #ccc; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .recovery-btn { background: #fb8c00; color: white; padding: 15px; border: none; border-radius: 8px; width: 100%; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+        .score-item { background: #f1f1f1; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.9rem; border-left: 5px solid var(--primary); }
+        button { width: 100%; padding: 12px; background: #2E7D32; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        .found-label { color: var(--primary); font-weight: bold; margin-bottom: 10px; display: block; }
     </style>
 </head>
 <body>
 
 <div class="dashboard">
-    <div id="pDisp" style="font-size: 1.2rem; font-weight: bold;">Cloud Sync Mode</div>
+    <div style="font-size: 0.8rem; letter-spacing: 2px;">EMERGENCY RECOVERY MODE</div>
     <div class="handicap" id="idx">--</div>
-    <div style="font-size: 0.8rem; opacity: 0.9;">WHS HANDICAP INDEX</div>
+    <div id="pDisp">Searching...</div>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('club')"><span>☁️ Step 1: Connect to Cloud</span><span>▼</span></div>
-    <div id="club" class="content" style="display:block;">
-        <div id="status" class="status-msg">Not Connected</div>
-        <label>Your Profile Name:</label>
-        <input type="text" id="nameIn" placeholder="Enter Name (e.g. Don)">
-        <label>Group Key:</label>
-        <input type="text" id="keyIn" value="Masters2026">
-        <button onclick="cloudRescue()" style="background:var(--dark); font-size: 1.1rem;">🔄 Download All Data</button>
-        <div id="userList" style="margin-top:15px;"></div>
-    </div>
+    <span class="found-label">STEP 1: PHONE MEMORY SCAN</span>
+    <p style="font-size: 0.8rem;">Click this to search your phone for any "lost" golf data from previous versions.</p>
+    <button class="recovery-btn" onclick="deepScan()">🔍 SCAN PHONE FOR LOST DATA</button>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('post')"><span>⛳ Step 2: Post Score</span><span>▼</span></div>
-    <div id="post" class="content">
-        <label>Course</label><select id="cSel"></select>
-        <label>Date</label><input type="date" id="dIn">
-        <label>Score</label><input type="number" id="sIn">
-        <button onclick="addS()">Save Locally</button>
-    </div>
+    <span class="found-label">STEP 2: CLOUD RESCUE</span>
+    <label>Enter Name (Ex: Don)</label>
+    <input type="text" id="nameIn" placeholder="Don">
+    <label>Group Key</label>
+    <input type="text" id="keyIn" value="Masters2026">
+    <button onclick="cloudPull()">☁️ PULL FROM CLOUD</button>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('hist')"><span>📝 Step 3: History</span><span>▼</span></div>
-    <div id="hist" class="content"><div id="sList"></div></div>
+    <span class="found-label">STEP 3: RECOVERED SCORES</span>
+    <div id="sList">No scores found yet.</div>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('course')"><span>⛳ Manage Courses</span><span>▼</span></div>
-    <div id="course" class="content"><div id="cList"></div></div>
+    <span class="found-label">STEP 4: RECOVERED COURSES</span>
+    <div id="cList">No courses found yet.</div>
 </div>
 
 <script>
-    function menuToggle(id) {
-        var x = document.getElementById(id);
-        if (x) x.style.display = (x.style.display === "block") ? "none" : "block";
-    }
-
+    // Global Data Holders
+    var scores = [];
     var courses = [];
     var pName = "";
-    var scores = [];
-    var knownUsers = [];
 
-    async function cloudRescue() {
-        pName = document.getElementById('nameIn').value.trim();
-        let key = document.getElementById('keyIn').value.trim();
-        if (!pName || !key) return alert("Enter Name and Key");
+    // --- DEEP SCAN: The Nuclear Option ---
+    function deepScan() {
+        console.log("Starting Deep Scan...");
+        let foundScores = [];
+        let foundCourses = [];
 
-        const binId = btoa(key).replace(/=/g, "");
-        const status = document.getElementById('status');
-        status.innerText = "Searching Cloud...";
+        // Loop through EVERY key in the phone's storage
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            let val = localStorage.getItem(key);
 
-        try {
-            const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
-            if (!res.ok) throw new Error("Key not found");
-            
-            let cloud = await res.json();
-            
-            // 1. Recover Courses
-            courses = cloud.courses || [];
-            localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-
-            // 2. Recover Scores for current player
-            if (cloud.players[pName]) {
-                scores = cloud.players[pName].history || [];
-                localStorage.setItem('scores_' + pName, JSON.stringify(scores));
-                localStorage.setItem('golf_pname', pName);
-            }
-
-            // 3. Identify other players
-            knownUsers = Object.keys(cloud.players);
-            localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
-
-            status.innerText = "✅ Success! Data Recovered.";
-            status.style.color = "green";
-            render();
-        } catch (e) {
-            status.innerText = "❌ Error: Could not reach cloud.";
-            alert("Double check your Key.");
+            try {
+                let parsed = JSON.parse(val);
+                
+                // If it's an array and contains things that look like scores
+                if (Array.isArray(parsed)) {
+                    if (parsed.length > 0 && (parsed[0].score || parsed[0].rating)) {
+                        if (parsed[0].score) {
+                            console.log("Found Scores in: " + key);
+                            foundScores = foundScores.concat(parsed);
+                        } else if (parsed[0].rating) {
+                            console.log("Found Courses in: " + key);
+                            foundCourses = foundCourses.concat(parsed);
+                        }
+                    }
+                }
+            } catch (e) { /* Not JSON, skip */ }
         }
-    }
 
-    function switchUser(target) {
-        pName = target;
-        document.getElementById('nameIn').value = target;
-        // In this rescue mode, we fetch fresh from memory
-        let saved = localStorage.getItem('scores_' + target);
-        scores = saved ? JSON.parse(saved) : [];
+        if (foundScores.length > 0) {
+            scores = foundScores;
+            // Remove duplicates based on date and score
+            scores = scores.filter((v,i,a)=>a.findIndex(t=>(t.date===v.date && t.score===v.score))===i);
+            alert("Found " + scores.length + " scores in phone memory!");
+        }
+        
+        if (foundCourses.length > 0) {
+            courses = foundCourses;
+            courses = courses.filter((v,i,a)=>a.findIndex(t=>(t.name===v.name && t.tee===v.tee))===i);
+        }
+
         render();
     }
 
+    // --- CLOUD PULL ---
+    async function cloudPull() {
+        let name = document.getElementById('nameIn').value.trim();
+        let key = document.getElementById('keyIn').value.trim();
+        if (!name) return alert("Enter your name");
+        
+        pName = name;
+        const binId = btoa(key).replace(/=/g, "");
+        
+        try {
+            const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
+            let cloud = await res.json();
+            
+            if (cloud.players && cloud.players[name]) {
+                scores = cloud.players[name].history;
+                courses = cloud.courses || courses;
+                alert("Cloud Sync Successful!");
+            } else {
+                alert("Name not found in this Cloud Key.");
+            }
+            render();
+        } catch (e) {
+            alert("Cloud Error. Check internet and key.");
+        }
+    }
+
     function calc() {
-        if (!scores || scores.length < 3) return "--";
-        let diffs = [...scores].map(s => parseFloat(s.diff)).sort((a,b) => a-b);
+        if (scores.length < 3) return "--";
+        let diffs = scores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
         let n = scores.length >= 20 ? 8 : (scores.length >= 10 ? 3 : 1);
         let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
         return (Math.floor(avg * 10) / 10).toFixed(1);
@@ -132,55 +136,40 @@
 
     function render() {
         document.getElementById('idx').innerText = calc();
-        document.getElementById('pDisp').innerText = pName || "Cloud Sync Mode";
+        document.getElementById('pDisp').innerText = pName || "Data Found";
 
-        // Pills
-        let uL = document.getElementById('userList');
-        uL.innerHTML = knownUsers.length ? "<label>Quick Switch:</label>" : "";
-        knownUsers.sort().forEach(u => {
-            uL.innerHTML += `<span class="user-pill ${u === pName ? 'active-pill' : ''}" onclick="switchUser('${u}')">${u}</span>`;
-        });
-
-        // Courses
-        let sel = document.getElementById('cSel');
-        sel.innerHTML = '<option value="">-- Choose Course --</option>';
-        courses.forEach((c, i) => {
-            sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
-        });
-
-        // History
         let sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores in cloud for " + pName + "</small>";
-        scores.forEach((s, i) => {
-            sl.innerHTML += `<div class="score-item">
-                <b>${s.score}</b> at ${s.courseName||s.course} (${s.teeColor||''})<br><small>${s.date} | Diff: ${s.diff}</small>
-            </div>`;
+        sl.innerHTML = "";
+        scores.forEach(s => {
+            sl.innerHTML += `<div class="score-item"><b>${s.score}</b> at ${s.courseName||s.course} (${s.date})</div>`;
         });
 
-        // Course List
         let cl = document.getElementById('cList');
         cl.innerHTML = "";
         courses.forEach(c => {
-            cl.innerHTML += `<div class="score-item"><b>${c.name}</b> (${c.tee})<br><small>R: ${c.rating} S: ${c.slope}</small></div>`;
+            cl.innerHTML += `<div class="score-item"><b>${c.name}</b> (${c.tee}) - R:${c.rating} S:${c.slope}</div>`;
         });
+
+        // Save what we found so it sticks
+        if (pName) localStorage.setItem('scores_' + pName, JSON.stringify(scores));
+        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
     }
 
-    function addS() {
-        let cIdx = document.getElementById('cSel').value;
-        let val = parseFloat(document.getElementById('sIn').value);
-        if (cIdx === "" || isNaN(val)) return;
-        let c = courses[cIdx];
-        let d = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
-        localStorage.setItem('scores_' + pName, JSON.stringify(scores));
-        render();
-    }
-
-    document.getElementById('dIn').valueAsDate = new Date();
+    // Attempt to load current profile on start
+    window.onload = () => {
+        let savedName = localStorage.getItem('golf_pname');
+        if (savedName) {
+            pName = savedName;
+            let savedScores = localStorage.getItem('scores_' + pName);
+            if (savedScores) scores = JSON.parse(savedScores);
+            render();
+        }
+    };
 </script>
 </body>
 </html>
    
+
 
 
 
