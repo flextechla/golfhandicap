@@ -20,32 +20,31 @@
         .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; margin-right: 4px; }
         .user-pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
         .active-pill { background: var(--dark); color: white; border-color: var(--dark); }
+        .status-msg { font-size: 0.85rem; text-align: center; color: #d32f2f; font-weight: bold; margin: 10px 0; }
         .tee-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #333; color: #fff; margin-left: 5px; vertical-align: middle; text-transform: uppercase; }
-        .status-msg { font-size: 0.75rem; text-align: center; color: #666; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div class="dashboard">
-    <div id="pDisp" style="font-size: 1.2rem; font-weight: bold;">Select User</div>
+    <div id="pDisp" style="font-size: 1.2rem; font-weight: bold;">Login Required</div>
     <div class="handicap" id="idx">--</div>
     <div style="font-size: 0.8rem; opacity: 0.9; letter-spacing: 1px;">WHS HANDICAP INDEX</div>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('sync')"><span>👥 Clubhouse Login & Switch</span><span>▼</span></div>
-    <div id="sync" class="content">
-        <label>1. Select Your Profile:</label>
+    <div class="header" onclick="menuToggle('sync')"><span>🔐 Clubhouse Security & Login</span><span>▼</span></div>
+    <div id="sync" class="content" style="display:block;"> <label>1. Who are you?</label>
         <div id="userList" style="margin-bottom:15px;"></div>
-        <input type="text" id="nameIn" placeholder="Or type new name here...">
+        <input type="text" id="nameIn" placeholder="Type name if not in list...">
 
-        <label style="margin-top:15px;">2. Enter Group Key:</label>
-        <input type="password" id="keyIn" placeholder="Masters2026 or golf2026">
+        <label style="margin-top:15px;">2. Access Key:</label>
+        <input type="password" id="keyIn" placeholder="Required to see others">
         
-        <button onclick="performLogin()" style="background:var(--dark); font-size: 1.1rem;">🔓 Login & Sync Clubhouse</button>
-        <div id="loginStatus" class="status-msg">Currently viewing local data only.</div>
+        <button onclick="performLogin()" style="background:var(--dark); font-size: 1.1rem; border: 2px solid var(--accent);">🔓 Connect to Clubhouse</button>
+        <div id="loginStatus" class="status-msg">⚠️ Clubhouse Locked (Offline Mode)</div>
 
-        <div id="cbList" style="margin-top:15px; border-top: 1px solid #eee; padding-top:10px;"></div>
+        <div id="cbList" style="margin-top:15px; border-top: 2px solid #eee; padding-top:15px;"></div>
     </div>
 </div>
 
@@ -55,17 +54,17 @@
         <label>Course</label><select id="cSel"></select>
         <label>Date</label><input type="date" id="dIn">
         <label>Gross Score</label><input type="number" id="sIn" placeholder="--">
-        <button onclick="addS()">Save Round</button>
+        <button onclick="addS()">Save Locally</button>
     </div>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('hist')"><span>📝 Score History</span><span>▼</span></div>
+    <div class="header" onclick="menuToggle('hist')"><span>📝 Your History</span><span>▼</span></div>
     <div id="hist" class="content"><div id="sList"></div></div>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('course')"><span>⛳ Manage Courses</span><span>▼</span></div>
+    <div class="header" onclick="menuToggle('course')"><span>⛳ Course Database</span><span>▼</span></div>
     <div id="course" class="content">
         <button onclick="menuToggle('nc')">+ Add New Course/Tee</button>
         <div id="nc" class="content" style="border:1px dashed #ccc; padding:10px; margin: 10px 0;">
@@ -90,41 +89,37 @@
     const MASTER_KEY = "Masters2026";
     const ADMIN_PASS = "golf2026";
     
+    // STARTUP WIPE: Do not load gKey or isAdmin from storage!
     var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
     var pName = localStorage.getItem('golf_pname') || "";
-    var gKey = ""; // Must be entered to see cloud
-    var scores = [];
     var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || [];
+    var scores = [];
+    var gKey = ""; 
     var isAdmin = false;
 
-    // This handles the switch AND the sync
     async function performLogin(manualName = null) {
-        // Save current data first
         if(pName) localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
 
-        // Identity
         pName = manualName || document.getElementById('nameIn').value.trim();
-        if(!pName) return alert("Select or type a name first.");
-        localStorage.setItem('golf_pname', pName);
-        if(!knownUsers.includes(pName)) knownUsers.push(pName);
-        localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
-
-        // Security
         let inputKey = document.getElementById('keyIn').value;
-        if(!inputKey) return alert("Enter the Group Key to Sync with the clubhouse.");
-        
+
+        if(!pName || !inputKey) return alert("You must provide both a Name and an Access Key.");
+
+        // SECURITY CHECK - Only happens here
         isAdmin = (inputKey === ADMIN_PASS);
         gKey = isAdmin ? MASTER_KEY : inputKey;
 
         const binId = btoa(gKey).replace(/=/g, "");
         const status = document.getElementById('loginStatus');
-        status.innerText = "Syncing...";
+        status.innerText = "Authenticating...";
 
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
+            if(!res.ok && !isAdmin) throw new Error("Invalid Key");
+            
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
             
-            // Send local scores to cloud
+            // Sync Current User
             loadScores();
             cloud.players[pName] = { index: calc(), history: scores.slice(0, 10) };
             
@@ -133,15 +128,25 @@
                 body: JSON.stringify(cloud) 
             });
 
-            status.innerHTML = isAdmin ? "✅ Logged in as <b style='color:red'>COMMISSIONER</b>" : "✅ Logged in as Member";
+            // If we get here, login is valid
+            localStorage.setItem('golf_pname', pName);
+            if(!knownUsers.includes(pName)) knownUsers.push(pName);
+            localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
+
+            status.innerHTML = isAdmin ? "✅ <b style='color:red'>COMMISSIONER ACCESS GRANTED</b>" : "✅ MEMBER ACCESS GRANTED";
+            status.style.color = "#2E7D32";
+            
             renderClubhouse(cloud);
             render();
+            menuToggle('sync'); // Close login box on success
         } catch (e) {
-            alert("Connection error. Check key.");
-            status.innerText = "Sync Failed.";
+            alert("Security Error: Invalid Key for this Clubhouse.");
+            status.innerText = "❌ Login Failed.";
+            gKey = ""; isAdmin = false;
         }
     }
 
+    // --- RENDER & LOGIC ---
     function loadScores() {
         let saved = localStorage.getItem('scores_' + pName.trim());
         scores = saved ? JSON.parse(saved) : [];
@@ -173,7 +178,7 @@
         });
 
         var sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
+        sl.innerHTML = scores.length ? "" : "<small>No local scores found.</small>";
         scores.forEach((s, i) => {
             sl.innerHTML += `<div class="score-item">
                 <div style="display:flex; justify-content:space-between;">
@@ -234,7 +239,7 @@
         let cloud = await res.json();
         cloud.players[target].history.splice(idx, 1);
         await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-        performLogin(); // Refresh
+        performLogin(); 
     }
 
     function addS() {
@@ -284,3 +289,4 @@
 </script>
 </body>
 </html>
+
