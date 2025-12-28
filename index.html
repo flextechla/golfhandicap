@@ -61,9 +61,8 @@
 
     <div class="card">
         <div class="card-header with-border"><span>⛳ Post New Score</span></div>
-        <input type="hidden" id="editScoreId">
         <label>Course</label>
-        <select id="courseSelect" onchange="updateCoursePreview()"></select>
+        <select id="courseSelect" onchange="updateCoursePreview('coursePreview', 'courseSelect')"></select>
         <div id="coursePreview" style="font-size:0.8rem; text-align:center; color:var(--primary); margin-bottom:10px; font-weight:bold;"></div>
         <div class="row">
             <div class="col"><label>Date</label><input type="date" id="scoreDate"></div>
@@ -87,7 +86,6 @@
         </div>
         <div id="courseDbContent" class="hidden">
             <button class="btn-primary" style="margin:15px 0;" onclick="toggleSection('newCourseForm')">+ Add New Course</button>
-            
             <div id="newCourseForm" class="hidden edit-drawer">
                 <label>Name</label><input type="text" id="ncName">
                 <label>Tee</label><input type="text" id="ncTee">
@@ -97,7 +95,6 @@
                 </div>
                 <button class="btn-primary" onclick="addNewCourse()">Save Course</button>
             </div>
-
             <ul id="courseDbList" class="score-list" style="padding:0;"></ul>
         </div>
     </div>
@@ -106,7 +103,6 @@
 <script>
     const API_BASE = "https://api.jsonstorage.net/v1/json/";
     
-    // Load Data
     let courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
     let scores = JSON.parse(localStorage.getItem('golfScores_v14')) || [];
     let playerName = localStorage.getItem('golf_pname') || "";
@@ -121,8 +117,7 @@
     }
 
     function toggleSection(id, header) {
-        const el = document.getElementById(id);
-        el.classList.toggle('hidden');
+        document.getElementById(id).classList.toggle('hidden');
         if(header) header.classList.toggle('collapsed');
     }
 
@@ -136,95 +131,123 @@
 
     function updateUI() {
         document.getElementById('pNameDisplay').innerText = playerName || "Golfer";
-        renderDropdown();
+        renderDropdowns();
         renderScoreList();
         renderCourseDb();
         calculateHandicap();
     }
 
-    function calculateHandicap() {
-        if (scores.length < 3) return document.getElementById('displayIndex').innerText = "--";
-        let diffs = [...scores].map(r => parseFloat(r.diff)).sort((a,b) => a-b);
-        let n = scores.length >= 20 ? 8 : (scores.length >= 15 ? 5 : (scores.length >= 10 ? 3 : 1));
+    function calculateHandicap(data = scores) {
+        if (data.length < 3) return "--";
+        let diffs = [...data].map(r => parseFloat(r.diff)).sort((a,b) => a-b);
+        let n = data.length >= 20 ? 8 : (data.length >= 15 ? 5 : (data.length >= 10 ? 3 : 1));
         let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        document.getElementById('displayIndex').innerText = (Math.floor(avg * 10) / 10).toFixed(1);
+        return (Math.floor(avg * 10) / 10).toFixed(1);
     }
 
-    function renderDropdown() {
-        const sel = document.getElementById('courseSelect');
-        sel.innerHTML = '<option value="">-- Choose Course --</option>';
-        courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
-            sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
+    function renderDropdowns() {
+        const selects = document.querySelectorAll('select[id^="courseSelect"]');
+        selects.forEach(sel => {
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">-- Choose Course --</option>';
+            courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
+                sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
+            });
+            if(currentVal) sel.value = currentVal;
         });
     }
 
-    function updateCoursePreview() {
-        const idx = document.getElementById('courseSelect').value;
-        const box = document.getElementById('coursePreview');
+    function updateCoursePreview(previewId, selectId) {
+        const idx = document.getElementById(selectId).value;
+        const box = document.getElementById(previewId);
         if (idx === "") { box.innerText = ""; return; }
         const c = courses[idx];
         box.innerText = `Rating: ${c.rating} / Slope: ${c.slope}`;
     }
 
+    // --- SCORE HISTORY IN-PLACE EDITING ---
     function renderScoreList() {
         const list = document.getElementById('scoreList');
         list.innerHTML = "";
         scores.forEach((s, i) => {
-            list.innerHTML += `<li class="score-item">
-                <div class="score-top">
-                    <div><small>${s.date}</small><br><strong>${s.courseName}</strong></div>
-                    <div style="text-align:right"><strong>${s.score}</strong><br><small>Diff: ${s.diff}</small></div>
-                </div>
-                <div style="text-align:right; margin-top:8px;">
-                    <button class="btn-sm" onclick="editScore(${i})">Edit</button>
-                    <button class="btn-sm" style="color:red" onclick="deleteScore(${i})">Del</button>
-                </div>
-            </li>`;
+            list.innerHTML += `
+                <li class="score-item">
+                    <div class="score-top">
+                        <div><small>${s.date}</small><br><strong>${s.courseName}</strong></div>
+                        <div style="text-align:right"><strong>${s.score}</strong><br><small>Diff: ${s.diff}</small></div>
+                    </div>
+                    <div style="text-align:right; margin-top:8px;">
+                        <button class="btn-sm" onclick="toggleSection('edit-score-${i}')">Edit</button>
+                        <button class="btn-sm" style="color:red" onclick="deleteScore(${i})">Del</button>
+                    </div>
+                    <div id="edit-score-${i}" class="hidden edit-drawer">
+                        <label>Course</label>
+                        <select id="edit-score-course-${i}" onchange="updateCoursePreview('edit-score-pre-${i}', 'edit-score-course-${i}')"></select>
+                        <div id="edit-score-pre-${i}" style="font-size:0.75rem; text-align:center; color:var(--primary); margin-bottom:5px; font-weight:bold;"></div>
+                        <div class="row">
+                            <div class="col"><label>Date</label><input type="date" id="edit-score-date-${i}" value="${s.date}"></div>
+                            <div class="col"><label>Score</label><input type="number" id="edit-score-val-${i}" value="${s.score}"></div>
+                        </div>
+                        <button class="btn-primary" onclick="updateScore(${i})">Save Changes</button>
+                    </div>
+                </li>`;
+            
+            // Populate the dropdown for this specific item
+            setTimeout(() => {
+                const sel = document.getElementById(`edit-score-course-${i}`);
+                courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, idx) => {
+                    sel.innerHTML += `<option value="${idx}">${c.name} (${c.tee})</option>`;
+                });
+                const courseIdx = courses.findIndex(c => c.name === s.courseName);
+                if(courseIdx !== -1) {
+                    sel.value = courseIdx;
+                    updateCoursePreview(`edit-score-pre-${i}`, `edit-score-course-${i}`);
+                }
+            }, 0);
         });
     }
 
-    function editScore(index) {
-        const s = scores[index];
-        document.getElementById('editScoreId').value = index;
-        document.getElementById('scoreDate').value = s.date;
-        document.getElementById('scoreVal').value = s.score;
-        const cIdx = courses.findIndex(c => c.name === s.courseName);
-        if(cIdx !== -1) {
-            document.getElementById('courseSelect').value = cIdx;
-            updateCoursePreview();
-        }
-        document.getElementById('postBtn').innerText = "Update Round";
+    function updateScore(i) {
+        const cIdx = document.getElementById(`edit-score-course-${i}`).value;
+        const val = parseFloat(document.getElementById(`edit-score-val-${i}`).value);
+        if(cIdx === "" || !val) return alert("Select course and score");
+        const c = courses[cIdx];
+        const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
+        
+        scores[i] = {
+            date: document.getElementById(`edit-score-date-${i}`).value,
+            courseName: c.name,
+            score: val,
+            diff: diff
+        };
+        
+        localStorage.setItem('golfScores_v14', JSON.stringify(scores));
+        updateUI();
+        syncWithFriends();
     }
 
     function submitScore() {
-        const editIdx = document.getElementById('editScoreId').value;
         const cIdx = document.getElementById('courseSelect').value;
         const val = parseFloat(document.getElementById('scoreVal').value);
         if(cIdx === "" || !val) return alert("Select course and score");
-        
         const c = courses[cIdx];
         const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        const entry = { date: document.getElementById('scoreDate').value, courseName: c.name, score: val, diff };
-        
-        if (editIdx !== "") scores[editIdx] = entry;
-        else scores.unshift(entry);
-        
+        scores.unshift({ date: document.getElementById('scoreDate').value, courseName: c.name, score: val, diff: diff });
         localStorage.setItem('golfScores_v14', JSON.stringify(scores));
-        document.getElementById('editScoreId').value = "";
         document.getElementById('scoreVal').value = "";
-        document.getElementById('postBtn').innerText = "Post Score";
         updateUI();
         syncWithFriends();
     }
 
     function deleteScore(i) { if(confirm("Delete round?")) { scores.splice(i, 1); localStorage.setItem('golfScores_v14', JSON.stringify(scores)); updateUI(); syncWithFriends(); } }
 
+    // --- COURSE DATABASE IN-PLACE EDITING ---
     function renderCourseDb() {
         const list = document.getElementById('courseDbList');
         list.innerHTML = "";
         courses.forEach((c, i) => {
             list.innerHTML += `
-                <li class="score-item" id="row-${i}">
+                <li class="score-item">
                     <div class="score-top">
                         <div><strong>${c.name}</strong> (${c.tee})<br><small>R: ${c.rating} / S: ${c.slope}</small></div>
                         <div>
@@ -278,12 +301,10 @@
             const res = await fetch(`${API_BASE}${binId}`);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
             cloud.players[playerName] = { index: document.getElementById('displayIndex').innerText, history: scores.slice(0, 10) };
-            
             let cmap = new Map();
             [...cloud.courses, ...courses].forEach(c => cmap.set(`${c.name}-${c.tee}`, c));
             cloud.courses = Array.from(cmap.values());
             courses = cloud.courses;
-
             await fetch(`${API_BASE}${binId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
             renderClubhouse(cloud.players);
             localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
@@ -305,6 +326,7 @@
 </script>
 </body>
 </html>
+
 
 
 
