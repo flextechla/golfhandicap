@@ -38,7 +38,7 @@
     <div class="dashboard-card">
         <div id="pNameDisplay" style="font-weight:bold; margin-bottom:5px;">Golfer</div>
         <div class="handicap-number" id="displayIndex">--</div>
-        <div style="font-size: 0.8rem; opacity: 0.8;">CURRENT INDEX</div>
+        <div id="debugStatus" style="font-size: 0.7rem; opacity: 0.8;">WHS HANDICAP INDEX</div>
     </div>
 
     <div class="card">
@@ -81,7 +81,7 @@
     </div>
 
     <div class="card">
-        <div class="card-header" onclick="toggleSection('courseDbContent', this)">
+        <div class="card-header collapsed" onclick="toggleSection('courseDbContent', this)">
             <span>⛳ Manage Course Database</span><span class="arrow">▼</span>
         </div>
         <div id="courseDbContent" class="hidden">
@@ -138,22 +138,51 @@
         calculateHandicap();
     }
 
+    // --- REPAIRED HANDICAP LOGIC ---
     function calculateHandicap() {
-        if (scores.length < 3) return document.getElementById('displayIndex').innerText = "--";
-        let diffs = [...scores].map(r => parseFloat(r.diff)).sort((a,b) => a-b);
-        let n = scores.length >= 20 ? 8 : (scores.length >= 15 ? 5 : (scores.length >= 10 ? 3 : 1));
-        let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        document.getElementById('displayIndex').innerText = (Math.floor(avg * 10) / 10).toFixed(1);
+        if (scores.length < 3) {
+            document.getElementById('displayIndex').innerText = "--";
+            return;
+        }
+
+        // 1. Sort by date to get the most recent rounds correctly
+        let sortedScores = [...scores].sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        // 2. Take the most recent 20
+        let recentScores = sortedScores.slice(0, 20);
+        
+        // 3. Extract differentials and sort numerically
+        let diffs = recentScores.map(s => parseFloat(s.diff)).sort((a, b) => a - b);
+        
+        // 4. Determine how many to average based on WHS rules
+        let count = recentScores.length;
+        let numToUse = 8;
+        if (count <= 3) numToUse = 1;
+        else if (count <= 5) numToUse = 1;
+        else if (count <= 6) numToUse = 2;
+        else if (count <= 8) numToUse = 2;
+        else if (count <= 11) numToUse = 3;
+        else if (count <= 14) numToUse = 4;
+        else if (count <= 16) numToUse = 5;
+        else if (count <= 18) numToUse = 6;
+        else if (count == 19) numToUse = 7;
+
+        let avg = diffs.slice(0, numToUse).reduce((a, b) => a + b, 0) / numToUse;
+        let result = (Math.floor(avg * 10) / 10).toFixed(1);
+        
+        document.getElementById('displayIndex').innerText = result;
     }
 
     function renderDropdowns() {
-        const mainSel = document.getElementById('mainCourseSelect');
-        const currentVal = mainSel.value;
-        mainSel.innerHTML = '<option value="">-- Choose Course --</option>';
-        courses.forEach((c, i) => {
-            mainSel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
+        const selects = document.querySelectorAll('select[id^="mainCourseSelect"], select[id^="edit-score-sel-"]');
+        selects.forEach(sel => {
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">-- Choose Course --</option>';
+            courses.forEach((c, i) => {
+                sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
+            });
+            if(currentVal) sel.value = currentVal;
         });
-        if(currentVal) mainSel.value = currentVal;
     }
 
     function updateCoursePreview(previewId, selectId) {
@@ -187,11 +216,10 @@
                             <div class="col"><label>Date</label><input type="date" id="edit-score-date-${i}" value="${s.date}"></div>
                             <div class="col"><label>Score</label><input type="number" id="edit-score-val-${i}" value="${s.score}"></div>
                         </div>
-                        <button class="btn-primary" onclick="updateRound(${i})">Save Round</button>
+                        <button class="btn-primary" onclick="updateRound(${i})">Save Changes</button>
                     </div>
                 </li>`;
             
-            // Populate the specific dropdown for this round
             setTimeout(() => {
                 const sel = document.getElementById(`edit-score-sel-${i}`);
                 sel.innerHTML = '<option value="">-- Choose Course --</option>';
@@ -319,6 +347,7 @@
 </script>
 </body>
 </html>
+
 
 
 
