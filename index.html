@@ -3,48 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Tracker Commissioner</title>
+    <title>Golf Tracker Recovery</title>
     <style>
         :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; --accent: #FFA000; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
         .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; border-bottom: 4px solid var(--accent); }
-        .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; min-height: 4rem; }
+        .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; min-height: 4rem; line-height: 4rem; }
         .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; overflow: hidden; }
         .header { background: #eee; padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; }
         .content { padding: 15px; display: none; }
         label { display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; color: #444; }
         input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
-        .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; list-style: none; }
-        .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
-        .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; margin-right: 4px; }
+        .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; }
+        .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; }
         .user-pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
-        .user-pill:hover { background: var(--primary); color: white; }
         .active-pill { background: var(--dark); color: white; border-color: var(--dark); }
-        .tee-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #333; color: #fff; margin-left: 5px; vertical-align: middle; text-transform: uppercase; }
+        .tee-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #333; color: #fff; margin-left: 5px; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
 <div class="dashboard">
-    <div id="pDisp" style="font-size: 1.2rem; font-weight: bold;">Select User</div>
+    <div id="pDisp" style="font-size: 1.2rem; font-weight: bold;">Loading...</div>
     <div class="handicap" id="idx">--</div>
-    <div style="font-size: 0.8rem; opacity: 0.9; letter-spacing: 1px;">WHS HANDICAP INDEX</div>
+    <div style="font-size: 0.8rem; opacity: 0.9;">WHS HANDICAP INDEX</div>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('sync')"><span>👥 Switch Golfer & Sync</span><span>▼</span></div>
-    <div id="sync" class="content">
-        <label>Quick Switch Profile:</label>
+    <div class="header" onclick="menuToggle('club')"><span>👥 Clubhouse & Switch</span><span>▼</span></div>
+    <div id="club" class="content" style="display:block;">
+        <label>Current Profiles Found:</label>
         <div id="userList" style="margin-bottom:15px;"></div>
         <div style="display:flex; gap:5px;">
-            <input type="text" id="nameIn" placeholder="New Name" style="margin-bottom:0;">
-            <button onclick="performSwitch()" style="width:auto; margin-bottom:0; background:var(--dark);">Load</button>
+            <input type="text" id="nameIn" placeholder="Enter Name">
+            <button onclick="performSwitch()" style="width:auto; background:var(--dark);">Load</button>
         </div>
-        <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-        <label>Group Key (Enter Admin Password here for edits)</label>
-        <input type="password" id="keyIn" placeholder="Masters2026">
-        <button onclick="sync()">☁️ Sync All Profiles</button>
+        <button onclick="sync()" style="margin-top:10px;">☁️ Sync with Cloud</button>
         <div id="cbList" style="margin-top:10px;"></div>
     </div>
 </div>
@@ -54,28 +49,26 @@
     <div id="post" class="content">
         <label>Course</label><select id="cSel"></select>
         <label>Date</label><input type="date" id="dIn">
-        <label>Gross Score</label><input type="number" id="sIn" placeholder="--">
-        <button onclick="addS()">Save Round</button>
+        <label>Score</label><input type="number" id="sIn">
+        <button onclick="addS()">Save Locally</button>
     </div>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('hist')"><span>📝 Score History</span><span>▼</span></div>
+    <div class="header" onclick="menuToggle('hist')"><span>📝 History</span><span>▼</span></div>
     <div id="hist" class="content"><div id="sList"></div></div>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('course')"><span>⛳ Manage Courses</span><span>▼</span></div>
+    <div class="header" onclick="menuToggle('course')"><span>⛳ Courses</span><span>▼</span></div>
     <div id="course" class="content">
-        <button onclick="menuToggle('nc')">+ Add New Course/Tee</button>
+        <button onclick="menuToggle('nc')">+ Add Course</button>
         <div id="nc" class="content" style="border:1px dashed #ccc; padding:10px; margin: 10px 0;">
-            <label>Course Name</label><input type="text" id="ncN">
-            <label>Tee Color</label><input type="text" id="ncT">
-            <div style="display:flex; gap:10px;">
-                <div style="flex:1;"><label>Rating</label><input type="number" id="ncR" step="0.1"></div>
-                <div style="flex:1;"><label>Slope</label><input type="number" id="ncS"></div>
-            </div>
-            <button onclick="addC()">Save Course</button>
+            <input type="text" id="ncN" placeholder="Name">
+            <input type="text" id="ncT" placeholder="Tee">
+            <input type="number" id="ncR" step="0.1" placeholder="Rating">
+            <input type="number" id="ncS" placeholder="Slope">
+            <button onclick="addC()">Save</button>
         </div>
         <div id="cList"></div>
     </div>
@@ -87,55 +80,64 @@
         if (x) x.style.display = (x.style.display === "block") ? "none" : "block";
     }
 
-    const MASTER_KEY = "Masters2026";
-    const ADMIN_PASS = "golf2026";
-    
     var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
-    var pName = localStorage.getItem('golf_pname') || "";
-    var gKey = localStorage.getItem('golf_gkey') || "";
+    var pName = localStorage.getItem('golf_pname') || "Golfer";
     var scores = [];
     var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || [];
-    var isAdmin = false;
 
-    function performSwitch(manualName = null) {
-        // Save current data before switching
-        if(pName && scores.length) localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
-
-        // Get Name
-        let inputName = manualName || document.getElementById('nameIn').value.trim();
-        if(!inputName) return;
-        pName = inputName;
-        localStorage.setItem('golf_pname', pName);
-
-        // Security Check
-        let inputKey = document.getElementById('keyIn').value;
-        if (inputKey === ADMIN_PASS) {
-            isAdmin = true;
-            gKey = MASTER_KEY;
-        } else {
-            isAdmin = false;
-            gKey = inputKey || MASTER_KEY;
+    // --- 1. DATA RECOVERY ENGINE ---
+    function recoverData() {
+        // Try to find ANY courses
+        if (courses.length === 0) {
+            let legacyC = localStorage.getItem('golfCourses') || localStorage.getItem('courses');
+            if (legacyC) courses = JSON.parse(legacyC);
         }
-        localStorage.setItem('golf_gkey', gKey);
 
-        // Add to bubbles if new
-        if(!knownUsers.includes(pName)) {
+        // Try to find ANY scores
+        let currentKey = 'scores_' + pName.trim();
+        let currentData = localStorage.getItem(currentKey);
+        
+        if (!currentData || currentData === "[]") {
+            // Scan common legacy keys
+            let legacyData = localStorage.getItem('golfScores_v14') || 
+                             localStorage.getItem('scores') || 
+                             localStorage.getItem('golfScores');
+            if (legacyData) {
+                localStorage.setItem(currentKey, legacyData);
+                console.log("Recovered legacy scores into " + currentKey);
+            }
+        }
+        
+        // Ensure knownUsers has at least the current profile
+        if (!knownUsers.includes(pName)) knownUsers.push(pName);
+    }
+
+    function performSwitch(manual = null) {
+        // Save current scores before leaving
+        if (pName && scores.length > 0) {
+            localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
+        }
+        
+        pName = (manual || document.getElementById('nameIn').value || pName).trim();
+        localStorage.setItem('golf_pname', pName);
+        
+        if (!knownUsers.includes(pName)) {
             knownUsers.push(pName);
             localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
         }
-
-        loadScores();
-        render();
+        
+        loadData();
     }
 
-    function loadScores() {
+    function loadData() {
         let saved = localStorage.getItem('scores_' + pName.trim());
         scores = saved ? JSON.parse(saved) : [];
+        render();
     }
 
     function calc() {
         if (!scores || scores.length < 3) return "--";
-        // Sort by date to get most recent for index calculation
+        // Sort by date newest first for WHS logic
         let sorted = [...scores].sort((a,b) => new Date(b.date) - new Date(a.date));
         let diffs = sorted.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
         let n = sorted.length >= 20 ? 8 : (sorted.length >= 10 ? 3 : 1);
@@ -144,102 +146,64 @@
     }
 
     function render() {
-        let currentIdx = calc();
-        document.getElementById('idx').innerText = currentIdx;
-        document.getElementById('pDisp').innerHTML = pName + (isAdmin ? ' <span style="background:black; color:white; font-size:10px; padding:2px 5px; border-radius:3px;">COMMISSIONER</span>' : '');
+        document.getElementById('idx').innerText = calc();
+        document.getElementById('pDisp').innerText = pName;
         document.getElementById('nameIn').value = pName;
-        
-        // Render User Pills
-        var uL = document.getElementById('userList');
+
+        // Render Bubbles
+        let uL = document.getElementById('userList');
         uL.innerHTML = "";
         knownUsers.sort().forEach(u => {
-            let active = (u === pName) ? "active-pill" : "";
-            uL.innerHTML += `<span class="user-pill ${active}" onclick="performSwitch('${u}')">${u}</span>`;
+            uL.innerHTML += `<span class="user-pill ${u === pName ? 'active-pill' : ''}" onclick="performSwitch('${u}')">${u}</span>`;
         });
 
-        // Render Course Dropdown
-        var sel = document.getElementById('cSel');
+        // Render Course Select
+        let sel = document.getElementById('cSel');
         sel.innerHTML = '<option value="">-- Choose Course --</option>';
         courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
             sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
         });
 
-        // Render Scores
-        var sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
+        // Render History
+        let sl = document.getElementById('sList');
+        sl.innerHTML = scores.length ? "" : "<small>No scores found for " + pName + "</small>";
         scores.forEach((s, i) => {
-            let cName = s.courseName || s.course;
-            let finalTee = s.teeColor || s.tee || s.teeBox;
             sl.innerHTML += `<div class="score-item">
                 <div style="display:flex; justify-content:space-between;">
-                    <div><b>${s.score}</b> at ${cName} <span class="tee-badge">${finalTee}</span><br><small>${s.date}</small></div>
-                    <div style="text-align:right"><small>Diff: ${s.diff}</small></div>
-                </div>
-                <div style="text-align:right; margin-top:5px;">
-                    <button class="btn-outline" onclick="menuToggle('ed-s-${i}')">Edit</button>
-                    <button class="btn-outline" style="color:red" onclick="delS(${i})">Del</button>
-                </div>
-                <div id="ed-s-${i}" class="edit-drawer">
-                    <input type="number" id="ev-${i}" value="${s.score}"><button onclick="updateS(${i})">Save</button>
+                    <div><b>${s.score}</b> at ${s.courseName||s.course} <span class="tee-badge">${s.teeColor||''}</span><br><small>${s.date}</small></div>
+                    <button class="btn-outline" style="color:red; border:none;" onclick="delS(${i})">Del</button>
                 </div>
             </div>`;
         });
 
-        // Render Courses
-        var cl = document.getElementById('cList');
+        // Render Course List
+        let cl = document.getElementById('cList');
         cl.innerHTML = "";
         courses.forEach((c, i) => {
             cl.innerHTML += `<div class="score-item">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div><b>${c.name}</b> (${c.tee})<br><small>R: ${c.rating} S: ${c.slope}</small></div>
-                    <div>
-                        <button class="btn-outline" onclick="menuToggle('ed-c-${i}')">Edit</button>
-                        <button class="btn-outline" style="color:red" onclick="delC(${i})">Del</button>
-                    </div>
-                </div>
-                <div id="ed-c-${i}" class="edit-drawer">
-                    <input type="number" id="er-${i}" value="${c.rating}" step="0.1"><input type="number" id="es-${i}" value="${c.slope}">
-                    <button onclick="updateC(${i})">Save Changes</button>
-                </div>
+                <b>${c.name}</b> (${c.tee}) <br> <small>R: ${c.rating} S: ${c.slope}</small>
+                <div style="text-align:right"><button class="btn-outline" style="color:red" onclick="delC(${i})">Del</button></div>
             </div>`;
         });
     }
 
     function addS() {
-        var cIdx = document.getElementById('cSel').value;
-        var val = parseFloat(document.getElementById('sIn').value);
-        if(!pName || cIdx === "" || isNaN(val)) return alert("Check Name, Course and Score");
-        var c = courses[cIdx];
-        var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
+        let cIdx = document.getElementById('cSel').value;
+        let val = parseFloat(document.getElementById('sIn').value);
+        if (cIdx === "" || isNaN(val)) return alert("Select course and score");
+        let c = courses[cIdx];
+        let d = ((val - c.rating) * 113 / c.slope).toFixed(1);
         scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
         localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
-        document.getElementById('sIn').value = "";
         render();
-    }
-
-    function updateS(i) {
-        var newVal = parseFloat(document.getElementById('ev-'+i).value);
-        let s = scores[i];
-        var c = courses.find(x => x.name === s.courseName && x.tee === s.teeColor);
-        if(c && !isNaN(newVal)) {
-            scores[i].score = newVal;
-            scores[i].diff = ((newVal - c.rating) * 113 / c.slope).toFixed(1);
-            localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
-            render();
-        }
     }
 
     function addC() {
-        var n = document.getElementById('ncN').value; var t = document.getElementById('ncT').value;
-        var r = parseFloat(document.getElementById('ncR').value); var s = parseInt(document.getElementById('ncS').value);
+        let n = document.getElementById('ncN').value;
+        let t = document.getElementById('ncT').value;
+        let r = parseFloat(document.getElementById('ncR').value);
+        let s = parseInt(document.getElementById('ncS').value);
         courses.push({ name: n, tee: t, rating: r, slope: s });
-        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-        render();
-    }
-
-    function updateC(i) {
-        courses[i].rating = parseFloat(document.getElementById('er-' + i).value);
-        courses[i].slope = parseInt(document.getElementById('es-' + i).value);
         localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
         render();
     }
@@ -248,67 +212,50 @@
     function delC(i) { if(confirm("Delete?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); } }
 
     async function sync() {
-        if(!pName || !gKey) return alert("Enter Name/Key");
-        const binId = btoa(gKey).replace(/=/g, "");
+        let key = "Masters2026";
+        const binId = btoa(key).replace(/=/g, "");
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
+            
+            // Push my data
             cloud.players[pName] = { index: calc(), history: scores.slice(0, 10) };
             
-            // Sync course DB
+            // Merge Courses
             let cmap = new Map();
             [...cloud.courses, ...courses].forEach(c => cmap.set(c.name+c.tee, c));
             cloud.courses = Array.from(cmap.values());
             courses = cloud.courses;
             localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
 
-            await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-            renderClubhouse(cloud);
-            alert("Sync Complete!");
+            await fetch("https://api.jsonstorage.net/v1/json/" + binId, { 
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(cloud) 
+            });
+            
+            // Show others
+            let cb = document.getElementById('cbList');
+            cb.innerHTML = "<b>Clubhouse:</b><br>";
+            for (let name in cloud.players) {
+                if (name === pName) continue;
+                cb.innerHTML += `<div class="score-item">👤 ${name}: ${cloud.players[name].index}</div>`;
+                if (!knownUsers.includes(name)) knownUsers.push(name);
+            }
+            localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
+            render();
+            alert("Synced!");
         } catch (e) { alert("Sync Error"); }
-    }
-
-    function renderClubhouse(cloud) {
-        var list = document.getElementById('cbList');
-        list.innerHTML = "";
-        for (var name in cloud.players) {
-            if (name === pName) continue;
-            var p = cloud.players[name];
-            list.innerHTML += `<div class="score-item">👤 <b>${name}</b>: ${p.index} 
-            <button class="btn-outline" onclick="menuToggle('f-hist-${name}')">History</button>
-            <div id="f-hist-${name}" class="edit-drawer">
-            ${p.history.map((s, idx) => `<div style="font-size:0.75rem; border-bottom:1px solid #eee; padding:5px 0;">${s.date}: ${s.score} ${isAdmin ? `<button style="color:red; background:none; border:none; font-size:0.6rem;" onclick="adminDel('${name}',${idx})">DEL</button>` : ''}</div>`).join('')}
-            </div></div>`;
-        }
-    }
-
-    async function adminDel(target, idx) {
-        if(!confirm("Delete?")) return;
-        const binId = btoa(gKey).replace(/=/g, "");
-        const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
-        let cloud = await res.json();
-        cloud.players[target].history.splice(idx, 1);
-        // Recalculate their index using the same calc logic
-        let diffs = cloud.players[target].history.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        let n = cloud.players[target].history.length >= 20 ? 8 : (cloud.players[target].history.length >= 10 ? 3 : 1);
-        let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        cloud.players[target].index = (Math.floor(avg * 10) / 10).toFixed(1);
-        
-        await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-        sync();
     }
 
     // Initialize
     document.getElementById('dIn').valueAsDate = new Date();
-    // Re-check security on first load
-    let initialKey = document.getElementById('keyIn').value;
-    isAdmin = (initialKey === ADMIN_PASS);
-    loadScores();
-    render();
+    recoverData();
+    loadData();
 </script>
 </body>
 </html>
    
+
 
 
 
