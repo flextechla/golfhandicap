@@ -3,34 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Tracker Pro</title>
+    <title>Golf Tracker Commissioner</title>
     <style>
         :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; }
         body { font-family: sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
         .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; }
         .handicap { font-size: 3rem; font-weight: bold; margin: 10px 0; }
         .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; overflow: hidden; }
-        .header { background: #eee; padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; }
-        .content { padding: 15px; display: none; } /* Hidden by default */
+        .header { background: #eee; padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; }
+        .content { padding: 15px; display: none; }
         label { display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; }
         input, select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .score-item { background: #f9f9f9; padding: 10px; border-bottom: 1px solid #eee; margin-bottom: 5px; list-style: none; }
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
+        .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; list-style: none; }
+        .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
+        .admin-tag { background: #000; color: #fff; font-size: 0.6rem; padding: 2px 5px; border-radius: 3px; margin-left: 5px; }
     </style>
 </head>
 <body>
 
 <div class="dashboard">
-    <div id="pName">Golfer</div>
+    <div id="pDisp">Golfer</div>
     <div class="handicap" id="idx">--</div>
-    <div style="font-size: 0.8rem; opacity: 0.8;">HANDICAP INDEX</div>
+    <div style="font-size: 0.8rem; opacity: 0.8;">WHS HANDICAP INDEX</div>
 </div>
 
 <div class="card">
     <div class="header" onclick="toggle('sync')"><span>👥 Clubhouse Sync</span><span>▼</span></div>
     <div id="sync" class="content">
-        <label>Name</label><input type="text" id="nameIn" onchange="saveSet()">
-        <label>Key</label><input type="text" id="keyIn" onchange="saveSet()">
+        <label>Your Name</label><input type="text" id="nameIn" onchange="saveSet()">
+        <label>Group Secret Key</label><input type="text" id="keyIn" onchange="saveSet()">
         <button onclick="sync()">Sync Now</button>
         <div id="cbList" style="margin-top:10px;"></div>
     </div>
@@ -40,10 +42,9 @@
     <div class="header" onclick="toggle('post')"><span>⛳ Post New Score</span><span>▼</span></div>
     <div id="post" class="content">
         <label>Course</label><select id="cSel"></select>
-        <div class="handicap" style="font-size:1rem; color:green;" id="cPre"></div>
         <label>Date</label><input type="date" id="dIn">
         <label>Gross Score</label><input type="number" id="sIn">
-        <button onclick="addS()">Post Score</button>
+        <button onclick="addS()">Save Round</button>
     </div>
 </div>
 
@@ -55,9 +56,9 @@
 </div>
 
 <div class="card">
-    <div class="header" onclick="toggle('course')"><span>⛳ Manage Courses</span><span>▼</span></div>
+    <div class="header" onclick="toggle('course')"><span>⛳ Course Database</span><span>▼</span></div>
     <div id="course" class="content">
-        <button onclick="toggle('nc')">+ Add Course</button>
+        <button onclick="toggle('nc')">+ Add New Course</button>
         <div id="nc" class="content" style="border:1px dashed #ccc; margin-top:10px;">
             <label>Name</label><input type="text" id="ncN">
             <label>Tee</label><input type="text" id="ncT">
@@ -70,17 +71,13 @@
 </div>
 
 <script>
-    // 1. SIMPLE TOGGLE (MUST BE FIRST)
+    const ADMIN_NAME = "Admin"; // Set your name to this to get Admin powers
+
     function toggle(id) {
         var x = document.getElementById(id);
-        if (x.style.display === "block") {
-            x.style.display = "none";
-        } else {
-            x.style.display = "block";
-        }
+        x.style.display = (x.style.display === "block") ? "none" : "block";
     }
 
-    // 2. DATA HANDLING
     var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
     var scores = JSON.parse(localStorage.getItem('golfScores_v14')) || [];
     var pName = localStorage.getItem('golf_pname') || "";
@@ -91,33 +88,50 @@
         gKey = document.getElementById('keyIn').value;
         localStorage.setItem('golf_pname', pName);
         localStorage.setItem('golf_gkey', gKey);
-        document.getElementById('pName').innerText = pName || "Golfer";
+        render();
     }
 
     function render() {
-        document.getElementById('pName').innerText = pName || "Golfer";
+        document.getElementById('pDisp').innerHTML = pName + (pName === ADMIN_NAME ? '<span class="admin-tag">ADMIN</span>' : '');
         
-        // Course Dropdown
+        // Update Select Dropdown
         var sel = document.getElementById('cSel');
-        sel.innerHTML = '<option value="">-- Select --</option>';
-        courses.forEach((c, i) => {
-            sel.innerHTML += '<option value="'+i+'">'+c.name+'</option>';
+        sel.innerHTML = '<option value="">-- Choose Course --</option>';
+        courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
+            sel.innerHTML += '<option value="'+i+'">'+c.name+' ('+c.tee+')</option>';
         });
 
-        // Score List
+        // Update Score History
         var sl = document.getElementById('sList');
         sl.innerHTML = "";
         scores.forEach((s, i) => {
-            sl.innerHTML += '<div class="score-item"><b>'+s.score+'</b> at '+s.course+'<br><small>'+s.date+' (Diff: '+s.diff+')</small> <button style="width:auto; padding:2px 5px; background:red;" onclick="delS('+i+')">Del</button></div>';
+            sl.innerHTML += '<div class="score-item">' +
+                '<b>'+s.score+'</b> at '+s.course+' <br><small>'+s.date+' (Diff: '+s.diff+')</small>' +
+                '<div style="text-align:right; margin-top:5px;">' +
+                '<button style="width:auto; padding:4px 8px; font-size:10px;" onclick="toggle(\'ed-s-'+i+'\')">Edit</button>' +
+                '<button style="width:auto; padding:4px 8px; font-size:10px; background:red;" onclick="delS('+i+')">Del</button>' +
+                '</div>' +
+                '<div id="ed-s-'+i+'" class="edit-drawer">' +
+                '<label>Score</label><input type="number" id="edit-val-'+i+'" value="'+s.score+'">' +
+                '<button onclick="updateS('+i+')">Save Changes</button>' +
+                '</div></div>';
         });
 
-        // Course List
+        // Update Course List
         var cl = document.getElementById('cList');
         cl.innerHTML = "";
         courses.forEach((c, i) => {
-            cl.innerHTML += '<div class="score-item"><b>'+c.name+'</b> ('+c.tee+')<br><small>R: '+c.rating+' S: '+c.slope+'</small> <button style="width:auto; padding:2px 5px; background:red;" onclick="delC('+i+')">Del</button></div>';
+            cl.innerHTML += '<div class="score-item"><b>'+c.name+'</b> ('+c.tee+')<br><small>R: '+c.rating+' S: '+c.slope+'</small>' +
+                '<div style="text-align:right; margin-top:5px;">' +
+                '<button style="width:auto; padding:4px 8px; font-size:10px;" onclick="toggle(\'ed-c-'+i+'\')">Edit</button>' +
+                '<button style="width:auto; padding:4px 8px; font-size:10px; background:red;" onclick="delC('+i+')">Del</button>' +
+                '</div>' +
+                '<div id="ed-c-'+i+'" class="edit-drawer">' +
+                '<label>Rating</label><input type="number" id="ec-r-'+i+'" value="'+c.rating+'" step="0.1">' +
+                '<label>Slope</label><input type="number" id="ec-s-'+i+'" value="'+c.slope+'">' +
+                '<button onclick="updateC('+i+')">Save Changes</button>' +
+                '</div></div>';
         });
-
         calc();
     }
 
@@ -132,27 +146,45 @@
     function addS() {
         var cIdx = document.getElementById('cSel').value;
         var val = parseFloat(document.getElementById('sIn').value);
-        if(cIdx === "" || isNaN(val)) return alert("Select course and score");
+        if(cIdx === "" || isNaN(val)) return;
         var c = courses[cIdx];
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        scores.unshift({ date: document.getElementById('dIn').value, course: c.name, score: val, diff: d });
+        scores.unshift({ date: document.getElementById('dIn').value, course: c.name, score: val, diff: d, cId: cIdx });
         localStorage.setItem('golfScores_v14', JSON.stringify(scores));
         render();
+    }
+
+    function updateS(i) {
+        var newVal = parseFloat(document.getElementById('edit-val-'+i).value);
+        // Recalculate diff based on original course
+        var originalCourse = courses.find(c => c.name === scores[i].course);
+        if(originalCourse) {
+            scores[i].score = newVal;
+            scores[i].diff = ((newVal - originalCourse.rating) * 113 / originalCourse.slope).toFixed(1);
+            localStorage.setItem('golfScores_v14', JSON.stringify(scores));
+            render();
+        }
     }
 
     function addC() {
         var n = document.getElementById('ncN').value;
         var r = parseFloat(document.getElementById('ncR').value);
         var s = parseInt(document.getElementById('ncS').value);
-        if(!n || isNaN(r)) return alert("Enter Name and Rating");
         courses.push({ name: n, tee: document.getElementById('ncT').value, rating: r, slope: s });
         localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
         toggle('nc');
         render();
     }
 
-    function delS(i) { scores.splice(i, 1); localStorage.setItem('golfScores_v14', JSON.stringify(scores)); render(); }
-    function delC(i) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); }
+    function updateC(i) {
+        courses[i].rating = parseFloat(document.getElementById('ec-r-'+i).value);
+        courses[i].slope = parseInt(document.getElementById('ec-s-'+i).value);
+        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+        render();
+    }
+
+    function delS(i) { if(confirm("Delete?")) { scores.splice(i, 1); localStorage.setItem('golfScores_v14', JSON.stringify(scores)); render(); } }
+    function delC(i) { if(confirm("Delete?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); } }
 
     async function sync() {
         if(!pName || !gKey) return alert("Enter Name/Key");
@@ -161,24 +193,36 @@
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
             cloud.players[pName] = { index: document.getElementById('idx').innerText, history: scores.slice(0, 10) };
+            
             await fetch("https://api.jsonstorage.net/v1/json/" + binId, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(cloud)
             });
-            alert("Synced!");
-        } catch (e) { alert("Error syncing"); }
+            renderClubhouse(cloud.players);
+            alert("Clubhouse Updated!");
+        } catch (e) { alert("Sync Error"); }
     }
 
-    // Startup
-    document.getElementById('dIn').valueAsDate = new Date();
-    document.getElementById('nameIn').value = pName;
-    document.getElementById('keyIn').value = gKey;
-    render();
+    function renderClubhouse(players) {
+        var list = document.getElementById('cbList');
+        document.getElementById('clubhouseCard')?.classList.remove('hidden');
+        list.innerHTML = "";
+        for (var name in players) {
+            if (name === pName) continue;
+            var p = players[name];
+            list.innerHTML += '<div class="score-item">👤 <b>'+name+'</b>: '+p.index+' <br>' +
+                (pName === ADMIN_NAME ? '<button style="background:red; width:auto; padding:2px 5px; font-size:10px;" onclick="adminDel(\''+name+'\')">Delete Friend</button>' : '') +
+                '</div>';
+        }
+    }
+
+    init();
 </script>
 
 </body>
 </html>
+
 
 
 
