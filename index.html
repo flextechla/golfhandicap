@@ -11,13 +11,13 @@
         .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
         .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; overflow: hidden; }
         .header { background: #eee; padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; }
-        .content { padding: 15px; display: none; } /* Hidden by default */
+        .content { padding: 15px; display: none; }
         label { display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; color: #444; }
         input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
         .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; list-style: none; }
-        .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
         .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; }
+        .rescue-btn { background: #d32f2f; font-size: 0.8rem; padding: 8px; margin-bottom: 15px; }
         .switch-area { background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #c8e6c9; }
     </style>
 </head>
@@ -57,6 +57,7 @@
 <div class="card">
     <div class="header" onclick="secToggle('hist')"><span>📝 Score History</span><span>▼</span></div>
     <div id="hist" class="content">
+        <button class="rescue-btn" onclick="rescueData()">🆘 Rescue My Missing Scores</button>
         <div id="sList"></div>
     </div>
 </div>
@@ -77,22 +78,15 @@
 </div>
 
 <script>
-    // 1. FAIL-SAFE TOGGLE (Placed first so it loads first)
     function secToggle(id) {
         var x = document.getElementById(id);
-        if (x.style.display === "block") {
-            x.style.display = "none";
-        } else {
-            x.style.display = "block";
-        }
+        x.style.display = (x.style.display === "block") ? "none" : "block";
     }
 
-    // 2. DATA CONSTANTS
     const MASTER_KEY = "Masters2026";
     const ADMIN_PASS = "golf2026";
     let isAdmin = false;
 
-    // 3. LOAD INITIAL DATA
     var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
     var pName = localStorage.getItem('golf_pname') || "";
     var gKey = localStorage.getItem('golf_gkey') || "";
@@ -100,28 +94,31 @@
 
     function performSwitch() {
         if(pName) localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
-        
-        let newName = document.getElementById('nameIn').value.trim();
+        pName = document.getElementById('nameIn').value.trim();
         let inputKey = document.getElementById('keyIn').value;
-
         isAdmin = (inputKey === ADMIN_PASS);
         gKey = isAdmin ? MASTER_KEY : (inputKey || MASTER_KEY);
-
-        pName = newName;
         localStorage.setItem('golf_pname', pName);
         localStorage.setItem('golf_gkey', gKey);
-
         loadScores();
         render();
     }
 
     function loadScores() {
         let saved = localStorage.getItem('scores_' + pName.trim());
-        if (!saved && pName) {
-            let oldGlobal = localStorage.getItem('golfScores_v14');
-            scores = oldGlobal ? JSON.parse(oldGlobal) : [];
+        scores = saved ? JSON.parse(saved) : [];
+    }
+
+    // --- RESCUE FUNCTION ---
+    function rescueData() {
+        let oldGlobal = localStorage.getItem('golfScores_v14');
+        if (oldGlobal && pName) {
+            scores = JSON.parse(oldGlobal);
+            localStorage.setItem('scores_' + pName.trim(), oldGlobal);
+            alert("Found your scores! They are now saved to profile: " + pName);
+            render();
         } else {
-            scores = JSON.parse(saved) || [];
+            alert("Could not find any global scores to rescue.");
         }
     }
 
@@ -138,21 +135,13 @@
         var sl = document.getElementById('sList');
         sl.innerHTML = scores.length ? "" : "<div style='text-align:center;color:#888'>No scores for " + pName + "</div>";
         scores.forEach((s, i) => {
-            sl.innerHTML += '<div class="score-item"><b>'+s.score+'</b> at '+(s.courseName||s.course)+'<br><small>'+s.date+' (Diff: '+s.diff+')</small>' +
-                '<div style="text-align:right"><button class="btn-outline" onclick="secToggle(\'ed-s-'+i+'\')">Edit</button></div>' +
-                '<div id="ed-s-'+i+'" class="edit-drawer">' +
-                '<input type="number" id="ev-'+i+'" value="'+s.score+'"><button onclick="updateS('+i+')">Save</button>' +
-                '</div></div>';
+            sl.innerHTML += '<div class="score-item"><b>'+s.score+'</b> at '+(s.courseName||s.course)+'<br><small>'+s.date+' (Diff: '+s.diff+')</small></div>';
         });
 
         var cl = document.getElementById('cList');
         cl.innerHTML = "";
         courses.forEach((c, i) => {
-            cl.innerHTML += '<div class="score-item"><b>'+c.name+'</b><br><small>R: '+c.rating+' S: '+c.slope+'</small>' +
-                '<div style="text-align:right"><button class="btn-outline" onclick="secToggle(\'ed-c-'+i+'\')">Edit</button></div>' +
-                '<div id="ed-c-'+i+'" class="edit-drawer">' +
-                '<input type="number" id="er-'+i+'" value="'+c.rating+'" step="0.1"><button onclick="updateC('+i+')">Save</button>' +
-                '</div></div>';
+            cl.innerHTML += '<div class="score-item"><b>'+c.name+'</b><br><small>R: '+c.rating+' S: '+c.slope+'</small></div>';
         });
         calc();
     }
@@ -176,28 +165,11 @@
         render();
     }
 
-    function updateS(i) {
-        var newVal = parseFloat(document.getElementById('ev-'+i).value);
-        var c = courses.find(x => x.name === (scores[i].courseName || scores[i].course));
-        if(c) {
-            scores[i].score = newVal;
-            scores[i].diff = ((newVal - c.rating) * 113 / c.slope).toFixed(1);
-            localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
-            render();
-        }
-    }
-
     function addC() {
         var n = document.getElementById('ncN').value;
         var r = parseFloat(document.getElementById('ncR').value);
         var s = parseInt(document.getElementById('ncS').value);
         courses.push({ name: n, tee: document.getElementById('ncT').value, rating: r, slope: s });
-        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-        render();
-    }
-
-    function updateC(i) {
-        courses[i].rating = parseFloat(document.getElementById('er-'+i).value);
         localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
         render();
     }
@@ -218,7 +190,6 @@
         } catch (e) { alert("Sync Error"); }
     }
 
-    // Start
     document.getElementById('dIn').valueAsDate = new Date();
     document.getElementById('nameIn').value = pName;
     loadScores();
@@ -226,6 +197,7 @@
 </script>
 </body>
 </html>
+
 
 
 
