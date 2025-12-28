@@ -26,12 +26,14 @@
         button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-sync { background: var(--info); color: white; margin-top: 10px; }
+        .btn-update { background: var(--accent); color: #000; }
         .btn-sm { padding: 5px 10px; font-size: 0.8rem; width: auto; border-radius: 4px; border: 1px solid #ddd; background: white; margin-left: 5px;}
         .score-list { list-style: none; padding: 0; margin: 0; }
         .score-item { background: #f9f9f9; border-radius: 8px; border: 1px solid #eee; padding: 12px; margin-bottom: 10px; }
         .hidden { display: none; }
         .arrow { transition: transform 0.3s; font-size: 0.8rem; color: #888; }
         .collapsed .arrow { transform: rotate(-90deg); }
+        .admin-status { font-size: 0.7rem; color: #FFA000; font-weight: bold; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -40,18 +42,20 @@
     <div class="dashboard-card">
         <div id="pNameDisplay" style="font-weight:bold; margin-bottom:5px;">Golfer</div>
         <div class="handicap-number" id="displayIndex">--</div>
-        <div style="font-size: 0.9rem; opacity: 0.9;">Current Index</div>
+        <div id="adminIndicator" class="admin-status hidden">ADMIN MODE ACTIVE</div>
     </div>
 
     <div class="card">
-        <div class="card-header" onclick="toggleSection('syncContent', this)">
-            <span>👥 Clubhouse Sync</span><span class="arrow">▼</span>
+        <div class="card-header" onclick="toggleSection('syncBox', this)">
+            <span>👥 Clubhouse Sync & Admin</span><span class="arrow">▼</span>
         </div>
-        <div id="syncContent" class="hidden" style="margin-top:15px;">
-            <label>Display Name</label>
+        <div id="syncBox" class="hidden" style="margin-top:15px;">
+            <label>Your Real Name</label>
             <input type="text" id="playerNameInput" onchange="saveSyncSettings()">
             <label>Group Secret Key</label>
             <input type="text" id="groupKeyInput" onchange="saveSyncSettings()">
+            <label>Admin Password</label>
+            <input type="password" id="adminPasswordInput" placeholder="Optional" onchange="saveSyncSettings()">
             <button class="btn-sync" id="syncBtn" onclick="syncWithFriends()">🔄 Sync with Clubhouse</button>
         </div>
     </div>
@@ -61,8 +65,8 @@
         <div id="clubhouseList" style="margin-top:15px;"></div>
     </div>
 
-    <div class="card">
-        <div class="card-header with-border"><span>⛳ Post New Score</span></div>
+    <div class="card" id="postFormContainer">
+        <div class="card-header with-border"><span id="formTitle">⛳ Post New Score</span></div>
         <input type="hidden" id="editScoreId">
         <label>Select Course</label>
         <select id="courseSelect" onchange="handleCourseSelect()"></select>
@@ -72,10 +76,11 @@
             <div class="col"><label>Score</label><input type="number" id="scoreVal" placeholder="--"></div>
         </div>
         <button id="postBtn" class="btn-primary" onclick="submitScore()">Post Score</button>
+        <button id="cancelBtn" class="btn-sm hidden" style="width:100%; margin-top:10px; background:#9e9e9e; color:white;" onclick="resetForm()">Cancel Edit</button>
     </div>
 
     <div class="card">
-        <div class="card-header collapsed" onclick="toggleSection('historyContent', this)">
+        <div class="card-header" onclick="toggleSection('historyContent', this)">
             <span>📝 My History</span><span class="arrow">▼</span>
         </div>
         <div id="historyContent" class="hidden">
@@ -107,16 +112,20 @@
 
 <script>
     const API_BASE = "https://api.jsonstorage.net/v1/json/";
-    
+    const MASTER_PASS = "golf123"; 
+
     let courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
     let scores = JSON.parse(localStorage.getItem('golfScores_v14')) || [];
     let playerName = localStorage.getItem('golf_pname') || "";
     let groupKey = localStorage.getItem('golf_gkey') || "";
+    let adminPass = localStorage.getItem('golf_admin_pass') || "";
+    let globalCloudData = null;
 
     function init() {
         document.getElementById('scoreDate').valueAsDate = new Date();
         document.getElementById('playerNameInput').value = playerName;
         document.getElementById('groupKeyInput').value = groupKey;
+        document.getElementById('adminPasswordInput').value = adminPass;
         updateUI();
         if(playerName && groupKey) syncWithFriends();
     }
@@ -129,13 +138,17 @@
     function saveSyncSettings() {
         playerName = document.getElementById('playerNameInput').value;
         groupKey = document.getElementById('groupKeyInput').value;
+        adminPass = document.getElementById('adminPasswordInput').value;
         localStorage.setItem('golf_pname', playerName);
         localStorage.setItem('golf_gkey', groupKey);
+        localStorage.setItem('golf_admin_pass', adminPass);
         updateUI();
     }
 
     function updateUI() {
         document.getElementById('pNameDisplay').innerText = playerName || "Golfer";
+        const isAdmin = (adminPass === MASTER_PASS);
+        document.getElementById('adminIndicator').classList.toggle('hidden', !isAdmin);
         courses.sort((a,b) => a.name.localeCompare(b.name));
         renderDropdown();
         renderScoreList();
@@ -143,12 +156,12 @@
         calculateHandicap();
     }
 
-    function calculateHandicap() {
-        if (scores.length < 3) return document.getElementById('displayIndex').innerText = "--";
-        let diffs = [...scores].map(r => parseFloat(r.diff)).sort((a,b) => a-b);
-        let n = scores.length >= 20 ? 8 : (scores.length >= 15 ? 5 : (scores.length >= 10 ? 3 : 1));
+    function calculateHandicap(dataArr = scores) {
+        if (dataArr.length < 3) return "--";
+        let diffs = [...dataArr].map(r => parseFloat(r.diff)).sort((a,b) => a-b);
+        let n = dataArr.length >= 20 ? 8 : (dataArr.length >= 15 ? 5 : (dataArr.length >= 10 ? 3 : 1));
         let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        document.getElementById('displayIndex').innerText = (Math.floor(avg * 10) / 10).toFixed(1);
+        return (Math.floor(avg * 10) / 10).toFixed(1);
     }
 
     function renderDropdown() {
@@ -156,7 +169,7 @@
         const curr = sel.value;
         sel.innerHTML = '<option value="">-- Choose Course --</option>';
         courses.forEach((c, i) => { sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`; });
-        sel.value = curr;
+        if(curr) sel.value = curr;
     }
 
     function handleCourseSelect() {
@@ -168,68 +181,72 @@
         box.style.display = "block";
     }
 
+    // --- SCORE ACTIONS (FIXED EDIT LOGIC) ---
+    function editScore(id) {
+        const s = scores.find(x => x.id === id);
+        if(!s) return;
+
+        document.getElementById('editScoreId').value = s.id;
+        document.getElementById('scoreDate').value = s.date;
+        document.getElementById('scoreVal').value = s.score;
+        document.getElementById('formTitle').innerText = "✏️ Editing Round";
+        document.getElementById('postBtn').innerText = "Update Round";
+        document.getElementById('postBtn').className = "btn-update";
+        document.getElementById('cancelBtn').classList.remove('hidden');
+
+        // Match the course by name and tee
+        const courseIndex = courses.findIndex(c => c.name === s.courseName);
+        if(courseIndex !== -1) {
+            document.getElementById('courseSelect').value = courseIndex;
+            handleCourseSelect();
+        }
+    }
+
+    function submitScore() {
+        const editId = document.getElementById('editScoreId').value;
+        const idx = document.getElementById('courseSelect').value;
+        const date = document.getElementById('scoreDate').value;
+        const val = parseFloat(document.getElementById('scoreVal').value);
+        if (idx === "" || !date || !val) { alert("Please complete form"); return; }
+        
+        const c = courses[idx];
+        const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
+        const entry = { id: editId ? parseInt(editId) : Date.now(), date, courseName: c.name, tee: c.tee, rating: c.rating, slope: c.slope, score: val, diff };
+        
+        if (editId) {
+            const i = scores.findIndex(s => s.id == editId);
+            if (i > -1) scores[i] = entry;
+        } else {
+            scores.unshift(entry);
+        }
+        resetForm();
+        saveDataLocal();
+        if(playerName && groupKey) syncWithFriends();
+    }
+
+    function resetForm() {
+        document.getElementById('editScoreId').value = "";
+        document.getElementById('scoreVal').value = "";
+        document.getElementById('courseSelect').value = "";
+        document.getElementById('scoreDate').valueAsDate = new Date();
+        document.getElementById('formTitle').innerText = "⛳ Post New Score";
+        document.getElementById('postBtn').innerText = "Post Score";
+        document.getElementById('postBtn').className = "btn-primary";
+        document.getElementById('cancelBtn').classList.add('hidden');
+        document.getElementById('courseInfoBox').style.display = "none";
+    }
+
     function renderScoreList() {
         const list = document.getElementById('scoreList');
         list.innerHTML = "";
         scores.forEach((s) => {
-            list.innerHTML += `<li class="score-item"><div class="score-top"><div><small>${s.date}</small><br><strong>${s.courseName}</strong></div><div style="text-align:right"><strong>${s.score}</strong><br><small>Diff: ${s.diff}</small></div></div><div style="text-align:right; margin-top:5px;"><button class="btn-sm" style="color:red" onclick="deleteScore(${s.id})">Del</button></div></li>`;
+            list.innerHTML += `<li class="score-item"><div class="score-top"><div><small>${s.date}</small><br><strong>${s.courseName}</strong></div><div style="text-align:right"><strong>${s.score}</strong><br><small>Diff: ${s.diff}</small></div></div><div style="text-align:right; margin-top:5px;"><button class="btn-sm" onclick="editScore(${s.id})">Edit</button><button class="btn-sm" style="color:red" onclick="deleteScore(${s.id})">Del</button></div></li>`;
         });
     }
 
-    function renderCourseDb() {
-        const list = document.getElementById('courseDbList');
-        list.innerHTML = "";
-        courses.forEach((c, i) => {
-            list.innerHTML += `<li class="score-item">
-                <div class="score-top">
-                    <div><strong>${c.name}</strong> (${c.tee})<br><small>R: ${c.rating} / S: ${c.slope}</small></div>
-                    <div>
-                        <button class="btn-sm" onclick="loadCourseEdit(${i})">Edit</button>
-                        <button class="btn-sm" style="color:red" onclick="deleteCourse(${i})">Del</button>
-                    </div>
-                </div></li>`;
-        });
-    }
+    function deleteScore(id) { if(confirm("Delete round?")) { scores = scores.filter(s => s.id !== id); saveDataLocal(); syncWithFriends(); } }
 
-    function openCourseForm() { document.getElementById('cEditIndex').value = "-1"; document.getElementById('courseForm').classList.remove('hidden'); }
-
-    function loadCourseEdit(i) {
-        const c = courses[i];
-        document.getElementById('cEditIndex').value = i;
-        document.getElementById('cName').value = c.name;
-        document.getElementById('cTee').value = c.tee;
-        document.getElementById('cRating').value = c.rating;
-        document.getElementById('cSlope').value = c.slope;
-        document.getElementById('courseForm').classList.remove('hidden');
-    }
-
-    function saveCourse() {
-        const i = parseInt(document.getElementById('cEditIndex').value);
-        const data = { name: document.getElementById('cName').value, tee: document.getElementById('cTee').value, rating: parseFloat(document.getElementById('cRating').value), slope: parseInt(document.getElementById('cSlope').value) };
-        if (i === -1) courses.push(data); else courses[i] = data;
-        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-        document.getElementById('courseForm').classList.add('hidden');
-        updateUI();
-        if(playerName && groupKey) syncWithFriends();
-    }
-
-    function deleteCourse(i) { if(confirm("Delete?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); updateUI(); } }
-
-    function submitScore() {
-        const idx = document.getElementById('courseSelect').value;
-        if(idx === "") return alert("Select course");
-        const c = courses[idx];
-        const val = parseFloat(document.getElementById('scoreVal').value);
-        const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        scores.unshift({ id: Date.now(), date: document.getElementById('scoreDate').value, courseName: c.name, score: val, diff });
-        localStorage.setItem('golfScores_v14', JSON.stringify(scores));
-        document.getElementById('scoreVal').value = "";
-        updateUI();
-        if(playerName && groupKey) syncWithFriends();
-    }
-
-    function deleteScore(id) { if(confirm("Delete round?")) { scores = scores.filter(s => s.id !== id); localStorage.setItem('golfScores_v14', JSON.stringify(scores)); updateUI(); syncWithFriends(); } }
-
+    // --- CLUBHOUSE SYNC ---
     async function syncWithFriends() {
         if(!playerName || !groupKey) return;
         const binId = btoa(groupKey).replace(/=/g, "");
@@ -237,33 +254,34 @@
         btn.innerText = "Syncing...";
         try {
             const res = await fetch(`${API_BASE}${binId}`);
-            let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
-            cloud.players[playerName] = { index: document.getElementById('displayIndex').innerText, history: scores.slice(0, 10) };
+            globalCloudData = res.ok ? await res.json() : { players: {}, courses: [] };
+            globalCloudData.players[playerName] = { index: calculateHandicap(), history: scores.slice(0, 20) };
             
             let cmap = new Map();
-            [...cloud.courses, ...courses].forEach(c => cmap.set(`${c.name}-${c.tee}`, c));
-            cloud.courses = Array.from(cmap.values());
-            courses = cloud.courses;
+            [...globalCloudData.courses, ...courses].forEach(c => cmap.set(`${c.name}-${c.tee}`, c));
+            globalCloudData.courses = Array.from(cmap.values());
+            courses = globalCloudData.courses;
 
-            await fetch(`${API_BASE}${binId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-            renderClubhouse(cloud.players);
-            localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-            updateUI();
+            await fetch(`${API_BASE}${binId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(globalCloudData) });
+            renderClubhouse();
+            saveDataLocal();
         } catch (e) { console.error(e); }
         btn.innerText = "🔄 Sync with Clubhouse";
     }
 
-    function renderClubhouse(players) {
+    function renderClubhouse() {
         const list = document.getElementById('clubhouseList');
         document.getElementById('clubhouseCard').classList.remove('hidden');
         list.innerHTML = "";
-        for (let name in players) {
+        const isAdmin = (adminPass === MASTER_PASS);
+        for (let name in globalCloudData.players) {
             if (name === playerName) continue;
-            list.innerHTML += `<div class="score-item">👤 <strong>${name}</strong>: ${players[name].index}</div>`;
-        }
-    }
+            const p = globalCloudData.players[name];
+            list.innerHTML += `
+                <div class="score-item">
+                    <div class="score-top"><strong>${name} (${p.index})</strong> <button class="btn-sm" onclick="toggleSection('f_hist_${name}')">History</button></div>
+                    <div id="f_hist_${name}" class="hidden" style="margin-top:10px; font-size:0.8rem;">
+                        ${p.history.map((s, i) => `<div style="border-bottom:1px solid #eee; padding:5px 0; display:flex; justify-content:space-between;"><span>${s.date}: ${s.score}</span>${isAdmin ? `<button style="color:red; border:none; background:none; cursor:pointer;" onclick="adminDeleteScore('${name}', ${i})">Delete</button>` : ''}</div>`).join('')}
+                    </div>
+                </div>`;
 
-    init();
-</script>
-</body>
-</html>
