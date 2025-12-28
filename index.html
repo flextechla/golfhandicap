@@ -8,7 +8,7 @@
         :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; --accent: #FFA000; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
         .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; border-bottom: 4px solid var(--accent); }
-        .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
+        .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; min-height: 4rem; }
         .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; overflow: hidden; }
         .header { background: #eee; padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; }
         .content { padding: 15px; display: none; }
@@ -166,7 +166,6 @@
             </div>`;
         });
 
-        // REPAIRED COURSE RENDERER
         var cl = document.getElementById('cList');
         cl.innerHTML = "";
         courses.forEach((c, i) => {
@@ -188,15 +187,20 @@
                 </div>
             </div>`;
         });
-        calc();
+        calc(); // Run index calculation
     }
 
-    function calc(targetScores = scores) {
-        if (targetScores.length < 3) return "--";
-        var diffs = targetScores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        var n = targetScores.length >= 20 ? 8 : (targetScores.length >= 10 ? 3 : 1);
+    function calc() {
+        if (scores.length < 3) {
+            document.getElementById('idx').innerText = "--";
+            return "--";
+        }
+        var diffs = scores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
+        var n = scores.length >= 20 ? 8 : (scores.length >= 10 ? 3 : 1);
         var avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        return (Math.floor(avg * 10) / 10).toFixed(1);
+        let finalIdx = (Math.floor(avg * 10) / 10).toFixed(1);
+        document.getElementById('idx').innerText = finalIdx;
+        return finalIdx;
     }
 
     function addS() {
@@ -237,8 +241,8 @@
     }
 
     function updateC(i) {
-        courses[i].rating = parseFloat(document.getElementById('er-${i}').value || document.getElementById('er-' + i).value);
-        courses[i].slope = parseInt(document.getElementById('es-${i}').value || document.getElementById('es-' + i).value);
+        courses[i].rating = parseFloat(document.getElementById('er-' + i).value);
+        courses[i].slope = parseInt(document.getElementById('es-' + i).value);
         localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
         render();
     }
@@ -252,7 +256,7 @@
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
-            cloud.players[pName] = { index: calc(scores), history: scores.slice(0, 10) };
+            cloud.players[pName] = { index: calc(), history: scores.slice(0, 10) };
             
             let cmap = new Map();
             [...cloud.courses, ...courses].forEach(c => cmap.set(c.name+c.tee, c));
@@ -280,13 +284,14 @@
         }
     }
 
+    // Startup
     document.getElementById('dIn').valueAsDate = new Date();
     loadScores();
     render();
 </script>
 </body>
 </html>
-   
+
 
 
 
