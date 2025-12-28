@@ -6,7 +6,7 @@
     <title>Golf Tracker Commissioner</title>
     <style>
         :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; }
-        body { font-family: sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
+        body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
         .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; }
         .handicap { font-size: 3rem; font-weight: bold; margin: 10px 0; }
         .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; overflow: hidden; }
@@ -16,8 +16,8 @@
         input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
         .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; list-style: none; }
+        .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
         .admin-tag { background: #000; color: #fff; font-size: 0.6rem; padding: 2px 5px; border-radius: 3px; margin-left: 5px; vertical-align: middle; }
-        .btn-red { background: #d32f2f; }
         .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 5px 10px; font-size: 0.7rem; }
     </style>
 </head>
@@ -104,10 +104,16 @@
         var sl = document.getElementById('sList');
         sl.innerHTML = "";
         scores.forEach((s, i) => {
-            sl.innerHTML += '<div class="score-item"><b>'+s.score+'</b> at '+s.courseName+'<br><small>'+s.date+' (Diff: '+s.diff+')</small>' +
+            // Fix for "undefined" course name
+            var nameToDisplay = s.courseName || s.course || "Unknown Course";
+            sl.innerHTML += '<div class="score-item"><b>'+s.score+'</b> at '+nameToDisplay+'<br><small>'+s.date+' (Diff: '+s.diff+')</small>' +
                 '<div style="text-align:right; margin-top:5px;">' +
-                '<button class="btn-outline" onclick="editS('+i+')">Edit</button>' +
+                '<button class="btn-outline" onclick="toggle(\'ed-s-'+i+'\')">Edit</button>' +
                 '<button class="btn-outline" style="color:red" onclick="delS('+i+')">Del</button>' +
+                '</div>' +
+                '<div id="ed-s-'+i+'" class="edit-drawer">' +
+                '<label>New Score</label><input type="number" id="ev-'+i+'" value="'+s.score+'">' +
+                '<button onclick="updateS('+i+')">Save Changes</button>' +
                 '</div></div>';
         });
 
@@ -116,8 +122,13 @@
         courses.forEach((c, i) => {
             cl.innerHTML += '<div class="score-item"><b>'+c.name+'</b> ('+c.tee+')<br><small>R: '+c.rating+' S: '+c.slope+'</small>' +
                 '<div style="text-align:right; margin-top:5px;">' +
-                '<button class="btn-outline" onclick="editC('+i+')">Edit</button>' +
+                '<button class="btn-outline" onclick="toggle(\'ed-c-'+i+'\')">Edit</button>' +
                 '<button class="btn-outline" style="color:red" onclick="delC('+i+')">Del</button>' +
+                '</div>' +
+                '<div id="ed-c-'+i+'" class="edit-drawer">' +
+                '<label>Rating</label><input type="number" id="er-'+i+'" value="'+c.rating+'" step="0.1">' +
+                '<label>Slope</label><input type="number" id="es-'+i+'" value="'+c.slope+'">' +
+                '<button onclick="updateC('+i+')">Save Changes</button>' +
                 '</div></div>';
         });
         calc();
@@ -143,12 +154,12 @@
         render();
     }
 
-    function editS(i) {
-        var n = prompt("Enter new score:", scores[i].score);
-        if(n) {
-            scores[i].score = parseFloat(n);
-            var c = courses.find(x => x.name === scores[i].courseName);
-            if(c) scores[i].diff = ((scores[i].score - c.rating) * 113 / c.slope).toFixed(1);
+    function updateS(i) {
+        var newVal = parseFloat(document.getElementById('ev-'+i).value);
+        var c = courses.find(x => x.name === (scores[i].courseName || scores[i].course));
+        if(c && !isNaN(newVal)) {
+            scores[i].score = newVal;
+            scores[i].diff = ((newVal - c.rating) * 113 / c.slope).toFixed(1);
             localStorage.setItem('golfScores_v14', JSON.stringify(scores));
             render();
         }
@@ -158,6 +169,7 @@
         var n = document.getElementById('ncN').value;
         var r = parseFloat(document.getElementById('ncR').value);
         var s = parseInt(document.getElementById('ncS').value);
+        if(!n || isNaN(r)) return alert("Enter Name and Rating");
         courses.push({ name: n, tee: document.getElementById('ncT').value, rating: r, slope: s });
         localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
         document.getElementById('ncN').value = "";
@@ -165,15 +177,11 @@
         render();
     }
 
-    function editC(i) {
-        var r = prompt("New Rating:", courses[i].rating);
-        var s = prompt("New Slope:", courses[i].slope);
-        if(r && s) {
-            courses[i].rating = parseFloat(r);
-            courses[i].slope = parseInt(s);
-            localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-            render();
-        }
+    function updateC(i) {
+        courses[i].rating = parseFloat(document.getElementById('er-'+i).value);
+        courses[i].slope = parseInt(document.getElementById('es-'+i).value);
+        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+        render();
     }
 
     function delS(i) { if(confirm("Delete round?")) { scores.splice(i, 1); localStorage.setItem('golfScores_v14', JSON.stringify(scores)); render(); } }
@@ -213,6 +221,7 @@
 </script>
 </body>
 </html>
+   
 
 
 
