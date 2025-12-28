@@ -17,7 +17,7 @@
         button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
         .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; list-style: none; }
         .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
-        .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; }
+        .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; margin-right: 4px; }
         .user-pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
         .user-pill:hover { background: var(--primary); color: white; }
         .active-pill { background: var(--dark); color: white; border-color: var(--dark); }
@@ -145,7 +145,6 @@
         sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
         scores.forEach((s, i) => {
             let cName = s.courseName || s.course;
-            // SMART LOOKUP: Check round data first, then fallback to database match
             let finalTee = s.teeColor || s.tee || s.teeBox;
             if (!finalTee || finalTee === "Tees") {
                 let match = courses.find(c => c.name.toLowerCase().trim() === cName.toLowerCase().trim());
@@ -171,9 +170,17 @@
         cl.innerHTML = "";
         courses.forEach((c, i) => {
             cl.innerHTML += `<div class="score-item">
-                <b>${c.name}</b> (${c.tee})<br><small>R: ${c.rating} S: ${c.slope}</small>
-                <div style="text-align:right; margin-top:5px;">
-                    <button class="btn-outline" style="color:red" onclick="delC(${i})">Del</button>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div><b>${c.name}</b> (${c.tee})<br><small>R: ${c.rating} S: ${c.slope}</small></div>
+                    <div>
+                        <button class="btn-outline" onclick="menuToggle('ed-c-${i}')">Edit</button>
+                        <button class="btn-outline" style="color:red" onclick="delC(${i})">Del</button>
+                    </div>
+                </div>
+                <div id="ed-c-${i}" class="edit-drawer">
+                    <label>Rating</label><input type="number" id="er-${i}" value="${c.rating}" step="0.1">
+                    <label>Slope</label><input type="number" id="es-${i}" value="${c.slope}">
+                    <button onclick="updateC(${i})">Save Changes</button>
                 </div>
             </div>`;
         });
@@ -181,16 +188,11 @@
     }
 
     function calc(targetScores = scores) {
-        if (targetScores.length < 3) {
-            if(targetScores === scores) document.getElementById('idx').innerText = "--";
-            return "--";
-        }
+        if (targetScores.length < 3) return "--";
         var diffs = targetScores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
         var n = targetScores.length >= 20 ? 8 : (targetScores.length >= 10 ? 3 : 1);
         var avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        let res = (Math.floor(avg * 10) / 10).toFixed(1);
-        if(targetScores === scores) document.getElementById('idx').innerText = res;
-        return res;
+        return (Math.floor(avg * 10) / 10).toFixed(1);
     }
 
     function addS() {
@@ -200,7 +202,6 @@
         if(cIdx === "" || isNaN(val)) return alert("Select course and score");
         var c = courses[cIdx];
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        // PERMANENT STORAGE: Save the tee box directly into the score record
         scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
         localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
         document.getElementById('sIn').value = "";
@@ -231,6 +232,13 @@
         render();
     }
 
+    function updateC(i) {
+        courses[i].rating = parseFloat(document.getElementById('er-'+i).value);
+        courses[i].slope = parseInt(document.getElementById('es-'+i).value);
+        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+        render();
+    }
+
     function delS(i) { if(confirm("Delete?")) { scores.splice(i, 1); localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores)); render(); } }
     function delC(i) { if(confirm("Delete?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); } }
 
@@ -240,9 +248,8 @@
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
-            cloud.players[pName] = { index: document.getElementById('idx').innerText, history: scores.slice(0, 10) };
+            cloud.players[pName] = { index: calc(scores), history: scores.slice(0, 10) };
             
-            // Sync course DB to/from cloud
             let cmap = new Map();
             [...cloud.courses, ...courses].forEach(c => cmap.set(c.name+c.tee, c));
             cloud.courses = Array.from(cmap.values());
@@ -275,6 +282,7 @@
 </script>
 </body>
 </html>
+
 
 
 
