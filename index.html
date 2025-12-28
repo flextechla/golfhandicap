@@ -13,11 +13,11 @@
         .header { background: #eee; padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; }
         .content { padding: 15px; display: none; }
         label { display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        input, select { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 12px; }
         button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
         .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; list-style: none; }
         .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
-        .admin-tag { background: #000; color: #fff; font-size: 0.6rem; padding: 2px 5px; border-radius: 3px; margin-left: 5px; vertical-align: middle; }
+        .admin-box { background: #fffde7; border: 2px dashed var(--accent); padding: 10px; border-radius: 8px; margin-top: 10px; border-color: orange; }
         .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 5px 10px; font-size: 0.7rem; }
     </style>
 </head>
@@ -33,7 +33,7 @@
     <div class="header" onclick="toggle('sync')"><span>👥 Clubhouse Sync</span><span>▼</span></div>
     <div id="sync" class="content">
         <label>Your Name</label><input type="text" id="nameIn" onchange="saveSet()">
-        <label>Group Secret Key</label><input type="text" id="keyIn" onchange="saveSet()">
+        <label>Group Key (or Admin Password)</label><input type="password" id="keyIn" onchange="saveSet()">
         <button onclick="sync()">Sync Now</button>
         <div id="cbList" style="margin-top:10px;"></div>
     </div>
@@ -44,7 +44,7 @@
     <div id="post" class="content">
         <label>Course</label><select id="cSel"></select>
         <label>Date</label><input type="date" id="dIn">
-        <label>Gross Score</label><input type="number" id="sIn" placeholder="--">
+        <label>Gross Score</label><input type="number" id="sIn">
         <button onclick="addS()">Save Round</button>
     </div>
 </div>
@@ -72,7 +72,8 @@
 </div>
 
 <script>
-    const ADMIN_NAME = "Admin";
+    const MASTER_PASS = "golf2026";
+    let isAdmin = false;
 
     function toggle(id) {
         var x = document.getElementById(id);
@@ -87,13 +88,14 @@
     function saveSet() {
         pName = document.getElementById('nameIn').value;
         gKey = document.getElementById('keyIn').value;
+        isAdmin = (gKey === MASTER_PASS);
         localStorage.setItem('golf_pname', pName);
         localStorage.setItem('golf_gkey', gKey);
         render();
     }
 
     function render() {
-        document.getElementById('pDisp').innerHTML = pName + (pName === ADMIN_NAME ? '<span class="admin-tag">ADMIN</span>' : '');
+        document.getElementById('pDisp').innerHTML = pName + (isAdmin ? ' <span style="background:black; color:white; font-size:10px; padding:2px 5px; border-radius:3px;">COMMISSIONER</span>' : '');
         
         var sel = document.getElementById('cSel');
         sel.innerHTML = '<option value="">-- Choose Course --</option>';
@@ -104,7 +106,6 @@
         var sl = document.getElementById('sList');
         sl.innerHTML = "";
         scores.forEach((s, i) => {
-            // Fix for "undefined" course name
             var nameToDisplay = s.courseName || s.course || "Unknown Course";
             sl.innerHTML += '<div class="score-item"><b>'+s.score+'</b> at '+nameToDisplay+'<br><small>'+s.date+' (Diff: '+s.diff+')</small>' +
                 '<div style="text-align:right; margin-top:5px;">' +
@@ -134,12 +135,14 @@
         calc();
     }
 
-    function calc() {
-        if (scores.length < 3) return document.getElementById('idx').innerText = "--";
-        var diffs = scores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        var n = scores.length >= 20 ? 8 : (scores.length >= 10 ? 3 : 1);
+    function calc(targetScores = scores) {
+        if (targetScores.length < 3) return "--";
+        var diffs = targetScores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
+        var n = targetScores.length >= 20 ? 8 : (targetScores.length >= 10 ? 3 : 1);
         var avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        document.getElementById('idx').innerText = (Math.floor(avg * 10) / 10).toFixed(1);
+        var res = (Math.floor(avg * 10) / 10).toFixed(1);
+        if(targetScores === scores) document.getElementById('idx').innerText = res;
+        return res;
     }
 
     function addS() {
@@ -189,39 +192,97 @@
 
     async function sync() {
         if(!pName || !gKey) return alert("Enter Name/Key");
-        const binId = btoa(gKey).replace(/=/g, "");
+        const binId = btoa(gKey === MASTER_PASS ? "COMMISSIONER_ROOM" : gKey).replace(/=/g, "");
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
             cloud.players[pName] = { index: document.getElementById('idx').innerText, history: scores.slice(0, 10) };
+            
+            let cmap = new Map();
+            [...cloud.courses, ...courses].forEach(c => cmap.set(c.name+c.tee, c));
+            cloud.courses = Array.from(cmap.values());
+            courses = cloud.courses;
+
             await fetch("https://api.jsonstorage.net/v1/json/" + binId, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(cloud)
             });
-            renderClubhouse(cloud.players);
+            renderClubhouse(cloud);
+            localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+            render();
             alert("Clubhouse Updated!");
         } catch (e) { alert("Sync Error"); }
     }
 
-    function renderClubhouse(players) {
+    function renderClubhouse(cloud) {
         var list = document.getElementById('cbList');
         list.innerHTML = "";
-        for (var name in players) {
+        for (var name in cloud.players) {
             if (name === pName) continue;
-            list.innerHTML += '<div class="score-item">👤 <b>'+name+'</b>: '+players[name].index + 
-            (pName === ADMIN_NAME ? ' <button class="btn-outline" style="color:red" onclick="adminDel(\''+name+'\')">Delete Friend</button>' : '') + '</div>';
+            var p = cloud.players[name];
+            list.innerHTML += '<div class="score-item">👤 <b>'+name+'</b>: '+p.index + 
+            ' <button class="btn-outline" onclick="toggle(\'f-hist-'+name+'\')">View History</button>' +
+            '<div id="f-hist-'+name+'" class="edit-drawer">' +
+            p.history.map((s, idx) => '<div style="font-size:0.75rem; border-bottom:1px solid #eee; padding:5px 0;">'+s.date+': '+s.score+' '+(isAdmin ? '<button style="color:red; background:none; border:none; font-size:0.6rem;" onclick="adminDel(\''+name+'\','+idx+')">DEL</button>' : '')+'</div>').join('') +
+            (isAdmin ? '<div class="admin-box"><label>Add for '+name+'</label><select id="ac-'+name+'"></select><div style="display:flex; gap:5px;"><input type="date" id="ad-'+name+'"><input type="number" id="as-'+name+'" placeholder="Scr"></div><button onclick="adminAdd(\''+name+'\')">Add Score</button></div>' : '') +
+            '</div></div>';
+            
+            if(isAdmin) {
+                const sel = document.getElementById('ac-'+name);
+                courses.forEach((c, idx) => { sel.innerHTML += '<option value="'+idx+'">'+c.name+'</option>'; });
+                document.getElementById('ad-'+name).valueAsDate = new Date();
+            }
         }
     }
 
+    async function adminAdd(target) {
+        const cIdx = document.getElementById('ac-'+target).value;
+        const val = parseFloat(document.getElementById('as-'+target).value);
+        const date = document.getElementById('ad-'+target).value;
+        const c = courses[cIdx];
+        const d = ((val - c.rating) * 113 / c.slope).toFixed(1);
+        
+        const binId = btoa(isAdmin ? "COMMISSIONER_ROOM" : gKey).replace(/=/g, "");
+        const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
+        let cloud = await res.json();
+        cloud.players[target].history.unshift({ date, courseName: c.name, score: val, diff: d });
+        cloud.players[target].index = calc(cloud.players[target].history);
+        
+        await fetch("https://api.jsonstorage.net/v1/json/" + binId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cloud)
+        });
+        sync();
+    }
+
+    async function adminDel(target, idx) {
+        if(!confirm("Delete?")) return;
+        const binId = btoa(isAdmin ? "COMMISSIONER_ROOM" : gKey).replace(/=/g, "");
+        const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
+        let cloud = await res.json();
+        cloud.players[target].history.splice(idx, 1);
+        cloud.players[target].index = calc(cloud.players[target].history);
+        await fetch("https://api.jsonstorage.net/v1/json/" + binId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cloud)
+        });
+        sync();
+    }
+
+    // Init
     document.getElementById('dIn').valueAsDate = new Date();
     document.getElementById('nameIn').value = pName;
     document.getElementById('keyIn').value = gKey;
+    isAdmin = (gKey === MASTER_PASS);
     render();
 </script>
 </body>
 </html>
    
+
 
 
 
