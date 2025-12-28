@@ -66,7 +66,7 @@
     </div>
 
     <div id="courseCard" class="card">
-        <div class="header" onclick="menuToggle('course')"><span>⛳ Manage Courses</span><span>▼</span></div>
+        <div class="header" onclick="menuToggle('course')"><span>⛳ Course Database</span><span>▼</span></div>
         <div id="course" class="content">
             <button onclick="menuToggle('nc')">+ Add New Course</button>
             <div id="nc" class="content" style="border:1px dashed #ccc; padding:10px; margin: 10px 0;">
@@ -90,14 +90,14 @@
     const ADMIN_PASS = "golf2026";
     const GROUP_KEY = "Masters2026";
 
-    var myName = localStorage.getItem('my_primary_name');
-    var myKey = localStorage.getItem('my_group_key');
+    var myName = localStorage.getItem('my_primary_name') || "";
+    var myKey = localStorage.getItem('my_group_key') || "";
     var currentViewing = myName;
     var isCommish = (myKey === ADMIN_PASS);
     
     var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
     var scores = [];
-    var knownUsers = [];
+    var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || [];
 
     function firstTimeSetup() {
         let n = document.getElementById('setupName').value.trim();
@@ -110,7 +110,11 @@
 
     function resetApp() { if(confirm("Erase identity?")) { localStorage.clear(); location.reload(); } }
 
-    function switchView(target) { currentViewing = target; loadScores(); render(); }
+    function switchView(target) { 
+        currentViewing = target; 
+        loadScores(); 
+        render(); 
+    }
 
     function loadScores() {
         let storageKey = (currentViewing === myName) ? 'scores_' + myName : 'cloud_' + currentViewing;
@@ -118,44 +122,61 @@
         scores = saved ? JSON.parse(saved) : [];
     }
 
+    function calc() {
+        if (!scores || scores.length < 3) return "--";
+        let diffs = [...scores].map(s => parseFloat(s.diff)).sort((a,b) => a-b);
+        let n = scores.length >= 20 ? 8 : (sorted = scores.length >= 10 ? 3 : 1);
+        let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
+        return (Math.floor(avg * 10) / 10).toFixed(1);
+    }
+
     function render() {
         const canEdit = (currentViewing === myName || isCommish);
+        
+        // Update Dashboard
         document.getElementById('idx').innerText = calc();
-        document.getElementById('pDisp').innerText = currentViewing;
+        document.getElementById('pDisp').innerText = currentViewing + (currentViewing === myName ? " (You)" : "");
         document.getElementById('roleBadge').innerHTML = isCommish ? '<span class="commish-badge">COMMISSIONER</span>' : '';
         
+        // Show/Hide Edit Areas
         document.getElementById('entryCard').style.display = canEdit ? "block" : "none";
         document.getElementById('courseCard').style.display = canEdit ? "block" : "none";
 
+        // User Pills
         var uL = document.getElementById('userList');
         uL.innerHTML = "";
-        if(knownUsers.length === 0 && myName) knownUsers.push(myName);
+        if(myName && !knownUsers.includes(myName)) knownUsers.push(myName);
         knownUsers.sort().forEach(u => {
             uL.innerHTML += `<span class="user-pill ${u === currentViewing ? 'active-pill' : ''}" onclick="switchView('${u}')">${u}</span>`;
         });
 
+        // Courses Dropdown
         var sel = document.getElementById('cSel');
         sel.innerHTML = '<option value="">-- Select Course --</option>';
         courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
             sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
         });
 
+        // History List
         var sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores.</small>";
+        sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
         scores.forEach((s, i) => {
             sl.innerHTML += `<div class="score-item">
-                <b>${s.score}</b> at ${s.courseName||s.course} (${s.teeColor||''})<br><small>${s.date} | Diff: ${s.diff}</small>
-                ${canEdit ? `<div style="text-align:right; margin-top:5px;">
-                    <button class="btn-outline" onclick="menuToggle('ed-s-${i}')">Edit</button>
-                    <button class="btn-outline" style="color:red" onclick="delS(${i})">Del</button>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div><b>${s.score}</b> at ${s.courseName||s.course} (${s.teeColor||''})<br><small>${s.date} | Diff: ${s.diff}</small></div>
+                    ${canEdit ? `<div>
+                        <button class="btn-outline" onclick="menuToggle('ed-s-${i}')">Edit</button>
+                        <button class="btn-outline" style="color:red" onclick="delS(${i})">Del</button>
+                    </div>` : ''}
                 </div>
                 <div id="ed-s-${i}" class="edit-drawer">
                     <label>New Score</label><input type="number" id="ev-${i}" value="${s.score}">
                     <button onclick="updateS(${i})">Save Changes</button>
-                </div>` : ''}
+                </div>
             </div>`;
         });
 
+        // Course List
         var cl = document.getElementById('cList');
         cl.innerHTML = "";
         courses.forEach((c, i) => {
@@ -176,29 +197,37 @@
         });
     }
 
-    function calc() {
-        if (!scores || scores.length < 3) return "--";
-        let diffs = [...scores].map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        let n = scores.length >= 20 ? 8 : (scores.length >= 10 ? 3 : 1);
-        let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        return (Math.floor(avg * 10) / 10).toFixed(1);
-    }
-
     async function sync() {
         const binId = btoa(isCommish ? GROUP_KEY : myKey).replace(/=/g, "");
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
-            if(isCommish && currentViewing !== myName) { cloud.players[currentViewing] = { index: calc(), history: scores }; }
-            else { loadScores(); cloud.players[myName] = { index: calc(), history: scores.slice(0, 10) }; }
+            
+            // Upload current viewer if editing, else upload self
+            if(isCommish && currentViewing !== myName) { 
+                cloud.players[currentViewing] = { index: calc(), history: scores }; 
+            } else {
+                loadScores();
+                cloud.players[myName] = { index: calc(), history: scores.slice(0, 10) };
+            }
+
+            // Sync Courses
             let cmap = new Map();
             [...cloud.courses, ...courses].forEach(c => cmap.set(c.name+c.tee, c));
             cloud.courses = Array.from(cmap.values()); courses = cloud.courses;
             localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+            
+            // Update known users
             knownUsers = Object.keys(cloud.players);
-            knownUsers.forEach(u => { if(u !== myName && !isCommish) localStorage.setItem('cloud_' + u, JSON.stringify(cloud.players[u].history)); });
+            localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
+            
+            knownUsers.forEach(u => { 
+                if(u !== myName && !isCommish) localStorage.setItem('cloud_' + u, JSON.stringify(cloud.players[u].history)); 
+            });
+
             await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-            render(); alert("Clubhouse Updated!");
+            render(); 
+            alert("Clubhouse Updated!");
         } catch (e) { alert("Sync Error"); }
     }
 
@@ -208,7 +237,8 @@
         var c = courses[cIdx];
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
         scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
-        localStorage.setItem((currentViewing === myName) ? 'scores_' + myName : 'cloud_' + currentViewing, JSON.stringify(scores)); render();
+        localStorage.setItem((currentViewing === myName) ? 'scores_' + myName : 'cloud_' + currentViewing, JSON.stringify(scores)); 
+        render();
     }
 
     function updateS(i) {
@@ -237,13 +267,20 @@
     function delS(i) { if(confirm("Delete?")) { scores.splice(i, 1); localStorage.setItem((currentViewing === myName) ? 'scores_' + myName : 'cloud_' + currentViewing, JSON.stringify(scores)); render(); } }
     function delC(i) { if(confirm("Delete?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); } }
 
+    // Init
     document.getElementById('dIn').valueAsDate = new Date();
-    if(!myName) document.getElementById('setupCard').style.display = "block";
-    else { document.getElementById('mainApp').style.display = "block"; loadScores(); render(); }
+    if(!myName) {
+        document.getElementById('setupCard').style.display = "block";
+    } else {
+        document.getElementById('mainApp').style.display = "block";
+        loadScores();
+        render();
+    }
 </script>
 </body>
 </html>
    
+
 
 
 
