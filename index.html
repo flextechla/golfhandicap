@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Tracker Commissioner</title>
+    <title>Golf Tracker Recovery</title>
     <style>
         :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; --accent: #FFA000; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
@@ -19,7 +19,6 @@
         .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
         .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; margin-right: 4px; }
         .user-pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
-        .user-pill:hover { background: var(--primary); color: white; }
         .active-pill { background: var(--dark); color: white; border-color: var(--dark); }
         .tee-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #333; color: #fff; margin-left: 5px; vertical-align: middle; text-transform: uppercase; }
     </style>
@@ -27,25 +26,20 @@
 <body>
 
 <div class="dashboard">
-    <div id="pDisp" style="font-size: 1.2rem; font-weight: bold;">Select User</div>
+    <div id="pDisp" style="font-size: 1.2rem; font-weight: bold;">Emergency Recovery</div>
     <div class="handicap" id="idx">--</div>
     <div style="font-size: 0.8rem; opacity: 0.9; letter-spacing: 1px;">WHS HANDICAP INDEX</div>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('sync')"><span>👥 Switch Golfer & Sync</span><span>▼</span></div>
-    <div id="sync" class="content">
-        <label>Quick Switch Profile:</label>
-        <div id="userList" style="margin-bottom:15px;"></div>
-        <div style="display:flex; gap:5px;">
-            <input type="text" id="nameIn" placeholder="New Name" style="margin-bottom:0;">
-            <button onclick="performSwitch()" style="width:auto; margin-bottom:0; background:var(--dark);">Load</button>
-        </div>
-        <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-        <label>Group Key</label>
-        <input type="password" id="keyIn" placeholder="Masters2026">
-        <button onclick="sync()">☁️ Sync All Profiles</button>
-        <div id="cbList" style="margin-top:10px;"></div>
+    <div class="header" onclick="menuToggle('sync')"><span>🛠 RECOVERY: Load from Cloud</span><span>▼</span></div>
+    <div id="sync" class="content" style="display:block;">
+        <label>1. Type Your Name Exactly:</label>
+        <input type="text" id="nameIn" placeholder="Ex: Don">
+        <label>2. Group Key:</label>
+        <input type="text" id="keyIn" value="Masters2026">
+        <button onclick="cloudRescue()" style="background:var(--dark); font-size: 1.1rem;">⚡️ DOWNLOAD DATA</button>
+        <div id="userList" style="margin-top:15px;"></div>
     </div>
 </div>
 
@@ -87,64 +81,58 @@
         if (x) x.style.display = (x.style.display === "block") ? "none" : "block";
     }
 
-    const MASTER_KEY = "Masters2026";
-    const ADMIN_PASS = "golf2026";
-    
-    // RECOVERY LOGIC: Look for courses in any possible old folder
-    var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || JSON.parse(localStorage.getItem('golfCourses')) || [];
+    var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
     var pName = localStorage.getItem('golf_pname') || "";
-    var gKey = localStorage.getItem('golf_gkey') || MASTER_KEY;
     var scores = [];
     var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || [];
-    var isAdmin = false;
 
-    function performSwitch(manualName = null) {
-        if(pName && scores.length) localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
-        pName = (manualName || document.getElementById('nameIn').value || pName).trim();
-        if(!pName) return;
-        localStorage.setItem('golf_pname', pName);
+    async function cloudRescue() {
+        let name = document.getElementById('nameIn').value.trim();
+        let key = document.getElementById('keyIn').value.trim();
+        if (!name) return alert("Please enter your name first!");
 
-        let inputKey = document.getElementById('keyIn').value;
-        if (inputKey === ADMIN_PASS) { isAdmin = true; gKey = MASTER_KEY; } 
-        else { isAdmin = false; gKey = inputKey || MASTER_KEY; }
-        localStorage.setItem('golf_gkey', gKey);
+        const binId = btoa(key).replace(/=/g, "");
+        try {
+            const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
+            if (!res.ok) throw new Error("Cloud not found");
+            let cloud = await res.json();
 
-        if(!knownUsers.includes(pName)) {
-            knownUsers.push(pName);
-            localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
-        }
-        loadScores();
-        render();
-    }
+            // 1. Restore Courses
+            courses = cloud.courses || [];
+            localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
 
-    function loadScores() {
-        let storageKey = 'scores_' + pName.trim();
-        let saved = localStorage.getItem(storageKey);
-        
-        // --- DATA BRIDGE ---
-        // If the new folder is empty, pull data from the old legacy folder
-        if (!saved || saved === "[]") {
-            let legacy = localStorage.getItem('golfScores_v14') || localStorage.getItem('scores');
-            if (legacy && legacy !== "[]") {
-                localStorage.setItem(storageKey, legacy);
-                saved = legacy;
+            // 2. Restore Scores for the name typed
+            if (cloud.players && cloud.players[name]) {
+                scores = cloud.players[name].history || [];
+                localStorage.setItem('scores_' + name, JSON.stringify(scores));
+                pName = name;
+                localStorage.setItem('golf_pname', name);
+                
+                // Update Bubbles
+                knownUsers = Object.keys(cloud.players);
+                localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
+            } else {
+                alert("Name not found in the cloud. Try another name.");
             }
+            
+            render();
+            alert("Data successfully recovered from the cloud!");
+        } catch (e) {
+            alert("Connection error. Check key and internet.");
         }
-        scores = saved ? JSON.parse(saved) : [];
     }
 
     function calc() {
         if (!scores || scores.length < 3) return "--";
-        let sorted = [...scores].sort((a,b) => new Date(b.date) - new Date(a.date));
-        let diffs = sorted.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        let n = sorted.length >= 20 ? 8 : (sorted.length >= 10 ? 3 : 1);
+        let diffs = scores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
+        let n = scores.length >= 20 ? 8 : (scores.length >= 10 ? 3 : 1);
         let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
         return (Math.floor(avg * 10) / 10).toFixed(1);
     }
 
     function render() {
         document.getElementById('idx').innerText = calc();
-        document.getElementById('pDisp').innerHTML = pName + (isAdmin ? ' <span style="background:black; color:white; font-size:10px; padding:2px 5px; border-radius:3px;">COMMISSIONER</span>' : '');
+        document.getElementById('pDisp').innerHTML = pName || "Select User";
         document.getElementById('nameIn').value = pName;
         
         var uL = document.getElementById('userList');
@@ -160,20 +148,12 @@
         });
 
         var sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores found for " + pName + "</small>";
+        sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
         scores.forEach((s, i) => {
-            let finalTee = s.teeColor || s.tee || s.teeBox || "";
             sl.innerHTML += `<div class="score-item">
                 <div style="display:flex; justify-content:space-between;">
-                    <div><b>${s.score}</b> at ${s.courseName||s.course} <span class="tee-badge">${finalTee}</span><br><small>${s.date}</small></div>
-                    <div style="text-align:right"><small>Diff: ${s.diff}</small></div>
-                </div>
-                <div style="text-align:right; margin-top:5px;">
-                    <button class="btn-outline" onclick="menuToggle('ed-s-${i}')">Edit</button>
-                    <button class="btn-outline" style="color:red" onclick="delS(${i})">Del</button>
-                </div>
-                <div id="ed-s-${i}" class="edit-drawer">
-                    <input type="number" id="ev-${i}" value="${s.score}"><button onclick="updateS(${i})">Save</button>
+                    <div><b>${s.score}</b> at ${s.courseName||s.course} <span class="tee-badge">${s.teeColor||''}</span><br><small>${s.date}</small></div>
+                    <div style="text-align:right"><button class="btn-outline" style="color:red" onclick="delS(${i})">Del</button></div>
                 </div>
             </div>`;
         });
@@ -181,20 +161,16 @@
         var cl = document.getElementById('cList');
         cl.innerHTML = "";
         courses.forEach((c, i) => {
-            cl.innerHTML += `<div class="score-item">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div><b>${c.name}</b> (${c.tee})<br><small>R: ${c.rating} S: ${c.slope}</small></div>
-                    <div>
-                        <button class="btn-outline" onclick="menuToggle('ed-c-${i}')">Edit</button>
-                        <button class="btn-outline" style="color:red" onclick="delC(${i})">Del</button>
-                    </div>
-                </div>
-                <div id="ed-c-${i}" class="edit-drawer">
-                    <input type="number" id="er-${i}" value="${c.rating}" step="0.1"><input type="number" id="es-${i}" value="${c.slope}">
-                    <button onclick="updateC(${i})">Save</button>
-                </div>
-            </div>`;
+            cl.innerHTML += `<div class="score-item"><b>${c.name}</b> (${c.tee}) <button class="btn-outline" style="color:red" onclick="delC(${i})">Del</button></div>`;
         });
+    }
+
+    function performSwitch(u) {
+        pName = u;
+        localStorage.setItem('golf_pname', u);
+        let saved = localStorage.getItem('scores_' + u);
+        scores = saved ? JSON.parse(saved) : [];
+        render();
     }
 
     function addS() {
@@ -204,22 +180,8 @@
         var c = courses[cIdx];
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
         scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
-        localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
+        localStorage.setItem('scores_' + pName, JSON.stringify(scores));
         render();
-    }
-
-    function updateS(i) {
-        var newVal = parseFloat(document.getElementById('ev-'+i).value);
-        let s = scores[i];
-        let courseName = s.courseName || s.course;
-        let tee = s.teeColor || s.tee;
-        var c = courses.find(x => x.name === courseName && x.tee === tee);
-        if(c && !isNaN(newVal)) {
-            scores[i].score = newVal;
-            scores[i].diff = ((newVal - c.rating) * 113 / c.slope).toFixed(1);
-            localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
-            render();
-        }
     }
 
     function addC() {
@@ -228,40 +190,15 @@
         render();
     }
 
-    function updateC(i) {
-        courses[i].rating = parseFloat(document.getElementById('er-' + i).value);
-        courses[i].slope = parseInt(document.getElementById('es-' + i).value);
-        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-        render();
-    }
-
-    function delS(i) { if(confirm("Delete?")) { scores.splice(i, 1); localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores)); render(); } }
+    function delS(i) { if(confirm("Delete?")) { scores.splice(i, 1); localStorage.setItem('scores_' + pName, JSON.stringify(scores)); render(); } }
     function delC(i) { if(confirm("Delete?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); } }
 
-    async function sync() {
-        if(!pName) return alert("Enter Name");
-        const binId = btoa(gKey).replace(/=/g, "");
-        try {
-            const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
-            let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
-            cloud.players[pName] = { index: calc(), history: scores.slice(0, 10) };
-            
-            let cmap = new Map();
-            [...cloud.courses, ...courses].forEach(c => cmap.set(c.name+c.tee, c));
-            cloud.courses = Array.from(cmap.values()); courses = cloud.courses;
-            localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-            
-            await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-            alert("Sync Complete!"); render();
-        } catch (e) { alert("Sync Error"); }
-    }
-
     document.getElementById('dIn').valueAsDate = new Date();
-    loadScores();
-    render();
+    if(pName) performSwitch(pName);
 </script>
 </body>
 </html>
+
 
 
 
