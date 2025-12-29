@@ -3,211 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Tracker Recovery</title>
+    <title>Golf Tracker - Deep Search</title>
     <style>
         :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; --accent: #FFA000; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
-        .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; border-bottom: 4px solid var(--accent); }
-        .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; min-height: 4rem; }
-        .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; overflow: hidden; padding: 15px; }
-        .header { background: #eee; padding: 10px; font-weight: bold; cursor: pointer; margin: -15px -15px 15px -15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
-        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-        .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; font-size: 0.9rem; }
-        .pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
-        .active { background: var(--dark); color: white; }
-        .recovery-alert { background: #fff3e0; border: 1px solid #ffe0b2; padding: 10px; border-radius: 8px; color: #e65100; font-size: 0.8rem; margin-bottom: 10px; font-weight: bold; text-align: center; }
+        .dashboard { background: #333; color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; border-bottom: 5px solid red; }
+        .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; padding: 15px; }
+        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; font-size: 1rem; }
+        .found-item { background: #fff3e0; padding: 10px; border: 1px solid #ffe0b2; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; }
+        .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; }
+        label { font-weight: bold; color: #d32f2f; display: block; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
 <div class="dashboard">
-    <div id="pDisp" style="font-size: 1.2rem;">Don</div>
-    <div class="handicap" id="idx">--</div>
-    <div style="font-size: 0.8rem; opacity: 0.9;">HANDICAP INDEX</div>
+    <div style="font-size: 1.2rem; font-weight: bold;">EMERGENCY DATA SEARCH</div>
+    <div id="pDisp">Scanning Browser Memory...</div>
 </div>
 
-<div id="recoveryNotice" class="recovery-alert" style="display:none;">⚠️ DATA RECOVERY ATTEMPTED: CHECK YOUR LISTS</div>
+<div class="card">
+    <label>SEARCH PHONE MEMORY</label>
+    <p style="font-size: 0.8rem;">Clicking this will search every hidden corner of this browser's memory for your courses and scores.</p>
+    <button onclick="deepSearchMemory()" style="background: #fb8c00;">🔍 RUN DEEP MEMORY SCAN</button>
+</div>
+
+<div class="card" id="recoveryResults" style="display:none;">
+    <label>RECOVERED DATA</label>
+    <div id="foundCourses"></div>
+    <div id="foundScores" style="margin-top:15px;"></div>
+    <button onclick="claimData()" style="background: var(--dark); margin-top:15px;">💾 CLAIM & SAVE ALL FOUND DATA</button>
+</div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('club')"><span>👥 Clubhouse</span><span>▼</span></div>
-    <div id="club" style="display:block;">
-        <div id="userList"></div>
-        <div style="display:flex; gap:5px; margin-top:10px;">
-            <input type="text" id="newName" placeholder="Add Name" style="margin-bottom:0;">
-            <button onclick="addUser()" style="width:auto; margin-bottom:0;">Add</button>
-        </div>
+    <label>MANUAL COURSE ENTRY (BACKUP)</label>
+    <input type="text" id="cn" placeholder="Course Name" style="width:100%; padding:10px; margin-bottom:5px;">
+    <div style="display:flex; gap:5px;">
+        <input type="number" id="cr" step="0.1" placeholder="Rating" style="flex:1; padding:10px;">
+        <input type="number" id="cs" placeholder="Slope" style="flex:1; padding:10px;">
     </div>
+    <button onclick="manualAdd()" style="margin-top:10px;">➕ Add Course Manually</button>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('post')"><span>⛳ Post New Score</span><span>▼</span></div>
-    <div id="post" style="display:block;">
-        <label>Course</label><select id="cSel"></select>
-        <label>Date</label><input type="date" id="dIn">
-        <label>Score</label><input type="number" id="sIn">
-        <button onclick="addS()">Save Score</button>
-    </div>
-</div>
-
-<div class="card">
-    <div class="header" onclick="menuToggle('hist')"><span>📝 Score History</span><span>▼</span></div>
-    <div id="hist" style="display:block;"><div id="sList"></div></div>
-</div>
-
-<div class="card">
-    <div class="header" onclick="menuToggle('course')"><span>⛳ Course Database</span><span>▼</span></div>
-    <div id="course" style="display:block;">
-        <div id="cList"></div>
-        <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
-        <label>Add New Course Manually:</label>
-        <input type="text" id="cn" placeholder="Course Name">
-        <input type="text" id="ct" placeholder="Tee Color">
-        <div style="display:flex; gap:10px;">
-            <input type="number" id="cr" step="0.1" placeholder="Rating">
-            <input type="number" id="cs" placeholder="Slope">
-        </div>
-        <button onclick="addC()">Save Course</button>
-    </div>
+    <label>YOUR CURRENT LISTS</label>
+    <div id="currentData">No data active yet.</div>
 </div>
 
 <script>
-    function menuToggle(id) {
-        var x = document.getElementById(id);
-        x.style.display = (x.style.display === "block") ? "none" : "block";
-    }
+    var recoveredCourses = [];
+    var recoveredScores = [];
 
-    var pName = localStorage.getItem('golf_pname') || "Don";
-    var courses = [];
-    var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || ["Don"];
-    var scores = [];
-
-    // --- RECOVERY SCANNER ---
-    function runDeepRecovery() {
-        let foundAny = false;
+    function deepSearchMemory() {
+        recoveredCourses = [];
+        recoveredScores = [];
         
-        // 1. Scan for Course Data in all known legacy keys
-        let keysToScan = ['golfCourses_v14', 'golfCourses', 'courses', 'courseList'];
-        keysToScan.forEach(key => {
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
             let val = localStorage.getItem(key);
-            if (val) {
-                let parsed = JSON.parse(val);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    courses = courses.concat(parsed);
-                    foundAny = true;
+            
+            try {
+                let data = JSON.parse(val);
+                if (Array.isArray(data)) {
+                    data.forEach(item => {
+                        // Check for courses
+                        if (item.rating && item.slope && item.name) {
+                            recoveredCourses.push(item);
+                        }
+                        // Check for scores
+                        if (item.score && item.diff) {
+                            recoveredScores.push(item);
+                        }
+                    });
                 }
-            }
-        });
-        
-        // Remove duplicate courses (same name + same tee)
-        courses = courses.filter((v,i,a)=>a.findIndex(t=>(t.name===v.name && t.tee===v.tee))===i);
-        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-
-        // 2. Scan for Scores in legacy keys if pName is empty
-        let legacyScores = localStorage.getItem('scores') || localStorage.getItem('golfScores_v14');
-        if (legacyScores && (!localStorage.getItem('scores_' + pName) || localStorage.getItem('scores_' + pName) === "[]")) {
-            localStorage.setItem('scores_' + pName, legacyScores);
-            foundAny = true;
+            } catch (e) {}
         }
 
-        if (foundAny) document.getElementById('recoveryNotice').style.display = "block";
+        // De-duplicate
+        recoveredCourses = recoveredCourses.filter((v,i,a)=>a.findIndex(t=>(t.name===v.name && t.tee===v.tee))===i);
+        recoveredScores = recoveredScores.filter((v,i,a)=>a.findIndex(t=>(t.date===v.date && t.score===v.score))===i);
+
+        let resBox = document.getElementById('recoveryResults');
+        resBox.style.display = "block";
+        
+        document.getElementById('foundCourses').innerHTML = "Found <b>" + recoveredCourses.length + "</b> Course Ratings.";
+        document.getElementById('foundScores').innerHTML = "Found <b>" + recoveredScores.length + "</b> Past Scores.";
+        
+        if(recoveredCourses.length === 0 && recoveredScores.length === 0) {
+            alert("Deep Scan finished: No data found in this browser's memory.");
+        }
     }
 
-    function switchUser(name) {
-        if (pName) localStorage.setItem('scores_' + pName, JSON.stringify(scores));
-        pName = name;
-        localStorage.setItem('golf_pname', name);
-        let saved = localStorage.getItem('scores_' + name);
-        scores = (saved && saved !== "undefined") ? JSON.parse(saved) : [];
-        render();
+    function claimData() {
+        if (recoveredCourses.length > 0) {
+            localStorage.setItem('golfCourses_v14', JSON.stringify(recoveredCourses));
+        }
+        if (recoveredScores.length > 0) {
+            localStorage.setItem('scores_Don', JSON.stringify(recoveredScores));
+        }
+        alert("Data claimed! Refreshing app...");
+        location.reload();
     }
 
-    function addUser() {
-        let n = document.getElementById('newName').value.trim();
-        if(!n) return;
-        if(!knownUsers.includes(n)) knownUsers.push(n);
-        localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
-        switchUser(n);
-    }
-
-    function calc() {
-        if (!scores || scores.length < 3) return "--";
-        let diffs = [...scores].map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        let n = scores.length >= 20 ? 8 : (scores.length >= 10 ? 3 : 1);
-        let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
-        return (Math.floor(avg * 10) / 10).toFixed(1);
-    }
-
-    function render() {
-        document.getElementById('pDisp').innerText = pName;
-        document.getElementById('idx').innerText = calc();
-
-        let uL = document.getElementById('userList');
-        uL.innerHTML = "";
-        knownUsers.forEach(u => {
-            uL.innerHTML += `<span class="pill ${u === pName ? 'active' : ''}" onclick="switchUser('${u}')">${u}</span>`;
-        });
-
-        let sel = document.getElementById('cSel');
-        sel.innerHTML = '<option value="">-- Select Course --</option>';
-        courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
-            sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
-        });
-
-        let sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
-        scores.forEach((s, i) => {
-            sl.innerHTML += `<div class="score-item">
-                <div style="display:flex; justify-content:space-between;">
-                    <div><b>${s.score}</b> at ${s.courseName||s.course} (${s.date})</div>
-                    <button onclick="delS(${i})" style="color:red; background:none; border:none; font-size:0.7rem;">Delete</button>
-                </div>
-            </div>`;
-        });
-
-        let cl = document.getElementById('cList');
-        cl.innerHTML = "";
-        courses.forEach((c, i) => {
-            cl.innerHTML += `<div class="score-item">
-                <b>${c.name}</b> (${c.tee})<br><small>Rating: ${c.rating} | Slope: ${c.slope}</small>
-                <div style="text-align:right"><button onclick="delC(${i})" style="color:red; background:none; border:none; font-size:0.7rem;">Delete Course</button></div>
-            </div>`;
-        });
-    }
-
-    function addS() {
-        let cIdx = document.getElementById('cSel').value;
-        let val = parseFloat(document.getElementById('sIn').value);
-        if (cIdx === "" || isNaN(val)) return alert("Select course and score");
-        let c = courses[cIdx];
-        let d = ((val - c.rating) * 113 / c.slope).toFixed(1);
-        scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
-        localStorage.setItem('scores_' + pName, JSON.stringify(scores));
-        render();
-    }
-
-    function addC() {
+    function manualAdd() {
         let n = document.getElementById('cn').value;
-        let t = document.getElementById('ct').value;
         let r = parseFloat(document.getElementById('cr').value);
         let s = parseInt(document.getElementById('cs').value);
-        if (!n || isNaN(r)) return alert("Check Course Details");
-        courses.push({ name: n, tee: t, rating: r, slope: s });
-        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-        render();
+        let existing = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
+        existing.push({name: n, tee: "Standard", rating: r, slope: s});
+        localStorage.setItem('golfCourses_v14', JSON.stringify(existing));
+        location.reload();
     }
 
-    function delS(i) { scores.splice(i, 1); localStorage.setItem('scores_' + pName, JSON.stringify(scores)); render(); }
-    function delC(i) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); }
-
-    document.getElementById('dIn').valueAsDate = new Date();
-    
-    // Initial Run
-    runDeepRecovery();
-    switchUser(pName);
+    window.onload = function() {
+        let c = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
+        let s = JSON.parse(localStorage.getItem('scores_Don')) || [];
+        let list = document.getElementById('currentData');
+        list.innerHTML = "<b>Courses:</b> " + c.length + "<br><b>Scores:</b> " + s.length;
+    };
 </script>
 </body>
 </html>
+
 
 
 
