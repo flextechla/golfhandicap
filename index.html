@@ -90,7 +90,8 @@
     const MASTER_KEY = "Masters2026";
     const ADMIN_PASS = "golf2026";
     
-    var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
+    // RECOVERY LOGIC: Look for courses in any possible old folder
+    var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || JSON.parse(localStorage.getItem('golfCourses')) || [];
     var pName = localStorage.getItem('golf_pname') || "";
     var gKey = localStorage.getItem('golf_gkey') || MASTER_KEY;
     var scores = [];
@@ -99,26 +100,19 @@
 
     function performSwitch(manualName = null) {
         if(pName && scores.length) localStorage.setItem('scores_' + pName.trim(), JSON.stringify(scores));
-
         pName = (manualName || document.getElementById('nameIn').value || pName).trim();
         if(!pName) return;
         localStorage.setItem('golf_pname', pName);
 
         let inputKey = document.getElementById('keyIn').value;
-        if (inputKey === ADMIN_PASS) {
-            isAdmin = true;
-            gKey = MASTER_KEY;
-        } else {
-            isAdmin = false;
-            gKey = inputKey || MASTER_KEY;
-        }
+        if (inputKey === ADMIN_PASS) { isAdmin = true; gKey = MASTER_KEY; } 
+        else { isAdmin = false; gKey = inputKey || MASTER_KEY; }
         localStorage.setItem('golf_gkey', gKey);
 
         if(!knownUsers.includes(pName)) {
             knownUsers.push(pName);
             localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
         }
-
         loadScores();
         render();
     }
@@ -127,18 +121,23 @@
         let storageKey = 'scores_' + pName.trim();
         let saved = localStorage.getItem(storageKey);
         
-        // RECOVERY: If specific folder is empty, check legacy folders
-        if (!saved) {
-            saved = localStorage.getItem('golfScores_v14') || localStorage.getItem('scores');
-            if (saved) localStorage.setItem(storageKey, saved); 
+        // --- DATA BRIDGE ---
+        // If the new folder is empty, pull data from the old legacy folder
+        if (!saved || saved === "[]") {
+            let legacy = localStorage.getItem('golfScores_v14') || localStorage.getItem('scores');
+            if (legacy && legacy !== "[]") {
+                localStorage.setItem(storageKey, legacy);
+                saved = legacy;
+            }
         }
         scores = saved ? JSON.parse(saved) : [];
     }
 
     function calc() {
         if (!scores || scores.length < 3) return "--";
-        let diffs = scores.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
-        let n = scores.length >= 20 ? 8 : (scores.length >= 10 ? 3 : 1);
+        let sorted = [...scores].sort((a,b) => new Date(b.date) - new Date(a.date));
+        let diffs = sorted.map(s => parseFloat(s.diff)).sort((a,b) => a-b);
+        let n = sorted.length >= 20 ? 8 : (sorted.length >= 10 ? 3 : 1);
         let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
         return (Math.floor(avg * 10) / 10).toFixed(1);
     }
@@ -161,7 +160,7 @@
         });
 
         var sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
+        sl.innerHTML = scores.length ? "" : "<small>No scores found for " + pName + "</small>";
         scores.forEach((s, i) => {
             let finalTee = s.teeColor || s.tee || s.teeBox || "";
             sl.innerHTML += `<div class="score-item">
@@ -201,7 +200,7 @@
     function addS() {
         var cIdx = document.getElementById('cSel').value;
         var val = parseFloat(document.getElementById('sIn').value);
-        if(!pName || cIdx === "" || isNaN(val)) return;
+        if(cIdx === "" || isNaN(val)) return alert("Select course and score");
         var c = courses[cIdx];
         var d = ((val - c.rating) * 113 / c.slope).toFixed(1);
         scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
@@ -212,7 +211,9 @@
     function updateS(i) {
         var newVal = parseFloat(document.getElementById('ev-'+i).value);
         let s = scores[i];
-        var c = courses.find(x => (x.name === (s.courseName||s.course)) && (x.tee === (s.teeColor||s.tee)));
+        let courseName = s.courseName || s.course;
+        let tee = s.teeColor || s.tee;
+        var c = courses.find(x => x.name === courseName && x.tee === tee);
         if(c && !isNaN(newVal)) {
             scores[i].score = newVal;
             scores[i].diff = ((newVal - c.rating) * 113 / c.slope).toFixed(1);
@@ -238,15 +239,18 @@
     function delC(i) { if(confirm("Delete?")) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); } }
 
     async function sync() {
+        if(!pName) return alert("Enter Name");
         const binId = btoa(gKey).replace(/=/g, "");
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
             cloud.players[pName] = { index: calc(), history: scores.slice(0, 10) };
+            
             let cmap = new Map();
             [...cloud.courses, ...courses].forEach(c => cmap.set(c.name+c.tee, c));
             cloud.courses = Array.from(cmap.values()); courses = cloud.courses;
             localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+            
             await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
             alert("Sync Complete!"); render();
         } catch (e) { alert("Sync Error"); }
@@ -258,6 +262,7 @@
 </script>
 </body>
 </html>
+
 
 
 
