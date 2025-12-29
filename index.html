@@ -10,11 +10,13 @@
         .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; border-bottom: 4px solid var(--accent); }
         .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; min-height: 4rem; }
         .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; overflow: hidden; padding: 15px; }
-        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
-        input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        .header { background: #eee; padding: 10px; font-weight: bold; cursor: pointer; margin: -15px -15px 15px -15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
         .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; font-size: 0.9rem; }
         .pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
         .active { background: var(--dark); color: white; }
+        .recovery-alert { background: #fff3e0; border: 1px solid #ffe0b2; padding: 10px; border-radius: 8px; color: #e65100; font-size: 0.8rem; margin-bottom: 10px; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
@@ -25,42 +27,107 @@
     <div style="font-size: 0.8rem; opacity: 0.9;">HANDICAP INDEX</div>
 </div>
 
+<div id="recoveryNotice" class="recovery-alert" style="display:none;">⚠️ DATA RECOVERY ATTEMPTED: CHECK YOUR LISTS</div>
+
 <div class="card">
-    <label><b>1. Current Users Found:</b></label>
-    <div id="userList" style="margin: 10px 0;"></div>
-    
-    <label><b>2. Emergency Cloud Pull:</b></label>
-    <p style="font-size: 0.75rem; color: #666;">If history is blank, enter "Masters2026" below and hit Pull.</p>
-    <input type="text" id="keyIn" value="Masters2026">
-    <button onclick="pullCloud()" style="background: var(--dark);">☁️ PULL EVERYTHING FROM CLOUD</button>
+    <div class="header" onclick="menuToggle('club')"><span>👥 Clubhouse</span><span>▼</span></div>
+    <div id="club" style="display:block;">
+        <div id="userList"></div>
+        <div style="display:flex; gap:5px; margin-top:10px;">
+            <input type="text" id="newName" placeholder="Add Name" style="margin-bottom:0;">
+            <button onclick="addUser()" style="width:auto; margin-bottom:0;">Add</button>
+        </div>
+    </div>
 </div>
 
 <div class="card">
-    <label><b>3. Score History:</b></label>
-    <div id="sList">No scores found.</div>
+    <div class="header" onclick="menuToggle('post')"><span>⛳ Post New Score</span><span>▼</span></div>
+    <div id="post" style="display:block;">
+        <label>Course</label><select id="cSel"></select>
+        <label>Date</label><input type="date" id="dIn">
+        <label>Score</label><input type="number" id="sIn">
+        <button onclick="addS()">Save Score</button>
+    </div>
 </div>
 
 <div class="card">
-    <label><b>4. Course List:</b></label>
-    <div id="cList">No courses found.</div>
+    <div class="header" onclick="menuToggle('hist')"><span>📝 Score History</span><span>▼</span></div>
+    <div id="hist" style="display:block;"><div id="sList"></div></div>
 </div>
 
-<button onclick="resetApp()" style="background:none; color:red; border:none; font-size: 10px;">Full Reset App</button>
+<div class="card">
+    <div class="header" onclick="menuToggle('course')"><span>⛳ Course Database</span><span>▼</span></div>
+    <div id="course" style="display:block;">
+        <div id="cList"></div>
+        <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
+        <label>Add New Course Manually:</label>
+        <input type="text" id="cn" placeholder="Course Name">
+        <input type="text" id="ct" placeholder="Tee Color">
+        <div style="display:flex; gap:10px;">
+            <input type="number" id="cr" step="0.1" placeholder="Rating">
+            <input type="number" id="cs" placeholder="Slope">
+        </div>
+        <button onclick="addC()">Save Course</button>
+    </div>
+</div>
 
 <script>
-    var pName = localStorage.getItem('golf_pname') || "Don";
-    var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
-    var scores = [];
-    var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || ["Don"];
+    function menuToggle(id) {
+        var x = document.getElementById(id);
+        x.style.display = (x.style.display === "block") ? "none" : "block";
+    }
 
-    function resetApp() { if(confirm("Erase all local memory?")) { localStorage.clear(); location.reload(); } }
+    var pName = localStorage.getItem('golf_pname') || "Don";
+    var courses = [];
+    var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || ["Don"];
+    var scores = [];
+
+    // --- RECOVERY SCANNER ---
+    function runDeepRecovery() {
+        let foundAny = false;
+        
+        // 1. Scan for Course Data in all known legacy keys
+        let keysToScan = ['golfCourses_v14', 'golfCourses', 'courses', 'courseList'];
+        keysToScan.forEach(key => {
+            let val = localStorage.getItem(key);
+            if (val) {
+                let parsed = JSON.parse(val);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    courses = courses.concat(parsed);
+                    foundAny = true;
+                }
+            }
+        });
+        
+        // Remove duplicate courses (same name + same tee)
+        courses = courses.filter((v,i,a)=>a.findIndex(t=>(t.name===v.name && t.tee===v.tee))===i);
+        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+
+        // 2. Scan for Scores in legacy keys if pName is empty
+        let legacyScores = localStorage.getItem('scores') || localStorage.getItem('golfScores_v14');
+        if (legacyScores && (!localStorage.getItem('scores_' + pName) || localStorage.getItem('scores_' + pName) === "[]")) {
+            localStorage.setItem('scores_' + pName, legacyScores);
+            foundAny = true;
+        }
+
+        if (foundAny) document.getElementById('recoveryNotice').style.display = "block";
+    }
 
     function switchUser(name) {
+        if (pName) localStorage.setItem('scores_' + pName, JSON.stringify(scores));
         pName = name;
         localStorage.setItem('golf_pname', name);
         let saved = localStorage.getItem('scores_' + name);
-        scores = saved ? JSON.parse(saved) : [];
+        scores = (saved && saved !== "undefined") ? JSON.parse(saved) : [];
         render();
+    }
+
+    function addUser() {
+        let n = document.getElementById('newName').value.trim();
+        if(!n) return;
+        if(!knownUsers.includes(n)) knownUsers.push(n);
+        localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
+        switchUser(n);
     }
 
     function calc() {
@@ -75,65 +142,73 @@
         document.getElementById('pDisp').innerText = pName;
         document.getElementById('idx').innerText = calc();
 
-        // Render Bubbles
         let uL = document.getElementById('userList');
         uL.innerHTML = "";
         knownUsers.forEach(u => {
             uL.innerHTML += `<span class="pill ${u === pName ? 'active' : ''}" onclick="switchUser('${u}')">${u}</span>`;
         });
 
-        // Render Scores
+        let sel = document.getElementById('cSel');
+        sel.innerHTML = '<option value="">-- Select Course --</option>';
+        courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
+            sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
+        });
+
         let sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores found in phone memory.</small>";
-        scores.forEach(s => {
-            sl.innerHTML += `<div class="score-item"><b>${s.score}</b> at ${s.courseName||s.course} (${s.date})</div>`;
+        sl.innerHTML = scores.length ? "" : "<small>No scores found.</small>";
+        scores.forEach((s, i) => {
+            sl.innerHTML += `<div class="score-item">
+                <div style="display:flex; justify-content:space-between;">
+                    <div><b>${s.score}</b> at ${s.courseName||s.course} (${s.date})</div>
+                    <button onclick="delS(${i})" style="color:red; background:none; border:none; font-size:0.7rem;">Delete</button>
+                </div>
+            </div>`;
         });
 
-        // Render Courses
         let cl = document.getElementById('cList');
-        cl.innerHTML = courses.length ? "" : "<small>No courses found.</small>";
-        courses.forEach(c => {
-            cl.innerHTML += `<div class="score-item"><b>${c.name}</b> (${c.tee})</div>`;
+        cl.innerHTML = "";
+        courses.forEach((c, i) => {
+            cl.innerHTML += `<div class="score-item">
+                <b>${c.name}</b> (${c.tee})<br><small>Rating: ${c.rating} | Slope: ${c.slope}</small>
+                <div style="text-align:right"><button onclick="delC(${i})" style="color:red; background:none; border:none; font-size:0.7rem;">Delete Course</button></div>
+            </div>`;
         });
     }
 
-    async function pullCloud() {
-        const key = document.getElementById('keyIn').value;
-        const binId = btoa(key).replace(/=/g, "");
-        const btn = document.querySelector('button');
-        btn.innerText = "Connecting...";
-
-        try {
-            const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
-            if (!res.ok) throw new Error();
-            const cloud = await res.json();
-
-            // Restore Courses
-            courses = cloud.courses || [];
-            localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
-
-            // Restore Players
-            knownUsers = Object.keys(cloud.players);
-            localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
-
-            // Save each player's scores locally
-            knownUsers.forEach(u => {
-                localStorage.setItem('scores_' + u, JSON.stringify(cloud.players[u].history));
-            });
-
-            btn.innerText = "✅ Success!";
-            switchUser(pName);
-        } catch (e) {
-            btn.innerText = "❌ Error: Cloud Empty or Key Wrong";
-            alert("Could not find data for key: " + key);
-        }
+    function addS() {
+        let cIdx = document.getElementById('cSel').value;
+        let val = parseFloat(document.getElementById('sIn').value);
+        if (cIdx === "" || isNaN(val)) return alert("Select course and score");
+        let c = courses[cIdx];
+        let d = ((val - c.rating) * 113 / c.slope).toFixed(1);
+        scores.unshift({ date: document.getElementById('dIn').value, courseName: c.name, teeColor: c.tee, score: val, diff: d });
+        localStorage.setItem('scores_' + pName, JSON.stringify(scores));
+        render();
     }
 
-    // Init
+    function addC() {
+        let n = document.getElementById('cn').value;
+        let t = document.getElementById('ct').value;
+        let r = parseFloat(document.getElementById('cr').value);
+        let s = parseInt(document.getElementById('cs').value);
+        if (!n || isNaN(r)) return alert("Check Course Details");
+        courses.push({ name: n, tee: t, rating: r, slope: s });
+        localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+        render();
+    }
+
+    function delS(i) { scores.splice(i, 1); localStorage.setItem('scores_' + pName, JSON.stringify(scores)); render(); }
+    function delC(i) { courses.splice(i, 1); localStorage.setItem('golfCourses_v14', JSON.stringify(courses)); render(); }
+
+    document.getElementById('dIn').valueAsDate = new Date();
+    
+    // Initial Run
+    runDeepRecovery();
     switchUser(pName);
 </script>
 </body>
 </html>
+
 
 
 
