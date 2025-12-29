@@ -3,680 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Tracker Pro</title>
+    <title>Cloud Master Recovery</title>
     <style>
-        :root {
-            --primary: #2E7D32; /* Forest Green */
-            --dark: #1B5E20;
-            --accent: #FFA000; /* Gold */
-            --bg: #f4f6f8;
-            --text: #333;
-            --white: #ffffff;
-            --danger: #d32f2f;
-            --success: #4CAF50;
-            --info: #0288d1;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 15px;
-        }
-
-        .container { max-width: 600px; margin: 0 auto; }
-
-        /* --- DASHBOARD --- */
-        .dashboard-card {
-            background: linear-gradient(135deg, var(--primary), var(--dark));
-            color: white;
-            padding: 20px;
-            border-radius: 16px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            margin-bottom: 20px;
-        }
-        .handicap-number { font-size: 3.5rem; font-weight: 800; line-height: 1; margin: 5px 0; }
-        .handicap-sub { font-size: 0.9rem; opacity: 0.9; }
-
-        /* --- CARDS & SECTIONS --- */
-        .card {
-            background: var(--white);
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        /* Main Card Header (for the entire card/section) */
-        .card-header {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--dark);
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            user-select: none;
-        }
-        
-        /* Sub-Headers within a main card */
-        .sub-header {
-            font-weight: 600;
-            font-size: 1rem;
-            color: #555;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            user-select: none;
-        }
-        
-        .sub-header:hover { opacity: 0.8; }
-
-        /* Arrow Rotation */
-        .arrow { transition: transform 0.3s ease; display: inline-block; font-size: 0.8rem; color: #888;}
-        .collapsed .arrow { transform: rotate(-90deg); }
-        
-        /* Collapsible Content Wrapper */
-        .card-content { display: block; overflow: hidden; }
-        .card-content.hidden { display: none; }
-
-        /* --- FORM & INPUTS --- */
-        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: #555; }
-        
-        select, input, textarea {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-sizing: border-box;
-            margin-bottom: 15px;
-            background: #fff;
-            font-family: inherit;
-        }
-
-        .course-details-box {
-            background: #e8f5e9;
-            border: 1px solid #c8e6c9;
-            color: var(--dark);
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 15px;
-            font-weight: bold;
-            display: none;
-        }
-        .row { display: flex; gap: 15px; }
-        .col { flex: 1; }
-
-        /* --- BUTTONS --- */
-        button {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-update { background: var(--accent); color: #000; }
-        .btn-secondary { background: #607d8b; color: white; margin-top: 10px;}
-        .btn-cancel { background: #9e9e9e; color: white; margin-top: 10px; display: none; }
-        
-        .btn-sm { padding: 5px 10px; font-size: 0.8rem; width: auto; margin-left: 5px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; }
-        .btn-del { color: var(--danger); border-color: var(--danger); }
-        .btn-edit { color: var(--text); border-color: var(--accent); }
-        
-        .btn-backup { background: var(--success); padding: 10px; }
-        .file-input-wrapper { display: flex; align-items: center; margin-bottom: 15px; }
-        .file-input-wrapper input[type="file"] { display: none; }
-        .btn-upload { background: var(--danger); color: white; padding: 10px; margin-left: 10px; }
-
-        /* --- LISTS --- */
-        .score-list { list-style: none; padding: 0; margin: 0; }
-        .score-item {
-            background: #f9f9f9;
-            border-radius: 8px;
-            border: 1px solid #eee;
-            padding: 12px;
-            margin-bottom: 10px;
-        }
-        .score-top { display: flex; justify-content: space-between; align-items: center; }
-        .score-notes {
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px dashed #ddd;
-            font-size: 0.9rem;
-            color: #555;
-            font-style: italic;
-        }
-
+        :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg); padding: 15px; }
+        .dashboard { background: #333; color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; border-bottom: 5px solid #2196f3; }
+        .card { background: white; border-radius: 10px; margin-bottom: 15px; border: 1px solid #ccc; padding: 15px; }
+        button { width: 100%; padding: 15px; background: #2196f3; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
+        .cloud-item { background: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; border-left: 5px solid #1976D2; }
+        label { font-weight: bold; display: block; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="dashboard">
+    <div style="font-size: 1.2rem; font-weight: bold;">CLOUD RECOVERY CONSOLE</div>
+    <div id="status">Ready to Connect</div>
+</div>
 
-    <div class="dashboard-card">
-        <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Current Index</div>
-        <div class="handicap-number" id="displayIndex">--</div>
-        <div class="handicap-sub" id="displayCount">No scores entered</div>
-    </div>
+<div class="card">
+    <label>1. ENTER YOUR SECRET KEY</label>
+    <input type="text" id="keyIn" value="Masters2026" style="width:100%; padding:12px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box;">
+    <button onclick="fetchEverything()" style="margin-top:10px;">📡 PULL ALL CLOUD DATA</button>
+</div>
 
-    <div class="card" id="scoreFormCard">
-        <div class="card-header" style="cursor: default; border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
-            <span>⛳ Post New Score</span>
-        </div>
-        <input type="hidden" id="editScoreId">
-
-        <label>Select Course</label>
-        <select id="courseSelect" onchange="handleCourseSelect()">
-            <option value="">-- Choose Course --</option>
-        </select>
-
-        <div id="courseInfoBox" class="course-details-box"></div>
-
-        <div class="row">
-            <div class="col">
-                <label>Date</label>
-                <input type="date" id="scoreDate">
-            </div>
-            <div class="col">
-                <label>Score</label>
-                <input type="number" id="scoreVal" placeholder="--" oninput="updateDiffPreview()">
-            </div>
-        </div>
-
-        <label>Notes (Optional)</label>
-        <textarea id="scoreNotes" rows="2" placeholder="e.g. Windy, played great on back 9..."></textarea>
-
-        <div id="diffPreview" style="text-align:center; font-weight:bold; color:var(--primary); margin-bottom:15px; display:none;">
-            Differential: --
-        </div>
-
-        <button id="postBtn" class="btn-primary" onclick="submitScore()">Post Score</button>
-        <button id="cancelBtn" class="btn-cancel" onclick="resetForm()">Cancel Edit</button>
-    </div>
-
-    <div class="card">
-        <div class="card-header collapsed" onclick="toggleSection('historyContent', this)">
-            <span>📝 Score History</span>
-            <span class="arrow">▼</span>
-        </div>
-        <div id="historyContent" class="card-content hidden">
-            <ul id="scoreList" class="score-list"></ul>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header collapsed" onclick="toggleSection('managerContent', this)">
-            <span>⚙️ Manage Courses & Data</span>
-            <span class="arrow">▼</span>
-        </div>
-        
-        <div id="managerContent" class="card-content hidden">
-            
-            <div style="padding:0 0 10px 0;">
-                <div class="sub-header collapsed" onclick="toggleSection('backupContent', this)">
-                    <span style="color: var(--info);">Backup & Restore Data</span>
-                    <span class="arrow">▼</span>
-                </div>
-                <div id="backupContent" class="card-content hidden" style="border: 1px dashed #eee; padding: 10px; border-radius: 8px;">
-                    <button class="btn-primary" style="background: var(--success); margin-bottom: 10px; padding: 10px;" onclick="exportData()">Download Backup (JSON)</button>
-                    <p style="font-size: 0.9em; margin: 5px 0 10px; color: #888;">Backup your data before clearing your browser history.</p>
-                    
-                    <h5 style="margin-bottom: 5px; color: var(--danger); font-size: 1em;">Restore/Overwrite:</h5>
-                    <div class="file-input-wrapper">
-                        <input type="file" id="importFile" accept=".json" onchange="document.getElementById('fileNameDisplay').innerText = this.files[0].name">
-                        <label for="importFile" class="btn-sm" style="border-color:#ccc; color:#333; width:auto; flex-grow:1; text-align:center; padding: 10px;">
-                            Choose File
-                        </label>
-                        <span id="fileNameDisplay" style="margin: 0 10px; font-size: 0.9em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">No file selected</span>
-                        <button class="btn-upload" style="padding: 10px;" onclick="importData()">Upload & Overwrite</button>
-                    </div>
-                </div>
-            </div>
-
-            <div style="padding-top: 10px;">
-                <div class="sub-header collapsed" onclick="toggleSection('courseDbContent', this)">
-                    <span>Edit Courses</span>
-                    <span class="arrow">▼</span>
-                </div>
-                <div id="courseDbContent" class="card-content hidden">
-                    <button class="btn-primary" style="margin-bottom:15px;" onclick="openCourseForm()">+ Add New Course</button>
-                    
-                    <div id="courseForm" style="display:none; background:#fafafa; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">
-                        <input type="hidden" id="cEditIndex">
-                        <label>Name</label><input type="text" id="cName">
-                        <label>Tee</label><input type="text" id="cTee">
-                        <div class="row">
-                            <div class="col"><label>Rating</label><input type="number" id="cRating" step="0.1"></div>
-                            <div class="col"><label>Slope</label><input type="number" id="cSlope"></div>
-                        </div>
-                        <button class="btn-primary" onclick="saveCourse()">Save</button>
-                        <button style="margin-top:10px; background:#999; color:white; padding:10px; border:none; border-radius:8px; width:100%;" onclick="document.getElementById('courseForm').style.display='none'">Cancel</button>
-                    </div>
-
-                    <ul id="courseDbList" class="score-list"></ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
+<div class="card" id="displayArea" style="display:none;">
+    <label>2. SELECT PLAYER TO RESTORE</label>
+    <div id="playerButtons"></div>
+    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+    <label>3. COURSES FOUND IN CLOUD</label>
+    <div id="coursePreview"></div>
 </div>
 
 <script>
-    // --- 1. INITIAL DATA ---
-    const excelData = [
-        {'name': 'Beaver Creek', 'tee': 'Blue', 'slope': 130.0, 'rating': 72.0},
-        {'name': 'Belle Terre', 'tee': 'Blue', 'slope': 131.0, 'rating': 72.2},
-        {'name': 'Cam2', 'tee': 'White', 'slope': 118.0, 'rating': 67.7},
-        {'name': 'Carter Plantation', 'tee': 'Blue', 'slope': 115.0, 'rating': 66.7},
-        {'name': 'Carter Plantation', 'tee': 'Blue/Gold', 'slope': 126.0, 'rating': 69.7},
-        {'name': 'Carter Plantation', 'tee': 'Gold', 'slope': 128.0, 'rating': 70.9},
-        {'name': 'City Park', 'tee': 'Blue', 'slope': 125.0, 'rating': 70.0},
-        {'name': 'Coppermill', 'tee': 'Gold', 'slope': 129.0, 'rating': 71.8},
-        {'name': 'Covington County Club', 'tee': 'Blue', 'slope': 127.0, 'rating': 71.9},
-        {'name': 'Fenwood', 'tee': 'White/Blue', 'slope': 127.5, 'rating': 71.0},
-        {'name': 'Greystone', 'tee': 'Blue', 'slope': 128.0, 'rating': 70.8},
-        {'name': 'Greystone', 'tee': 'Gold', 'slope': 132.0, 'rating': 72.5},
-        {'name': 'JS Clark', 'tee': 'White', 'slope': 120.0, 'rating': 68.5},
-        {'name': 'Oak Knoll', 'tee': 'White', 'slope': 124.0, 'rating': 70.1},
-        {'name': 'Oak Lake', 'tee': 'White/Blue', 'slope': 122.0, 'rating': 69.8},
-        {'name': 'Pelican Point', 'tee': 'Gold', 'slope': 124.0, 'rating': 70.0},
-        {'name': 'Pelican Point', 'tee': 'White', 'slope': 116.0, 'rating': 68.5},
-        {'name': 'Santa Maria', 'tee': 'Blue', 'slope': 128.0, 'rating': 71.5},
-        {'name': 'The Island (Plaquemine)', 'tee': 'Blue', 'slope': 135.0, 'rating': 73.1},
-        {'name': 'The Island (Plaquemine)', 'tee': 'White', 'slope': 130.0, 'rating': 71.3},
-        {'name': 'The Pines', 'tee': 'White/Blue', 'slope': 125.0, 'rating': 70.5},
-        {'name': 'Webb', 'tee': 'Whtie', 'slope': 123.0, 'rating': 69.5}
-    ];
+    let globalCloud = null;
 
-    // Load Data (Version 12)
-    let courses = JSON.parse(localStorage.getItem('golfCourses_v12')) || excelData;
-    let scores = JSON.parse(localStorage.getItem('golfScores_v12')) || [];
+    async function fetchEverything() {
+        const key = document.getElementById('keyIn').value;
+        const binId = btoa(key).replace(/=/g, "");
+        const status = document.getElementById('status');
+        status.innerText = "Connecting to bin: " + binId;
 
-    // Data Migration (Ensuring current list is loaded if upgrading)
-    if (!localStorage.getItem('golfCourses_v12') && localStorage.getItem('golfCourses_v11')) {
-        courses = JSON.parse(localStorage.getItem('golfCourses_v11'));
-        scores = JSON.parse(localStorage.getItem('golfScores_v11'));
-        saveData(); 
-    } else if (!localStorage.getItem('golfCourses_v12')) {
-        saveData();
-    }
+        try {
+            const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
+            if (!res.ok) throw new Error("Bin empty");
+            
+            globalCloud = await res.json();
+            document.getElementById('displayArea').style.display = "block";
+            status.innerText = "✅ DATA RETRIEVED";
+            
+            // Show Players
+            let pDiv = document.getElementById('playerButtons');
+            pDiv.innerHTML = "";
+            Object.keys(globalCloud.players).forEach(name => {
+                pDiv.innerHTML += `<button onclick="restorePlayer('${name}')" style="background:#2E7D32; margin-bottom:10px;">Restore ${name}'s Scores</button>`;
+            });
 
-    document.getElementById('scoreDate').valueAsDate = new Date();
-
-    // --- 2. SETUP ---
-    function init() {
-        courses.sort((a, b) => a.name.localeCompare(b.name));
-        updateUI();
-    }
-
-    // --- 3. UI TOGGLES & CORE UPDATES ---
-    function toggleSection(id, headerElement) {
-        const content = document.getElementById(id);
-        content.classList.toggle('hidden');
-        headerElement.classList.toggle('collapsed');
-    }
-
-    function updateUI() {
-        renderDropdown();
-        renderScoreList();
-        renderCourseDb();
-        calculateHandicap();
-    }
-
-    function saveData() {
-        localStorage.setItem('golfCourses_v12', JSON.stringify(courses));
-        localStorage.setItem('golfScores_v12', JSON.stringify(scores));
-        updateUI();
-    }
-
-    // --- 4. DATA BACKUP/RESTORE ---
-
-    function exportData() {
-        const data = {
-            version: 'v12',
-            timestamp: new Date().toISOString(),
-            courses: courses,
-            scores: scores
-        };
-        const json = JSON.stringify(data, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const dateStr = new Date().toISOString().slice(0, 10);
-        a.download = `golf_tracker_backup_${dateStr}.json`;
-        a.href = url;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        alert("Data successfully downloaded as JSON file!");
-    }
-
-    function importData() {
-        const fileInput = document.getElementById('importFile');
-        const file = fileInput.files[0];
-
-        if (!file) {
-            alert("Please select a JSON backup file first.");
-            return;
-        }
-
-        if (!confirm("WARNING: Importing data will completely ERASE your current scores and courses and replace them with the data from the file. Are you sure?")) {
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            try {
-                const importedData = JSON.parse(event.target.result);
-                
-                if (!importedData.courses || !importedData.scores) {
-                    throw new Error("Invalid file structure. Courses or Scores data is missing.");
-                }
-
-                courses = importedData.courses;
-                scores = importedData.scores;
-                
-                fileInput.value = '';
-                document.getElementById('fileNameDisplay').innerText = 'No file selected';
-
-                saveData();
-                alert(`Data successfully imported! Loaded ${courses.length} courses and ${scores.length} scores.`);
-            } catch (e) {
-                alert(`Error reading file: ${e.message}`);
-            }
-        };
-        reader.readAsText(file);
-    }
-
-    // --- 5. HANDICAP MATH (WHS Logic) ---
-    function calculateHandicap() {
-        if (scores.length === 0) {
-            document.getElementById('displayIndex').innerText = "--";
-            document.getElementById('displayCount').innerText = "Post 3 scores to start";
-            return;
-        }
-
-        let sorted = [...scores].sort((a, b) => new Date(b.date) - new Date(a.date));
-        let recent = sorted.slice(0, 20);
-        let diffs = recent.map(s => parseFloat(s.diff)).sort((a, b) => a - b);
-        
-        let count = diffs.length;
-        let index = 0;
-
-        if (count < 3) {
-            document.getElementById('displayIndex').innerText = "--";
-            document.getElementById('displayCount').innerText = `Need ${3-count} more`;
-            return;
-        } else if (count === 3) index = diffs[0] - 2.0;
-        else if (count === 4) index = diffs[0] - 1.0;
-        else if (count === 5) index = diffs[0];
-        else if (count === 6) index = (diffs[0] + diffs[1]) / 2 - 1.0;
-        else if (count <= 8) index = (diffs[0] + diffs[1]) / 2;
-        else if (count <= 11) index = (diffs[0] + diffs[1] + diffs[2]) / 3;
-        else if (count <= 14) index = diffs.slice(0,4).reduce((a,b)=>a+b,0) / 4;
-        else if (count <= 16) index = diffs.slice(0,5).reduce((a,b)=>a+b,0) / 5;
-        else if (count <= 18) index = diffs.slice(0,6).reduce((a,b)=>a+b,0) / 6;
-        else index = diffs.slice(0,8).reduce((a,b)=>a+b,0) / 8;
-
-        document.getElementById('displayIndex').innerText = index.toFixed(1);
-        document.getElementById('displayCount').innerText = `${count} rounds counted`;
-    }
-
-    // --- 6. SCORE FORM LOGIC ---
-    function handleCourseSelect() {
-        const idx = document.getElementById('courseSelect').value;
-        const infoBox = document.getElementById('courseInfoBox');
-        
-        if (idx === "") {
-            infoBox.style.display = "none";
-        } else {
-            const c = courses[idx];
-            infoBox.innerHTML = `${c.tee} Tee <span style="margin:0 8px">|</span> Rating: ${c.rating} <span style="margin:0 8px">|</span> Slope: ${c.slope}`;
-            infoBox.style.display = "block";
-        }
-        updateDiffPreview();
-    }
-
-    function updateDiffPreview() {
-        const idx = document.getElementById('courseSelect').value;
-        const score = document.getElementById('scoreVal').value;
-        const preview = document.getElementById('diffPreview');
-
-        if (idx === "" || !score) {
-            preview.style.display = "none";
-            return;
-        }
-        const c = courses[idx];
-        const diff = (score - c.rating) * 113 / c.slope;
-        preview.innerText = `Differential: ${diff.toFixed(1)}`;
-        preview.style.display = "block";
-    }
-
-    function submitScore() {
-        const editId = document.getElementById('editScoreId').value;
-        const idx = document.getElementById('courseSelect').value;
-        const date = document.getElementById('scoreDate').value;
-        const val = parseFloat(document.getElementById('scoreVal').value);
-        const notes = document.getElementById('scoreNotes').value;
-
-        if (idx === "" || !date || !val) { alert("Please fill all required fields"); return; }
-
-        const c = courses[idx];
-        const diff = ((val - c.rating) * 113 / c.slope).toFixed(1);
-
-        const entry = {
-            id: editId ? parseInt(editId) : Date.now(),
-            date: date,
-            courseName: c.name,
-            tee: c.tee,
-            rating: c.rating,
-            slope: c.slope,
-            score: val,
-            diff: diff,
-            notes: notes
-        };
-
-        if (editId) {
-            const i = scores.findIndex(s => s.id == editId);
-            if (i > -1) scores[i] = entry;
-            resetForm();
-        } else {
-            scores.unshift(entry);
-            document.getElementById('scoreVal').value = "";
-            document.getElementById('scoreNotes').value = "";
-            document.getElementById('diffPreview').style.display = 'none';
-        }
-        saveData();
-    }
-
-    function editScore(id) {
-        const s = scores.find(x => x.id === id);
-        if(!s) return;
-
-        document.getElementById('editScoreId').value = s.id;
-        document.getElementById('scoreDate').value = s.date;
-        document.getElementById('scoreVal').value = s.score;
-        document.getElementById('scoreNotes').value = s.notes || "";
-        
-        const idx = courses.findIndex(c => c.name === s.courseName && c.tee === s.tee);
-        const sel = document.getElementById('courseSelect');
-        if (idx > -1) {
-            sel.value = idx;
-            handleCourseSelect();
-        } else {
-            sel.value = "";
-            alert("Course not found in database. Please re-select.");
-        }
-
-        document.getElementById('postBtn').innerText = "Update";
-        document.getElementById('postBtn').className = "btn-update";
-        document.getElementById('cancelBtn').style.display = "block";
-        document.getElementById('scoreFormCard').scrollIntoView({behavior: 'smooth'});
-
-        const histContent = document.getElementById('historyContent');
-        if (histContent.classList.contains('hidden')) {
-            const header = document.querySelector('[onclick="toggleSection(\'historyContent\', this)"]');
-            toggleSection('historyContent', header);
-        }
-    }
-
-    function resetForm() {
-        document.getElementById('editScoreId').value = "";
-        document.getElementById('scoreVal').value = "";
-        document.getElementById('scoreNotes').value = "";
-        document.getElementById('courseSelect').value = "";
-        document.getElementById('courseInfoBox').style.display = "none";
-        document.getElementById('diffPreview').style.display = "none";
-        
-        document.getElementById('postBtn').innerText = "Post Score";
-        document.getElementById('postBtn').className = "btn-primary";
-        document.getElementById('cancelBtn').style.display = "none";
-    }
-
-    function deleteScore(id) {
-        if(confirm("Delete this score?")) {
-            scores = scores.filter(s => s.id !== id);
-            saveData();
-            if(document.getElementById('editScoreId').value == id) resetForm();
-        }
-    }
-
-    // --- 7. RENDER LISTS ---
-    function renderDropdown() {
-        const sel = document.getElementById('courseSelect');
-        const curr = sel.value;
-        sel.innerHTML = '<option value="">-- Choose Course --</option>';
-        courses.forEach((c, i) => {
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.innerText = `${c.name} (${c.tee})`;
-            sel.appendChild(opt);
-        });
-        sel.value = curr;
-    }
-
-    function renderScoreList() {
-        const list = document.getElementById('scoreList');
-        list.innerHTML = "";
-        
-        const sorted = [...scores].sort((a,b) => new Date(b.date) - new Date(a.date));
-        
-        if (sorted.length === 0) {
-            list.innerHTML = "<li style='text-align:center; color:#888; padding:15px'>No history found.</li>";
-            return;
-        }
-
-        sorted.forEach(s => {
-            const li = document.createElement('li');
-            li.className = "score-item";
-            let notesHtml = s.notes ? `<div class="score-notes">📝 ${s.notes}</div>` : "";
-
-            li.innerHTML = `
-                <div class="score-top">
-                    <div>
-                        <div class="score-date">${s.date}</div>
-                        <div class="score-course">${s.courseName} <span style="font-weight:normal; font-size:0.85rem; color:#666">(${s.tee})</span></div>
-                    </div>
-                    <div style="text-align:right">
-                        <span class="score-val">${s.score}</span>
-                        <span class="score-diff">${s.diff}</span>
-                    </div>
+            // Show Courses
+            let cDiv = document.getElementById('coursePreview');
+            cDiv.innerHTML = globalCloud.courses.map(c => `
+                <div class="cloud-item">
+                    <b>${c.name}</b> (${c.tee})<br>
+                    Rating: ${c.rating} | Slope: ${c.slope}
                 </div>
-                ${notesHtml}
-                <div style="margin-top:10px; text-align:right;">
-                    <button class="btn-sm btn-edit" onclick="editScore(${s.id})">Edit</button>
-                    <button class="btn-sm btn-del" onclick="deleteScore(${s.id})">Del</button>
-                </div>
-            `;
-            list.appendChild(li);
-        });
-    }
+            `).join('');
 
-    function renderCourseDb() {
-        const list = document.getElementById('courseDbList');
-        list.innerHTML = "";
-        courses.forEach((c, i) => {
-            const li = document.createElement('li');
-            li.className = "score-item";
-            li.innerHTML = `
-                <div class="score-top">
-                    <div><strong>${c.name}</strong> (${c.tee})</div>
-                    <div>
-                        <button class="btn-sm btn-edit" onclick="loadCourseEdit(${i})">Edit</button>
-                        <button class="btn-sm btn-del" onclick="deleteCourse(${i})">Del</button>
-                    </div>
-                </div>
-            `;
-            list.appendChild(li);
-        });
-    }
-
-    // --- 8. COURSE MANAGER ---
-    function openCourseForm() {
-        document.getElementById('courseForm').style.display = 'block';
-        document.getElementById('cEditIndex').value = "-1";
-        document.getElementById('cName').value = "";
-        document.getElementById('cTee').value = "";
-        document.getElementById('cRating').value = "";
-        document.getElementById('cSlope').value = "";
-    }
-
-    function loadCourseEdit(i) {
-        const c = courses[i];
-        document.getElementById('courseForm').style.display = 'block';
-        document.getElementById('cEditIndex').value = i;
-        document.getElementById('cName').value = c.name;
-        document.getElementById('cTee').value = c.tee;
-        document.getElementById('cRating').value = c.rating;
-        document.getElementById('cSlope').value = c.slope;
-    }
-
-    function saveCourse() {
-        const i = parseInt(document.getElementById('cEditIndex').value);
-        const name = document.getElementById('cName').value;
-        const tee = document.getElementById('cTee').value;
-        const rating = parseFloat(document.getElementById('cRating').value);
-        const slope = parseFloat(document.getElementById('cSlope').value);
-
-        if(!name || !rating) return alert("Fill required fields");
-
-        const obj = { name, tee, rating, slope };
-        
-        if (i === -1) courses.push(obj);
-        else courses[i] = obj;
-
-        document.getElementById('courseForm').style.display = 'none';
-        saveData();
-    }
-
-    function deleteCourse(i) {
-        if(confirm("Delete this course?")) {
-            courses.splice(i, 1);
-            saveData();
+        } catch (e) {
+            status.innerText = "❌ CLOUD EMPTY FOR THIS KEY";
+            alert("Nothing found for: " + key);
         }
     }
 
-    init();
+    function restorePlayer(name) {
+        // Save Courses
+        localStorage.setItem('golfCourses_v14', JSON.stringify(globalCloud.courses));
+        // Save Scores
+        localStorage.setItem('scores_' + name, JSON.stringify(globalCloud.players[name].history));
+        localStorage.setItem('golf_pname', name);
+        localStorage.setItem('knownUsers', JSON.stringify(Object.keys(globalCloud.players)));
+        
+        alert("Restored " + name + " and all courses! Refreshing...");
+        location.reload();
+    }
 </script>
-
 </body>
 </html>
+
 
 
 
