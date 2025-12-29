@@ -3,121 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Total Cloud Recovery</title>
+    <title>Golf Tracker Recovery</title>
     <style>
-        :root { --primary: #1976D2; --dark: #0D47A1; --bg: #f4f6f8; --accent: #FFA000; }
-        body { font-family: -apple-system, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
-        .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; }
-        .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
-        .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; padding: 15px; }
-        .status-box { background: #fff3e0; border: 1px solid #ffe0b2; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
-        button { width: 100%; padding: 15px; background: #2E7D32; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
-        .user-pill { display: inline-block; padding: 12px 18px; background: #e3f2fd; border: 2px solid #2196f3; border-radius: 25px; margin: 5px; cursor: pointer; font-weight: bold; }
-        .score-item { background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 5px solid #2E7D32; }
+        :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; --accent: #FFA000; }
+        body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
+        .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; border-bottom: 4px solid var(--accent); }
+        .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; min-height: 4rem; }
+        .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; overflow: hidden; padding: 15px; }
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; font-size: 0.9rem; }
+        .pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+        .active { background: var(--dark); color: white; }
     </style>
 </head>
 <body>
 
 <div class="dashboard">
-    <div id="pDisp" style="font-size: 1.2rem;">Cloud Recovery Mode</div>
+    <div id="pDisp" style="font-size: 1.2rem;">Don</div>
     <div class="handicap" id="idx">--</div>
-    <div style="font-size: 0.8rem; opacity: 0.9;">WHS HANDICAP INDEX</div>
+    <div style="font-size: 0.8rem; opacity: 0.9;">HANDICAP INDEX</div>
 </div>
 
-<div class="status-box" id="statusArea">
-    <b style="color: #e65100;">ACTION REQUIRED:</b><br>
-    Click the button below to scan the cloud for your lost data.
-    <button onclick="scanCloud()" style="margin-top:10px;">🔍 SCAN CLOUD FOR ALL PLAYERS</button>
+<div class="card">
+    <label><b>1. Current Users Found:</b></label>
+    <div id="userList" style="margin: 10px 0;"></div>
+    
+    <label><b>2. Emergency Cloud Pull:</b></label>
+    <p style="font-size: 0.75rem; color: #666;">If history is blank, enter "Masters2026" below and hit Pull.</p>
+    <input type="text" id="keyIn" value="Masters2026">
+    <button onclick="pullCloud()" style="background: var(--dark);">☁️ PULL EVERYTHING FROM CLOUD</button>
 </div>
 
-<div id="results" style="display:none;">
-    <div class="card">
-        <label><b>1. Select the name to restore:</b></label>
-        <div id="playerList" style="margin-top:10px;"></div>
-    </div>
-
-    <div class="card">
-        <label><b>2. Recovered Course Database:</b></label>
-        <div id="courseList" style="margin-top:10px; font-size: 0.8rem;"></div>
-    </div>
-
-    <div class="card">
-        <label><b>3. Recovered History for Selected:</b></label>
-        <div id="historyList" style="margin-top:10px;"></div>
-    </div>
+<div class="card">
+    <label><b>3. Score History:</b></label>
+    <div id="sList">No scores found.</div>
 </div>
+
+<div class="card">
+    <label><b>4. Course List:</b></label>
+    <div id="cList">No courses found.</div>
+</div>
+
+<button onclick="resetApp()" style="background:none; color:red; border:none; font-size: 10px;">Full Reset App</button>
 
 <script>
-    const MASTER_KEY = "Masters2026";
-    let cloudData = null;
+    var pName = localStorage.getItem('golf_pname') || "Don";
+    var courses = JSON.parse(localStorage.getItem('golfCourses_v14')) || [];
+    var scores = [];
+    var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || ["Don"];
 
-    async function scanCloud() {
-        const binId = btoa(MASTER_KEY).replace(/=/g, "");
-        const status = document.getElementById('statusArea');
-        status.innerText = "Searching Cloud Bin: " + binId + "...";
+    function resetApp() { if(confirm("Erase all local memory?")) { localStorage.clear(); location.reload(); } }
+
+    function switchUser(name) {
+        pName = name;
+        localStorage.setItem('golf_pname', name);
+        let saved = localStorage.getItem('scores_' + name);
+        scores = saved ? JSON.parse(saved) : [];
+        render();
+    }
+
+    function calc() {
+        if (!scores || scores.length < 3) return "--";
+        let diffs = [...scores].map(s => parseFloat(s.diff)).sort((a,b) => a-b);
+        let n = scores.length >= 20 ? 8 : (scores.length >= 10 ? 3 : 1);
+        let avg = diffs.slice(0, n).reduce((a, b) => a + b, 0) / n;
+        return (Math.floor(avg * 10) / 10).toFixed(1);
+    }
+
+    function render() {
+        document.getElementById('pDisp').innerText = pName;
+        document.getElementById('idx').innerText = calc();
+
+        // Render Bubbles
+        let uL = document.getElementById('userList');
+        uL.innerHTML = "";
+        knownUsers.forEach(u => {
+            uL.innerHTML += `<span class="pill ${u === pName ? 'active' : ''}" onclick="switchUser('${u}')">${u}</span>`;
+        });
+
+        // Render Scores
+        let sl = document.getElementById('sList');
+        sl.innerHTML = scores.length ? "" : "<small>No scores found in phone memory.</small>";
+        scores.forEach(s => {
+            sl.innerHTML += `<div class="score-item"><b>${s.score}</b> at ${s.courseName||s.course} (${s.date})</div>`;
+        });
+
+        // Render Courses
+        let cl = document.getElementById('cList');
+        cl.innerHTML = courses.length ? "" : "<small>No courses found.</small>";
+        courses.forEach(c => {
+            cl.innerHTML += `<div class="score-item"><b>${c.name}</b> (${c.tee})</div>`;
+        });
+    }
+
+    async function pullCloud() {
+        const key = document.getElementById('keyIn').value;
+        const binId = btoa(key).replace(/=/g, "");
+        const btn = document.querySelector('button');
+        btn.innerText = "Connecting...";
 
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
-            if (!res.ok) throw new Error("Bin not found");
-            
-            cloudData = await res.json();
-            
-            if (!cloudData.players || Object.keys(cloudData.players).length === 0) {
-                status.innerHTML = "❌ Bin found, but it is empty. Did you use a different Group Key?";
-                return;
-            }
+            if (!res.ok) throw new Error();
+            const cloud = await res.json();
 
-            status.innerHTML = "✅ Data Found! Select your name below.";
-            document.getElementById('results').style.display = "block";
-            
-            // Show Names
-            const pList = document.getElementById('playerList');
-            pList.innerHTML = "";
-            Object.keys(cloudData.players).forEach(name => {
-                pList.innerHTML += `<div class="user-pill" onclick="restoreName('${name}')">${name}</div>`;
+            // Restore Courses
+            courses = cloud.courses || [];
+            localStorage.setItem('golfCourses_v14', JSON.stringify(courses));
+
+            // Restore Players
+            knownUsers = Object.keys(cloud.players);
+            localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
+
+            // Save each player's scores locally
+            knownUsers.forEach(u => {
+                localStorage.setItem('scores_' + u, JSON.stringify(cloud.players[u].history));
             });
 
-            // Show Courses
-            const cList = document.getElementById('courseList');
-            cList.innerHTML = cloudData.courses.map(c => `• ${c.name} (${c.tee})`).join('<br>');
-            
-            // Save courses immediately
-            localStorage.setItem('golfCourses_v14', JSON.stringify(cloudData.courses));
-
+            btn.innerText = "✅ Success!";
+            switchUser(pName);
         } catch (e) {
-            status.innerHTML = "❌ Could not connect to Cloud. Check internet.";
+            btn.innerText = "❌ Error: Cloud Empty or Key Wrong";
+            alert("Could not find data for key: " + key);
         }
     }
 
-    function restoreName(name) {
-        const player = cloudData.players[name];
-        const scores = player.history || [];
-        
-        // Save to Phone
-        localStorage.setItem('golf_pname', name);
-        localStorage.setItem('scores_' + name, JSON.stringify(scores));
-        localStorage.setItem('knownUsers', JSON.stringify(Object.keys(cloudData.players)));
-        
-        // Update Screen
-        document.getElementById('pDisp').innerText = name;
-        document.getElementById('idx').innerText = player.index || "--";
-        
-        const hList = document.getElementById('historyList');
-        hList.innerHTML = scores.map(s => `
-            <div class="score-item">
-                <b>${s.score}</b> at ${s.courseName||s.course}<br>
-                <small>${s.date} | Diff: ${s.diff}</small>
-            </div>
-        `).join('');
-
-        alert("Restored " + name + " successfully! You can now refresh the page or wait to return to the main app.");
-        
-        // Final Step: After 3 seconds, reload back to a working version
-        // (For now, just stay here so you can see the data is back)
-    }
+    // Init
+    switchUser(pName);
 </script>
 </body>
 </html>
+
 
 
 
