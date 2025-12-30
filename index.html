@@ -377,9 +377,70 @@
     // Global state
     let loggedInUser = null;
     let viewingPlayer = null;
-    let allPlayers = JSON.parse(localStorage.getItem('golf_all_players')) || { [ADMIN_USER]: [] };
-    let userCredentials = JSON.parse(localStorage.getItem('golf_credentials')) || {};
-    let courses = JSON.parse(localStorage.getItem('golf_courses')) || MASTER_COURSES;
+    let allPlayers = {};
+    let userCredentials = {};
+    let courses = [];
+    let isSyncing = false;
+    
+    // Cloud storage configuration
+    const STORAGE_KEY = 'golf_tracker_data_v1';
+
+    // Load data from cloud storage
+    async function loadFromCloud() {
+        try {
+            const result = await window.storage.get(STORAGE_KEY, true);
+            if (result && result.value) {
+                const data = JSON.parse(result.value);
+                allPlayers = data.allPlayers || { [ADMIN_USER]: [] };
+                userCredentials = data.userCredentials || {};
+                courses = data.courses || MASTER_COURSES;
+                console.log("Data loaded from cloud");
+                return true;
+            }
+        } catch (error) {
+            console.log("No cloud data found, using defaults");
+        }
+        
+        // Use defaults if no cloud data
+        allPlayers = { [ADMIN_USER]: [] };
+        userCredentials = {};
+        courses = [...MASTER_COURSES];
+        return false;
+    }
+
+    // Save data to cloud storage
+    async function saveToCloud() {
+        if (isSyncing) return; // Prevent concurrent saves
+        
+        isSyncing = true;
+        try {
+            const data = {
+                allPlayers: allPlayers,
+                userCredentials: userCredentials,
+                courses: courses,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            await window.storage.set(STORAGE_KEY, JSON.stringify(data), true);
+            console.log("Data saved to cloud");
+        } catch (error) {
+            console.error("Failed to save to cloud:", error);
+            alert("Warning: Failed to sync to cloud. Your changes are saved locally.");
+        } finally {
+            isSyncing = false;
+        }
+    }
+
+    // Auto-refresh data periodically
+    async function refreshData() {
+        if (loggedInUser) {
+            await loadFromCloud();
+            render();
+        }
+    }
+    
+    // Refresh every 30 seconds
+    setInterval(refreshData, 30000);
 
     // Simple hash function (not cryptographically secure, but better than plain text)
     function simpleHash(str) {
@@ -425,9 +486,12 @@
     }
 
     // Show login screen
-    function showLoginScreen() {
+    async function showLoginScreen() {
         document.getElementById('loginScreen').style.display = 'flex';
         document.getElementById('mainApp').style.display = 'none';
+        
+        // Load latest data from cloud
+        await loadFromCloud();
         
         // Populate login dropdown
         const loginSelect = document.getElementById('loginSelect');
@@ -478,7 +542,7 @@
         if (!userCredentials[selected]) {
             console.log("Creating new password for user"); // Debug
             userCredentials[selected] = simpleHash(password);
-            localStorage.setItem('golf_credentials', JSON.stringify(userCredentials));
+            saveToCloud();
             console.log("Password created successfully"); // Debug
             alert(`Password created! You can now login with this password anytime.`);
         } else {
@@ -500,7 +564,7 @@
     }
 
     // Create new player
-    function createPlayer() {
+    async function createPlayer() {
         const name = document.getElementById('newPlayerName').value.trim();
         const password = document.getElementById('newPlayerPassword').value;
         const passwordConfirm = document.getElementById('newPlayerPasswordConfirm').value;
@@ -537,8 +601,7 @@
         }
         userCredentials[name] = simpleHash(password);
         
-        localStorage.setItem('golf_all_players', JSON.stringify(allPlayers));
-        localStorage.setItem('golf_credentials', JSON.stringify(userCredentials));
+        await saveToCloud();
         
         loggedInUser = name;
         viewingPlayer = name;
@@ -549,7 +612,7 @@
     }
 
     // Reset password
-    function resetPassword() {
+    async function resetPassword() {
         const selected = document.getElementById('resetSelect').value;
         const newPassword = document.getElementById('resetPassword').value;
         const confirmPassword = document.getElementById('resetPasswordConfirm').value;
@@ -576,7 +639,7 @@
 
         // Reset the password
         userCredentials[selected] = simpleHash(newPassword);
-        localStorage.setItem('golf_credentials', JSON.stringify(userCredentials));
+        await saveToCloud();
 
         // Clear fields
         document.getElementById('resetSelect').value = '';
@@ -627,7 +690,7 @@
     }
 
     // Change password
-    function changePassword() {
+    async function changePassword() {
         const currentPwd = document.getElementById('currentPwd').value;
         const newPwd = document.getElementById('newPwd').value;
         const confirmPwd = document.getElementById('confirmPwd').value;
@@ -657,7 +720,7 @@
 
         // Update password
         userCredentials[loggedInUser] = simpleHash(newPwd);
-        localStorage.setItem('golf_credentials', JSON.stringify(userCredentials));
+        await saveToCloud();
         
         // Clear fields
         document.getElementById('currentPwd').value = '';
@@ -668,7 +731,7 @@
     }
 
     // Add new course
-    function addCourse() {
+    async function addCourse() {
         const name = document.getElementById('newCourseName').value.trim();
         const city = document.getElementById('newCourseCity').value.trim();
         const tee = document.getElementById('newCourseTee').value.trim();
@@ -715,7 +778,7 @@
             slope: slope
         });
 
-        localStorage.setItem('golf_courses', JSON.stringify(courses));
+        await saveToCloud();
 
         // Clear form
         document.getElementById('newCourseName').value = '';
@@ -760,7 +823,7 @@
     }
 
     // Add new score
-    function addScore() {
+    async function addScore() {
         const courseIdx = document.getElementById('cSel').value;
         const score = parseFloat(document.getElementById('sIn').value);
         const date = document.getElementById('dIn').value;
@@ -783,14 +846,14 @@
         };
         
         allPlayers[viewingPlayer].unshift(newScore);
-        localStorage.setItem('golf_all_players', JSON.stringify(allPlayers));
+        await saveToCloud();
         
         document.getElementById('sIn').value = "";
         render();
     }
 
     // Update existing score
-    function updateScore(idx) {
+    async function updateScore(idx) {
         if (!canEdit(viewingPlayer)) {
             alert("You don't have permission to edit this player's scores");
             return;
@@ -807,13 +870,13 @@
         if (course && !isNaN(newScore)) {
             scoreObj.score = newScore;
             scoreObj.diff = ((newScore - course.rating) * 113 / course.slope).toFixed(1);
-            localStorage.setItem('golf_all_players', JSON.stringify(allPlayers));
+            await saveToCloud();
             render();
         }
     }
 
     // Delete score
-    function deleteScore(idx) {
+    async function deleteScore(idx) {
         if (!canEdit(viewingPlayer)) {
             alert("You don't have permission to delete this player's scores");
             return;
@@ -821,20 +884,20 @@
 
         if (confirm("Delete this score?")) {
             allPlayers[viewingPlayer].splice(idx, 1);
-            localStorage.setItem('golf_all_players', JSON.stringify(allPlayers));
+            await saveToCloud();
             render();
         }
     }
 
     // Update course rating/slope
-    function updateCourse(idx) {
+    async function updateCourse(idx) {
         const newRating = parseFloat(document.getElementById('er-' + idx).value);
         const newSlope = parseFloat(document.getElementById('es-' + idx).value);
         
         if (!isNaN(newRating) && !isNaN(newSlope)) {
             courses[idx].rating = newRating;
             courses[idx].slope = newSlope;
-            localStorage.setItem('golf_courses', JSON.stringify(courses));
+            await saveToCloud();
             render();
         }
     }
@@ -942,21 +1005,30 @@
     // Initialize
     document.getElementById('dIn').valueAsDate = new Date();
     
-    // Check if someone is already logged in
-    const savedLogin = localStorage.getItem('golf_logged_in_user');
-    if (savedLogin && allPlayers[savedLogin] && userCredentials[savedLogin]) {
-        loggedInUser = savedLogin;
-        viewingPlayer = savedLogin;
-        document.getElementById('mainApp').style.display = 'block';
-        render();
-    } else {
-        // Clear any invalid saved login
-        localStorage.removeItem('golf_logged_in_user');
-        showLoginScreen();
+    // Load data and check login
+    async function initialize() {
+        await loadFromCloud();
+        
+        // Check if someone is already logged in
+        const savedLogin = localStorage.getItem('golf_logged_in_user');
+        if (savedLogin && allPlayers[savedLogin] && userCredentials[savedLogin]) {
+            loggedInUser = savedLogin;
+            viewingPlayer = savedLogin;
+            document.getElementById('mainApp').style.display = 'block';
+            render();
+        } else {
+            // Clear any invalid saved login
+            localStorage.removeItem('golf_logged_in_user');
+            showLoginScreen();
+        }
     }
+    
+    // Start the app
+    initialize();
 </script>
 </body>
 </html>
+
 
 
 
