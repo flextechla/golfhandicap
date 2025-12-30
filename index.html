@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Clubhouse</title>
+    <title>Golf Tracker</title>
     <style>
         :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; --accent: #FFA000; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; color: #333; }
@@ -20,7 +20,6 @@
         .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; margin-right: 4px; }
         .user-pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
         .active-pill { background: var(--dark); color: white; border-color: var(--dark); }
-        .tee-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #444; color: #fff; margin-left: 5px; vertical-align: middle; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -32,17 +31,15 @@
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('club')"><span>👥 Clubhouse (Switch View)</span><span>▼</span></div>
+    <div class="header" onclick="menuToggle('club')"><span>👥 Clubhouse (Switch Profiles)</span><span>▼</span></div>
     <div id="club" class="content" style="display:block;">
         <div id="userList"></div>
         <div style="display:flex; gap:5px; margin-top:10px;">
-            <input type="text" id="newName" placeholder="Add Friend Name" style="margin-bottom:0;">
+            <input type="text" id="newName" placeholder="Add Friend" style="margin-bottom:0;">
             <button onclick="addUser()" style="width:auto; margin-bottom:0;">Add</button>
         </div>
         <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
-        <label>Sync Key</label>
-        <input type="text" id="keyIn" value="Masters2026">
-        <button onclick="sync()" style="background:var(--dark);">☁️ Backup Everything</button>
+        <button onclick="sync()" style="background:var(--dark);">☁️ Backup Everything to Cloud</button>
     </div>
 </div>
 
@@ -51,8 +48,8 @@
     <div id="post" class="content">
         <label>Course</label><select id="cSel"></select>
         <label>Date</label><input type="date" id="dIn">
-        <label>Gross Score</label><input type="number" id="sIn" placeholder="Enter Score">
-        <button onclick="addS()">Save Score for <span id="curNameDisplay">Don</span></button>
+        <label>Gross Score</label><input type="number" id="sIn" placeholder="Score">
+        <button onclick="addS()">Save Round for <span id="curNameDisplay">Don</span></button>
     </div>
 </div>
 
@@ -62,7 +59,7 @@
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('course')"><span>⛳ Manage Course Data</span><span>▼</span></div>
+    <div class="header" onclick="menuToggle('course')"><span>⛳ Course Ratings</span><span>▼</span></div>
     <div id="course" class="content">
         <div id="cList"></div>
     </div>
@@ -74,7 +71,7 @@
         if (x) x.style.display = (x.style.display === "block") ? "none" : "block";
     }
 
-    // Verified Course Data from your Spreadsheet
+    // CLEAN DATA: Manually stripped of spreadsheet garble
     const MASTER_COURSES = [
         { name: "Caledonia", tee: "Pintail", rating: 69.4, slope: 132 },
         { name: "Caledonia", tee: "Mallard", rating: 67.2, slope: 121 },
@@ -91,24 +88,34 @@
     ];
 
     var pName = localStorage.getItem('golf_pname') || "Don";
-    var courses = JSON.parse(localStorage.getItem('golf_custom_courses')) || MASTER_COURSES;
+    var courses = JSON.parse(localStorage.getItem('golf_courses_custom')) || MASTER_COURSES;
     var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || ["Don"];
     var scores = [];
 
     function switchUser(name) {
-        if (pName) localStorage.setItem('scores_' + pName, JSON.stringify(scores));
+        // 1. SAVE current list before leaving
+        if (pName && scores.length >= 0) {
+            localStorage.setItem('scores_' + pName, JSON.stringify(scores));
+        }
+        
+        // 2. SWITCH identity
         pName = name;
-        localStorage.setItem('golf_pname', name);
-        let saved = localStorage.getItem('scores_' + name);
+        localStorage.setItem('golf_pname', pName);
+        
+        // 3. LOAD new list
+        let saved = localStorage.getItem('scores_' + pName);
         scores = saved ? JSON.parse(saved) : [];
+        
         render();
     }
 
     function addUser() {
         let n = document.getElementById('newName').value.trim();
         if(!n) return;
-        if(!knownUsers.includes(n)) knownUsers.push(n);
-        localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
+        if(!knownUsers.includes(n)) {
+            knownUsers.push(n);
+            localStorage.setItem('knownUsers', JSON.stringify(knownUsers));
+        }
         document.getElementById('newName').value = "";
         switchUser(n);
     }
@@ -139,7 +146,7 @@
         });
 
         let sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores found for this player.</small>";
+        sl.innerHTML = scores.length ? "" : "<small>No history for " + pName + "</small>";
         scores.forEach((s, i) => {
             sl.innerHTML += `<div class="score-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -150,7 +157,7 @@
                     </div>
                 </div>
                 <div id="ed-s-${i}" class="edit-drawer">
-                    <label>New Gross Score</label>
+                    <label>Edit Score</label>
                     <input type="number" id="ev-${i}" value="${s.score}">
                     <button onclick="updateS(${i})">Save Changes</button>
                 </div>
@@ -166,9 +173,9 @@
                     <div><button class="btn-outline" onclick="menuToggle('ed-c-${i}')">Edit</button></div>
                 </div>
                 <div id="ed-c-${i}" class="edit-drawer">
-                    <label>Edit Rating</label><input type="number" id="er-${i}" value="${c.rating}" step="0.1">
-                    <label>Edit Slope</label><input type="number" id="es-${i}" value="${c.slope}">
-                    <button onclick="updateC(${i})">Update Course</button>
+                    <label>Rating</label><input type="number" id="er-${i}" value="${c.rating}" step="0.1">
+                    <label>Slope</label><input type="number" id="es-${i}" value="${c.slope}">
+                    <button onclick="updateC(${i})">Save Course</button>
                 </div>
             </div>`;
         });
@@ -201,30 +208,33 @@
     function updateC(i) {
         courses[i].rating = parseFloat(document.getElementById('er-'+i).value);
         courses[i].slope = parseInt(document.getElementById('es-'+i).value);
-        localStorage.setItem('golf_custom_courses', JSON.stringify(courses));
+        localStorage.setItem('golf_courses_custom', JSON.stringify(courses));
         render();
     }
 
     async function sync() {
-        const key = document.getElementById('keyIn').value;
-        const binId = btoa(key).replace(/=/g, "");
+        const binId = btoa("Masters2026").replace(/=/g, "");
         try {
             const res = await fetch("https://api.jsonstorage.net/v1/json/" + binId);
             let cloud = res.ok ? await res.json() : { players: {}, courses: [] };
             cloud.players[pName] = { index: calc(), history: scores.slice(0, 10) };
             cloud.courses = courses; 
             await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-            alert("Success: All data backed up!");
+            alert("Backup Successful!");
         } catch (e) { alert("Sync Error"); }
     }
 
-    function delS(i) { if(confirm("Delete this score?")) { scores.splice(i, 1); localStorage.setItem('scores_' + pName, JSON.stringify(scores)); render(); } }
+    function delS(i) { if(confirm("Delete Score?")) { scores.splice(i, 1); localStorage.setItem('scores_' + pName, JSON.stringify(scores)); render(); } }
 
     document.getElementById('dIn').valueAsDate = new Date();
-    switchUser(pName);
+    // Start by loading the current user correctly
+    let initLoad = localStorage.getItem('scores_' + pName);
+    scores = initLoad ? JSON.parse(initLoad) : [];
+    render();
 </script>
 </body>
 </html>
+
 
 
 
