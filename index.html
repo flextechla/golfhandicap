@@ -385,9 +385,9 @@
     let courses = [];
     let isSyncing = false;
     
-    // Cloud storage configuration - Use JSONBin.io for cross-domain storage
-    const JSONBIN_BIN_ID = '67773c7aacd3cb34a8bce6b4'; // Public bin for golf tracker
-    const JSONBIN_API = 'https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID;
+    // Cloud storage configuration - Use JSONStorage.net (simpler, no API key needed)
+    const STORAGE_BIN_ID = btoa('golf_tracker_masters_2025').replace(/=/g, '');
+    const STORAGE_API = 'https://api.jsonstorage.net/v1/json/' + STORAGE_BIN_ID;
 
     // Load data from cloud storage (JSONBin.io)
     async function loadFromCloud() {
@@ -1079,6 +1079,7 @@
 </script>
 </body>
 </html>
+
 
 
 
