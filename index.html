@@ -6,7 +6,7 @@
     <title>Golf Clubhouse</title>
     <style>
         :root { --primary: #2E7D32; --dark: #1B5E20; --bg: #f4f6f8; --accent: #FFA000; }
-        body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
+        body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; color: #333; }
         .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; border-bottom: 4px solid var(--accent); }
         .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; min-height: 4rem; }
         .card { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #ddd; overflow: hidden; }
@@ -16,11 +16,11 @@
         input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
         .score-item { background: #f9f9f9; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; }
-        .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
+        .edit-drawer { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 8px; margin-top: 10px; display: none; border-left: 5px solid var(--primary); }
         .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; width: auto; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px; margin-right: 4px; }
         .user-pill { display: inline-block; padding: 8px 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; margin: 5px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
         .active-pill { background: var(--dark); color: white; border-color: var(--dark); }
-        .tee-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #333; color: #fff; margin-left: 5px; vertical-align: middle; text-transform: uppercase; }
+        .tee-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #444; color: #fff; margin-left: 5px; vertical-align: middle; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -32,22 +32,22 @@
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('club')"><span>👥 Clubhouse</span><span>▼</span></div>
-    <div id="club" class="content">
+    <div class="header" onclick="menuToggle('club')"><span>👥 Clubhouse (Switch View)</span><span>▼</span></div>
+    <div id="club" class="content" style="display:block;">
         <div id="userList"></div>
         <div style="display:flex; gap:5px; margin-top:10px;">
-            <input type="text" id="newName" placeholder="Add Friend" style="margin-bottom:0;">
+            <input type="text" id="newName" placeholder="Add Friend Name" style="margin-bottom:0;">
             <button onclick="addUser()" style="width:auto; margin-bottom:0;">Add</button>
         </div>
         <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
-        <label>Group Sync Key</label>
+        <label>Sync Key</label>
         <input type="text" id="keyIn" value="Masters2026">
         <button onclick="sync()" style="background:var(--dark);">☁️ Backup Everything</button>
     </div>
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('post')"><span>⛳ Post Score</span><span>▼</span></div>
+    <div class="header" onclick="menuToggle('post')"><span>⛳ Post New Score</span><span>▼</span></div>
     <div id="post" class="content">
         <label>Course</label><select id="cSel"></select>
         <label>Date</label><input type="date" id="dIn">
@@ -62,7 +62,7 @@
 </div>
 
 <div class="card">
-    <div class="header" onclick="menuToggle('course')"><span>⛳ Manage Courses</span><span>▼</span></div>
+    <div class="header" onclick="menuToggle('course')"><span>⛳ Manage Course Data</span><span>▼</span></div>
     <div id="course" class="content">
         <div id="cList"></div>
     </div>
@@ -74,16 +74,16 @@
         if (x) x.style.display = (x.style.display === "block") ? "none" : "block";
     }
 
-    // YOUR SPREADSHEET DATA - Hardcoded so it never disappears
-    const BUILT_IN_COURSES = [
+    // Verified Course Data from your Spreadsheet
+    const MASTER_COURSES = [
         { name: "Caledonia", tee: "Pintail", rating: 69.4, slope: 132 },
         { name: "Caledonia", tee: "Mallard", rating: 67.2, slope: 121 },
         { name: "DeBordieu", tee: "III", rating: 70.6, slope: 132 },
         { name: "DeBordieu", tee: "IV", rating: 67.8, slope: 122 },
         { name: "True Blue", tee: "White", rating: 69.9, slope: 127 },
         { name: "True Blue", tee: "Gold", rating: 66.9, slope: 120 },
-        { name: "Reserve", tee: "White", rating: 69.3, slope: 126 },
-        { name: "Reserve", tee: "Green", rating: 67.3, slope: 120 },
+        { name: "The Reserve", tee: "White", rating: 69.3, slope: 126 },
+        { name: "The Reserve", tee: "Green", rating: 67.3, slope: 120 },
         { name: "TPC Myrtle Beach", tee: "White", rating: 71.0, slope: 136 },
         { name: "TPC Myrtle Beach", tee: "Green", rating: 68.3, slope: 128 },
         { name: "Pawleys Plantation", tee: "White", rating: 70.0, slope: 133 },
@@ -91,7 +91,7 @@
     ];
 
     var pName = localStorage.getItem('golf_pname') || "Don";
-    var courses = JSON.parse(localStorage.getItem('golf_courses_custom')) || BUILT_IN_COURSES;
+    var courses = JSON.parse(localStorage.getItem('golf_custom_courses')) || MASTER_COURSES;
     var knownUsers = JSON.parse(localStorage.getItem('knownUsers')) || ["Don"];
     var scores = [];
 
@@ -133,24 +133,24 @@
         });
 
         let sel = document.getElementById('cSel');
-        sel.innerHTML = '<option value="">-- Choose Course --</option>';
+        sel.innerHTML = '<option value="">-- Select Course --</option>';
         courses.sort((a,b) => a.name.localeCompare(b.name)).forEach((c, i) => {
             sel.innerHTML += `<option value="${i}">${c.name} (${c.tee})</option>`;
         });
 
         let sl = document.getElementById('sList');
-        sl.innerHTML = scores.length ? "" : "<small>No scores yet.</small>";
+        sl.innerHTML = scores.length ? "" : "<small>No scores found for this player.</small>";
         scores.forEach((s, i) => {
             sl.innerHTML += `<div class="score-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div><b>${s.score}</b> at ${s.courseName} <span class="tee-badge">${s.teeColor}</span><br><small>${s.date} | Diff: ${s.diff}</small></div>
+                    <div><b>${s.score}</b> at ${s.courseName}<br><small>${s.date} | Diff: ${s.diff}</small></div>
                     <div>
                         <button class="btn-outline" onclick="menuToggle('ed-s-${i}')">Edit</button>
                         <button class="btn-outline" style="color:red" onclick="delS(${i})">Del</button>
                     </div>
                 </div>
                 <div id="ed-s-${i}" class="edit-drawer">
-                    <label>Edit Gross Score</label>
+                    <label>New Gross Score</label>
                     <input type="number" id="ev-${i}" value="${s.score}">
                     <button onclick="updateS(${i})">Save Changes</button>
                 </div>
@@ -162,14 +162,12 @@
         courses.forEach((c, i) => {
             cl.innerHTML += `<div class="score-item">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div><b>${c.name}</b> (${c.tee})<br><small>R: ${c.rating} S: ${c.slope}</small></div>
-                    <div>
-                        <button class="btn-outline" onclick="menuToggle('ed-c-${i}')">Edit</button>
-                    </div>
+                    <div><b>${c.name}</b> (${c.tee})<br><small>R: ${c.rating} | S: ${c.slope}</small></div>
+                    <div><button class="btn-outline" onclick="menuToggle('ed-c-${i}')">Edit</button></div>
                 </div>
                 <div id="ed-c-${i}" class="edit-drawer">
-                    <label>Rating</label><input type="number" id="er-${i}" value="${c.rating}" step="0.1">
-                    <label>Slope</label><input type="number" id="es-${i}" value="${c.slope}">
+                    <label>Edit Rating</label><input type="number" id="er-${i}" value="${c.rating}" step="0.1">
+                    <label>Edit Slope</label><input type="number" id="es-${i}" value="${c.slope}">
                     <button onclick="updateC(${i})">Update Course</button>
                 </div>
             </div>`;
@@ -203,7 +201,7 @@
     function updateC(i) {
         courses[i].rating = parseFloat(document.getElementById('er-'+i).value);
         courses[i].slope = parseInt(document.getElementById('es-'+i).value);
-        localStorage.setItem('golf_courses_custom', JSON.stringify(courses));
+        localStorage.setItem('golf_custom_courses', JSON.stringify(courses));
         render();
     }
 
@@ -216,17 +214,18 @@
             cloud.players[pName] = { index: calc(), history: scores.slice(0, 10) };
             cloud.courses = courses; 
             await fetch("https://api.jsonstorage.net/v1/json/" + binId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cloud) });
-            alert("Backup Successful!");
+            alert("Success: All data backed up!");
         } catch (e) { alert("Sync Error"); }
     }
 
-    function delS(i) { if(confirm("Delete?")) { scores.splice(i, 1); localStorage.setItem('scores_' + pName, JSON.stringify(scores)); render(); } }
+    function delS(i) { if(confirm("Delete this score?")) { scores.splice(i, 1); localStorage.setItem('scores_' + pName, JSON.stringify(scores)); render(); } }
 
     document.getElementById('dIn').valueAsDate = new Date();
     switchUser(pName);
 </script>
 </body>
 </html>
+
 
 
 
