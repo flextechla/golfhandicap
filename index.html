@@ -200,6 +200,7 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
+            color: #333;
         }
         .tab.active {
             background: var(--primary);
@@ -333,6 +334,8 @@
         <label>Course</label><select id="cSel"></select>
         <label>Date</label><input type="date" id="dIn">
         <label>Gross Score</label><input type="number" id="sIn" placeholder="Score">
+        <label>Notes (Optional)</label>
+        <input type="text" id="noteIn" placeholder="e.g., Windy, rainy, playing with John...">
         <button onclick="addScore()">Save Round for <span id="curNameDisplay">Don</span></button>
     </div>
 </div>
@@ -827,6 +830,7 @@
         const courseIdx = document.getElementById('cSel').value;
         const score = parseFloat(document.getElementById('sIn').value);
         const date = document.getElementById('dIn').value;
+        const notes = document.getElementById('noteIn').value.trim();
         
         if (courseIdx === "" || isNaN(score)) {
             alert("Please select a course and enter a score");
@@ -842,13 +846,15 @@
             city: course.city,
             teeColor: course.tee,
             score: score,
-            diff: differential
+            diff: differential,
+            notes: notes || null
         };
         
         allPlayers[viewingPlayer].unshift(newScore);
         await saveToCloud();
         
         document.getElementById('sIn').value = "";
+        document.getElementById('noteIn').value = "";
         render();
     }
 
@@ -860,6 +866,7 @@
         }
 
         const newScore = parseFloat(document.getElementById('ev-' + idx).value);
+        const newNotes = document.getElementById('en-' + idx).value.trim();
         const scoreObj = allPlayers[viewingPlayer][idx];
         
         const course = courses.find(c => 
@@ -870,6 +877,7 @@
         if (course && !isNaN(newScore)) {
             scoreObj.score = newScore;
             scoreObj.diff = ((newScore - course.rating) * 113 / course.slope).toFixed(1);
+            scoreObj.notes = newNotes || null;
             await saveToCloud();
             render();
         }
@@ -948,6 +956,8 @@
                     `<button class="btn-outline" style="color:red" onclick="deleteScore(${i})">Delete</button>` :
                     `<button class="btn-outline" disabled title="You can only edit your own scores" style="color:#ccc">Delete</button>`;
 
+                const notesDisplay = s.notes ? `<div style="margin-top:5px; padding:5px; background:#fff3cd; border-left:3px solid #ffc107; border-radius:3px; font-size:0.85rem;">📝 ${s.notes}</div>` : '';
+
                 scoreList.innerHTML += `
                     <div class="score-item">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -960,10 +970,13 @@
                                 ${deleteBtn}
                             </div>
                         </div>
+                        ${notesDisplay}
                         ${hasEditPermission ? `
                         <div id="ed-s-${i}" class="edit-drawer">
                             <label>Edit Score</label>
                             <input type="number" id="ev-${i}" value="${s.score}">
+                            <label>Notes</label>
+                            <input type="text" id="en-${i}" value="${s.notes || ''}" placeholder="Add notes...">
                             <button onclick="updateScore(${i})">Save Changes</button>
                         </div>` : ''}
                     </div>`;
@@ -1028,6 +1041,7 @@
 </script>
 </body>
 </html>
+
 
 
 
