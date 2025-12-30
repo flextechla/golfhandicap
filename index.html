@@ -382,7 +382,7 @@
 
     // Supabase configuration - Your actual credentials
     const supabaseUrl = 'https://lxxlrujrxtphozisppsq.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4eGxydWpyeHRwaG96aXNwcHNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU1MTMyNDAsImV4cCI6MjA1MTA4OTI0MH0.pSYOOx9oYZRQBi_dPPhSVg_US33or0-';
+    const supabaseKey = 'sb_secret_ZnuugMgA3n09oG7LEaKIbg_H3_pOdxG';
     
     const supabase = createClient(supabaseUrl, supabaseKey);
     const TABLE_NAME = 'golf_data';
@@ -444,7 +444,7 @@
                 .single();
             
             if (error && error.code !== 'PGRST116') {
-                console.error("Supabase load error:", error);
+                console.error("Supabase load error:", error.message, error.details, error.hint);
                 throw error;
             }
             
@@ -468,7 +468,7 @@
             console.log("Data loaded from Supabase");
             return true;
         } catch (error) {
-            console.error("Error loading from Supabase:", error);
+            console.error("Error loading from Supabase:", error.message, error.details, error.hint);
             allPlayers = { [ADMIN_USER]: [] };
             userCredentials = {};
             courses = [...MASTER_COURSES];
@@ -492,13 +492,13 @@
                 .upsert(dataToSave);
             
             if (error) {
-                console.error("Supabase save error:", error);
+                console.error("Supabase save error:", error.message, error.details, error.hint);
                 throw error;
             }
             
             console.log("Data saved to Supabase");
         } catch (error) {
-            console.error("Error saving to Supabase:", error);
+            console.error("Error saving to Supabase:", error.message, error.details, error.hint);
             alert("Warning: Failed to sync to cloud. Please check your internet connection.");
         }
     }
