@@ -451,12 +451,15 @@
             if (data) {
                 allPlayers = data.all_players || { [ADMIN_USER]: [] };
                 userCredentials = data.user_credentials || {};
-                courses = data.courses || [...MASTER_COURSES];
+                courses = data.courses && data.courses.length > 0 ? data.courses : [...MASTER_COURSES];
             } else {
                 // No data yet, use defaults
                 allPlayers = { [ADMIN_USER]: [] };
                 userCredentials = {};
                 courses = [...MASTER_COURSES];
+                
+                // Save the initial data to cloud
+                await saveToCloud();
             }
             
             courses.sort((a, b) => {
@@ -1111,6 +1114,7 @@
 </script>
 </body>
 </html>
+
 
 
 
