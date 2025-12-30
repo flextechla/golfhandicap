@@ -396,18 +396,34 @@
                 const data = JSON.parse(result.value);
                 allPlayers = data.allPlayers || { [ADMIN_USER]: [] };
                 userCredentials = data.userCredentials || {};
-                courses = data.courses || MASTER_COURSES;
+                courses = data.courses || [...MASTER_COURSES];
+                
+                // Sort courses alphabetically
+                courses.sort((a, b) => {
+                    const nameCompare = a.name.localeCompare(b.name);
+                    if (nameCompare !== 0) return nameCompare;
+                    return a.tee.localeCompare(b.tee);
+                });
+                
                 console.log("Data loaded from cloud");
                 return true;
             }
         } catch (error) {
-            console.log("No cloud data found, using defaults");
+            console.log("Error loading from cloud:", error);
         }
         
         // Use defaults if no cloud data
         allPlayers = { [ADMIN_USER]: [] };
         userCredentials = {};
         courses = [...MASTER_COURSES];
+        
+        // Sort default courses
+        courses.sort((a, b) => {
+            const nameCompare = a.name.localeCompare(b.name);
+            if (nameCompare !== 0) return nameCompare;
+            return a.tee.localeCompare(b.tee);
+        });
+        
         return false;
     }
 
@@ -781,6 +797,13 @@
             slope: slope
         });
 
+        // Sort courses alphabetically by name, then by tee
+        courses.sort((a, b) => {
+            const nameCompare = a.name.localeCompare(b.name);
+            if (nameCompare !== 0) return nameCompare;
+            return a.tee.localeCompare(b.tee);
+        });
+
         await saveToCloud();
 
         // Clear form
@@ -1041,6 +1064,7 @@
 </script>
 </body>
 </html>
+
 
 
 
