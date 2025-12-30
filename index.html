@@ -348,30 +348,30 @@
 </div>
 
 <script>
-    // Louisiana Courses Data
+    // Louisiana Courses Data - Pre-sorted alphabetically
     const MASTER_COURSES = [
+        { name: "Beaver Creek", city: "Zachary", tee: "Blue", rating: 72, slope: 130 },
+        { name: "Belle Terre", city: "LaPlace", tee: "Blue", rating: 72.2, slope: 131 },
+        { name: "Cam2", city: "Amite", tee: "White", rating: 67.7, slope: 118 },
+        { name: "Carter Plantation", city: "Springfield", tee: "Blue", rating: 66.7, slope: 115 },
+        { name: "Carter Plantation", city: "Springfield", tee: "Blue/Gold", rating: 69.7, slope: 126 },
+        { name: "Carter Plantation", city: "Springfield", tee: "Gold", rating: 70.9, slope: 128 },
+        { name: "City Park", city: "Baton Rouge", tee: "Blue", rating: 70, slope: 125 },
+        { name: "Coppermill", city: "Zachary", tee: "Gold", rating: 71.8, slope: 129 },
+        { name: "Covington Country Club", city: "Covington", tee: "Blue", rating: 71.9, slope: 127 },
+        { name: "Fenwood", city: "Zachary", tee: "White/Blue", rating: 71, slope: 127.5 },
+        { name: "Greystone", city: "Denham Springs", tee: "Blue", rating: 70.8, slope: 128 },
+        { name: "Greystone", city: "Denham Springs", tee: "Gold", rating: 72.5, slope: 132 },
+        { name: "JS Clark", city: "Baker", tee: "White", rating: 68.5, slope: 120 },
+        { name: "Oak Knoll", city: "Hammond", tee: "White", rating: 70.1, slope: 124 },
+        { name: "Oak Lake", city: "Clinton", tee: "White/Blue", rating: 69.8, slope: 122 },
+        { name: "Pelican Point", city: "Gonzales", tee: "Gold", rating: 70, slope: 124 },
+        { name: "Pelican Point", city: "Gonzales", tee: "White", rating: 68.5, slope: 116 },
+        { name: "Santa Maria", city: "Baton Rouge", tee: "Blue", rating: 71.5, slope: 128 },
         { name: "The Island", city: "Plaquemine", tee: "Blue", rating: 73.1, slope: 135 },
         { name: "The Island", city: "Plaquemine", tee: "White", rating: 71.3, slope: 130 },
-        { name: "Greystone", city: "Denham Springs", tee: "Gold", rating: 72.5, slope: 132 },
-        { name: "Greystone", city: "Denham Springs", tee: "Blue", rating: 70.8, slope: 128 },
-        { name: "Coppermill", city: "Zachary", tee: "Gold", rating: 71.8, slope: 129 },
-        { name: "Fenwood", city: "Zachary", tee: "White/Blue", rating: 71, slope: 127.5 },
         { name: "The Pines", city: "Denham Springs", tee: "White/Blue", rating: 70.5, slope: 125 },
-        { name: "Oak Lake", city: "Clinton", tee: "White/Blue", rating: 69.8, slope: 122 },
-        { name: "Beaver Creek", city: "Zachary", tee: "Blue", rating: 72, slope: 130 },
-        { name: "Santa Maria", city: "Baton Rouge", tee: "Blue", rating: 71.5, slope: 128 },
-        { name: "JS Clark", city: "Baker", tee: "White", rating: 68.5, slope: 120 },
-        { name: "Belle Terre", city: "LaPlace", tee: "Blue", rating: 72.2, slope: 131 },
-        { name: "Oak Knoll", city: "Hammond", tee: "White", rating: 70.1, slope: 124 },
-        { name: "Covington Country Club", city: "Covington", tee: "Blue", rating: 71.9, slope: 127 },
-        { name: "Webb", city: "Baton Rouge", tee: "White", rating: 69.5, slope: 123 },
-        { name: "City Park", city: "Baton Rouge", tee: "Blue", rating: 70, slope: 125 },
-        { name: "Cam2", city: "Amite", tee: "White", rating: 67.7, slope: 118 },
-        { name: "Carter Plantation", city: "Springfield", tee: "Blue/Gold", rating: 69.7, slope: 126 },
-        { name: "Carter Plantation", city: "Springfield", tee: "Blue", rating: 66.7, slope: 115 },
-        { name: "Carter Plantation", city: "Springfield", tee: "Gold", rating: 70.9, slope: 128 },
-        { name: "Pelican Point", city: "Gonzales", tee: "Gold", rating: 70, slope: 124 },
-        { name: "Pelican Point", city: "Gonzales", tee: "White", rating: 68.5, slope: 116 }
+        { name: "Webb", city: "Baton Rouge", tee: "White", rating: 69.5, slope: 123 }
     ];
 
     // Admin user - initialize with default password if not set
@@ -385,15 +385,24 @@
     let courses = [];
     let isSyncing = false;
     
-    // Cloud storage configuration
-    const STORAGE_KEY = 'golf_tracker_data_v1';
+    // Cloud storage configuration - Use JSONBin.io for cross-domain storage
+    const JSONBIN_BIN_ID = '67773c7aacd3cb34a8bce6b4'; // Public bin for golf tracker
+    const JSONBIN_API = 'https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID;
 
-    // Load data from cloud storage
+    // Load data from cloud storage (JSONBin.io)
     async function loadFromCloud() {
         try {
-            const result = await window.storage.get(STORAGE_KEY, true);
-            if (result && result.value) {
-                const data = JSON.parse(result.value);
+            const response = await fetch(JSONBIN_API + '/latest', {
+                method: 'GET',
+                headers: {
+                    'X-Access-Key': '$2a$10$EqGhZPQKvLvxOu8jqYLfC.8h.mJYI3OoLHCvLYQzKxQ0GqQg7W0Iu'
+                }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                const data = result.record;
+                
                 allPlayers = data.allPlayers || { [ADMIN_USER]: [] };
                 userCredentials = data.userCredentials || {};
                 courses = data.courses || [...MASTER_COURSES];
@@ -405,7 +414,7 @@
                     return a.tee.localeCompare(b.tee);
                 });
                 
-                console.log("Data loaded from cloud");
+                console.log("Data loaded from cloud (JSONBin)");
                 return true;
             }
         } catch (error) {
@@ -417,19 +426,13 @@
         userCredentials = {};
         courses = [...MASTER_COURSES];
         
-        // Sort default courses
-        courses.sort((a, b) => {
-            const nameCompare = a.name.localeCompare(b.name);
-            if (nameCompare !== 0) return nameCompare;
-            return a.tee.localeCompare(b.tee);
-        });
-        
+        console.log("Using default data");
         return false;
     }
 
-    // Save data to cloud storage
+    // Save data to cloud storage (JSONBin.io)
     async function saveToCloud() {
-        if (isSyncing) return; // Prevent concurrent saves
+        if (isSyncing) return;
         
         isSyncing = true;
         try {
@@ -440,11 +443,23 @@
                 lastUpdated: new Date().toISOString()
             };
             
-            await window.storage.set(STORAGE_KEY, JSON.stringify(data), true);
-            console.log("Data saved to cloud");
+            const response = await fetch(JSONBIN_API, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Access-Key': '$2a$10$EqGhZPQKvLvxOu8jqYLfC.8h.mJYI3OoLHCvLYQzKxQ0GqQg7W0Iu'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                console.log("Data saved to cloud (JSONBin)");
+            } else {
+                throw new Error('Failed to save');
+            }
         } catch (error) {
             console.error("Failed to save to cloud:", error);
-            alert("Warning: Failed to sync to cloud. Your changes are saved locally.");
+            alert("Warning: Failed to sync to cloud. Please check your internet connection.");
         } finally {
             isSyncing = false;
         }
@@ -1064,6 +1079,7 @@
 </script>
 </body>
 </html>
+
 
 
 
