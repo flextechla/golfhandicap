@@ -3,301 +3,701 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Tracker Pro | Groups Edition</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Golf Tracker Pro (WHS)</title>
     <style>
-        :root { 
-            --primary: #2E7D32; 
-            --dark: #1B5E20; 
-            --bg: #f4f6f8; 
-            --accent: #FFA000; 
-            --red: #d32f2f; 
+        :root {
+            --primary: #2E7D32; /* Forest Green */
+            --dark: #1B5E20;
+            --accent: #FFA000; /* Gold */
+            --bg: #f4f6f8;
+            --text: #333;
+            --white: #ffffff;
+            --danger: #d32f2f;
+            --success: #4CAF50;
+            --info: #0288d1;
         }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 0; padding-bottom: 80px; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+        }
+
+        .container { max-width: 600px; margin: 0 auto; }
+
+        /* --- DASHBOARD --- */
+        .dashboard-card {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .handicap-number { font-size: 3.5rem; font-weight: 800; line-height: 1; margin: 5px 0; }
+        .handicap-sub { font-size: 0.9rem; opacity: 0.9; }
+
+        /* --- CARDS & SECTIONS --- */
+        .card {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
         
-        /* Dashboard */
-        .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 30px 20px; text-align: center; border-bottom: 4px solid var(--accent); }
-        .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
+        /* Main Card Header */
+        .card-header {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--dark);
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
         
-        /* UI Components */
-        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
-        .card { background: white; border-radius: 12px; margin-bottom: 15px; border: 1px solid #ddd; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .header { background: #f8f9fa; padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
-        .content { padding: 15px; display: none; }
-        .content.active { display: block; }
+        /* Sub-Headers */
+        .sub-header {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #555;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
         
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        button { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
-        button:active { transform: scale(0.98); opacity: 0.9; }
+        .sub-header:hover { opacity: 0.8; }
+
+        /* Arrow Rotation */
+        .arrow { transition: transform 0.3s ease; display: inline-block; font-size: 0.8rem; color: #888;}
+        .collapsed .arrow { transform: rotate(-90deg); }
         
-        .auth-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-top: 1px solid #ddd; display: flex; gap: 10px; z-index: 1000; }
-        .btn-alt { background: #f0f0f0; color: #333; }
+        /* Collapsible Content Wrapper */
+        .card-content { display: block; overflow: hidden; }
+        .card-content.hidden { display: none; }
+
+        /* --- FORM & INPUTS --- */
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: #555; }
         
-        /* Lists */
-        .score-item { background: #f9f9f9; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
-        .league-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .league-pill { display: inline-block; padding: 5px 15px; background: rgba(255,255,255,0.2); color: white; border-radius: 20px; font-size: 0.8rem; margin-top: 5px; }
+        select, input, textarea {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            background: #fff;
+            font-family: inherit;
+        }
+
+        .course-details-box {
+            background: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            color: var(--dark);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+            display: none;
+        }
+        .row { display: flex; gap: 15px; }
+        .col { flex: 1; }
+
+        /* --- BUTTONS --- */
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-update { background: var(--accent); color: #000; }
+        .btn-secondary { background: #607d8b; color: white; margin-top: 10px;}
+        .btn-cancel { background: #9e9e9e; color: white; margin-top: 10px; display: none; }
+        
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; width: auto; margin-left: 5px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; }
+        .btn-del { color: var(--danger); border-color: var(--danger); }
+        .btn-edit { color: var(--text); border-color: var(--accent); }
+        
+        .btn-backup { background: var(--success); padding: 10px; }
+        .file-input-wrapper { display: flex; align-items: center; margin-bottom: 15px; }
+        .file-input-wrapper input[type="file"] { display: none; }
+        .btn-upload { background: var(--danger); color: white; padding: 10px; margin-left: 10px; }
+
+        /* --- LISTS --- */
+        .score-list { list-style: none; padding: 0; margin: 0; }
+        .score-item {
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .score-top { display: flex; justify-content: space-between; align-items: center; }
+        .score-notes {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #ddd;
+            font-size: 0.9rem;
+            color: #555;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
 
-<div id="app" style="display:none;">
-    <div class="dashboard">
-        <div id="pName" style="font-size: 1.1rem; font-weight: 600; opacity: 0.9;">Golfer Profile</div>
-        <div class="handicap" id="handicapDisplay">--</div>
-        <div style="font-size: 0.8rem; opacity: 0.8; letter-spacing: 1px;">WHS HANDICAP INDEX</div>
-        <div id="activeLeaguePill" class="league-pill">Loading Leagues...</div>
+<div class="container">
+
+    <div class="dashboard-card">
+        <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Current Index</div>
+        <div class="handicap-number" id="displayIndex">--</div>
+        <div class="handicap-sub" id="displayCount">No scores entered</div>
     </div>
 
-    <div class="container">
-        <div class="card">
-            <div class="header" onclick="toggle('groupsSec')"><span>👥 My Groups & Leagues</span><span>▼</span></div>
-            <div id="groupsSec" class="content">
-                <button class="btn-alt" onclick="promptCreateLeague()">+ Create New League</button>
-                <button class="btn-alt" onclick="promptJoinLeague()">🔗 Join via Invite Code</button>
-                <div id="leagueList" style="margin-top:15px;"></div>
+    <div class="card" id="scoreFormCard">
+        <div class="card-header" style="cursor: default; border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+            <span>⛳ Post New Score</span>
+        </div>
+        <input type="hidden" id="editScoreId">
+
+        <label>Select Course</label>
+        <select id="courseSelect" onchange="handleCourseSelect()">
+            <option value="">-- Choose Course --</option>
+        </select>
+
+        <div id="courseInfoBox" class="course-details-box"></div>
+
+        <div class="row">
+            <div class="col">
+                <label>Date</label>
+                <input type="date" id="scoreDate">
+            </div>
+            <div class="col">
+                <label>Score</label>
+                <input type="number" id="scoreVal" placeholder="--" oninput="updateDiffPreview()">
             </div>
         </div>
 
-        <div class="card">
-            <div class="header" onclick="toggle('postSec')"><span>⛳ Post New Score</span><span>▼</span></div>
-            <div id="postSec" class="content">
-                <label>Target League (Group)</label>
-                <select id="leagueSelect"></select>
-                <input type="text" id="courseName" placeholder="Course Name">
-                <input type="number" id="grossScore" placeholder="Gross Score">
-                <input type="date" id="datePlayed">
-                <button onclick="saveRound()">Save Round to Cloud</button>
-            </div>
+        <label>Notes (Optional)</label>
+        <textarea id="scoreNotes" rows="2" placeholder="e.g. Windy, played great on back 9..."></textarea>
+
+        <div id="diffPreview" style="text-align:center; font-weight:bold; color:var(--primary); margin-bottom:15px; display:none;">
+            Differential: --
         </div>
 
-        <div class="card">
-            <div class="header" onclick="toggle('historySec')"><span>📝 Score History</span><span>▼</span></div>
-            <div id="historySec" class="content active">
-                <div id="scoreHistory"></div>
+        <button id="postBtn" class="btn-primary" onclick="submitScore()">Post Score</button>
+        <button id="cancelBtn" class="btn-cancel" onclick="resetForm()">Cancel Edit</button>
+    </div>
+
+    <div class="card">
+        <div class="card-header collapsed" onclick="toggleSection('historyContent', this)">
+            <span>📝 Score History</span>
+            <span class="arrow">▼</span>
+        </div>
+        <div id="historyContent" class="card-content hidden">
+            <ul id="scoreList" class="score-list"></ul>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header collapsed" onclick="toggleSection('managerContent', this)">
+            <span>⚙️ Manage Courses & Data</span>
+            <span class="arrow">▼</span>
+        </div>
+        
+        <div id="managerContent" class="card-content hidden">
+            
+            <div style="padding:0 0 10px 0;">
+                <div class="sub-header collapsed" onclick="toggleSection('backupContent', this)">
+                    <span style="color: var(--info);">Backup & Restore Data</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div id="backupContent" class="card-content hidden" style="border: 1px dashed #eee; padding: 10px; border-radius: 8px;">
+                    <button class="btn-primary" style="background: var(--success); margin-bottom: 10px; padding: 10px;" onclick="exportData()">Download Backup (JSON)</button>
+                    <p style="font-size: 0.9em; margin: 5px 0 10px; color: #888;">Backup your data before clearing your browser history.</p>
+                    
+                    <h5 style="margin-bottom: 5px; color: var(--danger); font-size: 1em;">Restore/Overwrite:</h5>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="importFile" accept=".json" onchange="document.getElementById('fileNameDisplay').innerText = this.files[0].name">
+                        <label for="importFile" class="btn-sm" style="border-color:#ccc; color:#333; width:auto; flex-grow:1; text-align:center; padding: 10px;">
+                            Choose File
+                        </label>
+                        <span id="fileNameDisplay" style="margin: 0 10px; font-size: 0.9em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">No file selected</span>
+                        <button class="btn-upload" style="padding: 10px;" onclick="importData()">Upload & Overwrite</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding-top: 10px;">
+                <div class="sub-header collapsed" onclick="toggleSection('courseDbContent', this)">
+                    <span>Edit Courses</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div id="courseDbContent" class="card-content hidden">
+                    <button class="btn-primary" style="margin-bottom:15px;" onclick="openCourseForm()">+ Add New Course</button>
+                    
+                    <div id="courseForm" style="display:none; background:#fafafa; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">
+                        <input type="hidden" id="cEditIndex">
+                        <label>Name</label><input type="text" id="cName">
+                        <label>Tee</label><input type="text" id="cTee">
+                        <div class="row">
+                            <div class="col"><label>Rating</label><input type="number" id="cRating" step="0.1"></div>
+                            <div class="col"><label>Slope</label><input type="number" id="cSlope"></div>
+                        </div>
+                        <button class="btn-primary" onclick="saveCourse()">Save</button>
+                        <button style="margin-top:10px; background:#999; color:white; padding:10px; border:none; border-radius:8px; width:100%;" onclick="document.getElementById('courseForm').style.display='none'">Cancel</button>
+                    </div>
+
+                    <ul id="courseDbList" class="score-list"></ul>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div id="authOverlay" style="position:fixed; inset:0; background:var(--primary); display:flex; align-items:center; justify-content:center; padding:20px; z-index:2000;">
-    <div style="background:white; padding:30px; border-radius:20px; width:100%; max-width:400px; text-align:center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-        <h2 style="color:var(--dark); margin-bottom: 5px;">⛳ Golf Tracker Pro</h2>
-        <p style="color:#666; font-size: 0.9rem; margin-bottom: 20px;">Manage your handicap and groups.</p>
-        <input type="email" id="email" placeholder="Email Address">
-        <input type="password" id="password" placeholder="Password">
-        <button onclick="handleAuth('login')">Sign In</button>
-        <button class="btn-alt" onclick="handleAuth('signup')">Create Account</button>
-    </div>
-</div>
-
-<div class="auth-footer" id="footer" style="display:none;">
-    <div id="userEmail" style="font-size: 0.75rem; color: #666; display: flex; align-items: center;">...</div>
-    <button class="btn-alt" style="width: auto; margin: 0;" onclick="logout()">Sign Out</button>
 </div>
 
 <script>
-    // Configuration - Using your provided Golf project credentials
-    const SUPABASE_URL = 'https://lxxlrujrxtphozisppsq.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4eGxydWpyeHRwaG96aXNwcHNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwNTg3MTIsImV4cCI6MjA4MjYzNDcxMn0.cwLpWtOP7LJm1B9zczskVMU2vPL6shSJFyTb0Ox2vh8';
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // --- 1. INITIAL DATA ---
+    const excelData = [
+        {'name': 'Beaver Creek', 'tee': 'Blue', 'slope': 130.0, 'rating': 72.0},
+        {'name': 'Belle Terre', 'tee': 'Blue', 'slope': 131.0, 'rating': 72.2},
+        {'name': 'Cam2', 'tee': 'White', 'slope': 118.0, 'rating': 67.7},
+        {'name': 'Carter Plantation', 'tee': 'Blue', 'slope': 115.0, 'rating': 66.7},
+        {'name': 'Carter Plantation', 'tee': 'Blue/Gold', 'slope': 126.0, 'rating': 69.7},
+        {'name': 'Carter Plantation', 'tee': 'Gold', 'slope': 128.0, 'rating': 70.9},
+        {'name': 'City Park', 'tee': 'Blue', 'slope': 125.0, 'rating': 70.0},
+        {'name': 'Coppermill', 'tee': 'Gold', 'slope': 129.0, 'rating': 71.8},
+        {'name': 'Covington County Club', 'tee': 'Blue', 'slope': 127.0, 'rating': 71.9},
+        {'name': 'Fenwood', 'tee': 'White/Blue', 'slope': 127.5, 'rating': 71.0},
+        {'name': 'Greystone', 'tee': 'Blue', 'slope': 128.0, 'rating': 70.8},
+        {'name': 'Greystone', 'tee': 'Gold', 'slope': 132.0, 'rating': 72.5},
+        {'name': 'JS Clark', 'tee': 'White', 'slope': 120.0, 'rating': 68.5},
+        {'name': 'Oak Knoll', 'tee': 'White', 'slope': 124.0, 'rating': 70.1},
+        {'name': 'Oak Lake', 'tee': 'White/Blue', 'slope': 122.0, 'rating': 69.8},
+        {'name': 'Pelican Point', 'tee': 'Gold', 'slope': 124.0, 'rating': 70.0},
+        {'name': 'Pelican Point', 'tee': 'White', 'slope': 116.0, 'rating': 68.5},
+        {'name': 'Santa Maria', 'tee': 'Blue', 'slope': 128.0, 'rating': 71.5},
+        {'name': 'The Island (Plaquemine)', 'tee': 'Blue', 'slope': 135.0, 'rating': 73.1},
+        {'name': 'The Island (Plaquemine)', 'tee': 'White', 'slope': 130.0, 'rating': 71.3},
+        {'name': 'The Pines', 'tee': 'White/Blue', 'slope': 125.0, 'rating': 70.5},
+        {'name': 'Webb', 'tee': 'Whtie', 'slope': 123.0, 'rating': 69.5}
+    ];
 
-    let user = null;
-    let myLeagues = [];
-    let rounds = [];
+    // Load Data (Version 12)
+    let courses = JSON.parse(localStorage.getItem('golfCourses_v12')) || excelData;
+    let scores = JSON.parse(localStorage.getItem('golfScores_v12')) || [];
 
-    // App Initialization
-    window.onload = () => {
-        sb.auth.onAuthStateChange((event, session) => {
-            if (session) {
-                user = session.user;
-                showApp();
-            } else {
-                showAuth();
-            }
-        });
-        document.getElementById('datePlayed').valueAsDate = new Date();
-    };
-
-    async function handleAuth(type) {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        if(!email || !password) return alert("Please fill in all fields");
-
-        const res = type === 'signup' 
-            ? await sb.auth.signUp({ email, password }) 
-            : await sb.auth.signInWithPassword({ email, password });
-        
-        if (res.error) alert(res.error.message);
+    // Data Migration (Ensuring current list is loaded if upgrading)
+    if (!localStorage.getItem('golfCourses_v12') && localStorage.getItem('golfCourses_v11')) {
+        courses = JSON.parse(localStorage.getItem('golfCourses_v11'));
+        scores = JSON.parse(localStorage.getItem('golfScores_v11'));
+        saveData(); 
+    } else if (!localStorage.getItem('golfCourses_v12')) {
+        saveData();
     }
 
-    async function showApp() {
-        document.getElementById('authOverlay').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-        document.getElementById('footer').style.display = 'flex';
-        document.getElementById('userEmail').innerText = "Logged in: " + user.email;
-        document.getElementById('pName').innerText = user.email.split('@')[0].toUpperCase();
-        await loadData();
+    document.getElementById('scoreDate').valueAsDate = new Date();
+
+    // --- 2. SETUP ---
+    function init() {
+        courses.sort((a, b) => a.name.localeCompare(b.name));
+        updateUI();
     }
 
-    function showAuth() {
-        document.getElementById('authOverlay').style.display = 'flex';
-        document.getElementById('app').style.display = 'none';
-        document.getElementById('footer').style.display = 'none';
+    // --- 3. UI TOGGLES & CORE UPDATES ---
+    function toggleSection(id, headerElement) {
+        const content = document.getElementById(id);
+        content.classList.toggle('hidden');
+        headerElement.classList.toggle('collapsed');
     }
 
-    async function loadData() {
-        // 1. Fetch Leagues user belongs to
-        const { data: memberOf } = await sb.from('league_members').select('league_id').eq('user_id', user.id);
-        const leagueIds = memberOf ? memberOf.map(m => m.league_id) : [];
-
-        if (leagueIds.length > 0) {
-            const { data: leagues } = await sb.from('leagues').select('*').in('id', leagueIds);
-            myLeagues = leagues || [];
-        } else {
-            myLeagues = [];
-        }
-        
-        // 2. Fetch Rounds for the player
-        const { data: roundData } = await sb.from('rounds')
-            .select('*')
-            .eq('player_id', user.id)
-            .order('played_at', { ascending: false });
-        
-        rounds = roundData || [];
-        render();
-    }
-
-    function render() {
-        // League List Rendering
-        const lList = document.getElementById('leagueList');
-        lList.innerHTML = myLeagues.length ? myLeagues.map(l => `
-            <div class="league-item">
-                <div>
-                    <strong>${l.name}</strong><br>
-                    <code style="font-size:0.7rem; color:var(--primary)">Invite Code: ${l.invite_code}</code>
-                </div>
-                <button class="btn-alt" style="width:auto; padding:5px 10px;" onclick="copyCode('${l.invite_code}')">Copy</button>
-            </div>
-        `).join('') : '<small style="color:#999">You haven\'t joined any groups yet.</small>';
-
-        // Dropdown for Posting
-        const lSel = document.getElementById('leagueSelect');
-        lSel.innerHTML = '<option value="">Personal Score (No Group)</option>' + 
-            myLeagues.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
-
-        // Score History
-        const rList = document.getElementById('scoreHistory');
-        rList.innerHTML = rounds.length ? rounds.map(r => `
-            <div class="score-item">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <span style="font-weight:bold; font-size:1.2rem;">${r.score}</span>
-                        <span style="font-size:0.8rem; color:#666; margin-left:10px;">${r.course_name}</span>
-                    </div>
-                    <span style="font-size:0.75rem; color:#999;">${r.played_at}</span>
-                </div>
-                <div style="font-size:0.7rem; margin-top:5px; color:var(--primary); font-weight:700;">
-                    DIFF: ${r.differential}
-                </div>
-            </div>
-        `).join('') : '<small style="color:#999">No rounds posted yet.</small>';
-
-        document.getElementById('activeLeaguePill').innerText = `${myLeagues.length} Groups Active`;
+    function updateUI() {
+        renderDropdown();
+        renderScoreList();
+        renderCourseDb();
         calculateHandicap();
     }
 
-    async function saveRound() {
-        const score = parseInt(document.getElementById('grossScore').value);
-        const course = document.getElementById('courseName').value;
-        const date = document.getElementById('datePlayed').value;
-        const leagueId = document.getElementById('leagueSelect').value || null;
-
-        if(!score || !course || !date) return alert("Please fill in score, course, and date");
-
-        const diff = ((score - 72) * 113 / 113).toFixed(1); // Simplified formula for base handicapping
-
-        const { error } = await sb.from('rounds').insert([{
-            player_id: user.id,
-            player_name: user.email.split('@')[0],
-            league_id: leagueId ? parseInt(leagueId) : null,
-            score: score,
-            course_name: course,
-            played_at: date,
-            differential: diff
-        }]);
-
-        if (error) {
-            alert("Error saving: " + error.message);
-        } else {
-            document.getElementById('grossScore').value = '';
-            document.getElementById('courseName').value = '';
-            await loadData();
-            alert("Score synced to cloud!");
-        }
+    function saveData() {
+        localStorage.setItem('golfCourses_v12', JSON.stringify(courses));
+        localStorage.setItem('golfScores_v12', JSON.stringify(scores));
+        updateUI();
     }
 
-    async function promptCreateLeague() {
-        const name = prompt("Enter Group/League Name:");
-        if (!name) return;
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-        
-        const { data: league, error } = await sb.from('leagues').insert([{
-            name: name, 
-            invite_code: code, 
-            admin_id: user.id
-        }]).select().single();
+    // --- 4. DATA BACKUP/RESTORE ---
 
-        if (error) {
-            alert(error.message);
-        } else {
-            await sb.from('league_members').insert([{ league_id: league.id, user_id: user.id }]);
-            await loadData();
-            alert(`Group Created! Share code ${code} with your friends.`);
-        }
+    function exportData() {
+        const data = {
+            version: 'v12',
+            timestamp: new Date().toISOString(),
+            courses: courses,
+            scores: scores
+        };
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const dateStr = new Date().toISOString().slice(0, 10);
+        a.download = `golf_tracker_backup_${dateStr}.json`;
+        a.href = url;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        alert("Data successfully downloaded as JSON file!");
     }
 
-    async function promptJoinLeague() {
-        const code = prompt("Enter 6-digit Invite Code:");
-        if(!code) return;
-        
-        const { data: league, error } = await sb.from('leagues').select('*').eq('invite_code', code.toUpperCase()).single();
-        
-        if (league) {
-            const { error: joinError } = await sb.from('league_members').insert([{ league_id: league.id, user_id: user.id }]);
-            if(joinError) alert("You are already a member of this group.");
-            else await loadData();
-        } else {
-            alert("Invalid Invite Code.");
-        }
-    }
+    function importData() {
+        const fileInput = document.getElementById('importFile');
+        const file = fileInput.files[0];
 
-    function calculateHandicap() {
-        if (rounds.length < 3) {
-            document.getElementById('handicapDisplay').innerText = "--";
+        if (!file) {
+            alert("Please select a JSON backup file first.");
             return;
         }
-        const diffs = rounds.map(r => parseFloat(r.differential)).sort((a,b) => a-b);
-        const numToUse = Math.min(diffs.length, 8);
-        const avg = diffs.slice(0, numToUse).reduce((a,b) => a+b, 0) / numToUse;
-        document.getElementById('handicapDisplay').innerText = (avg * 0.96).toFixed(1);
+
+        if (!confirm("WARNING: Importing data will completely ERASE your current scores and courses and replace them with the data from the file. Are you sure?")) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                const importedData = JSON.parse(event.target.result);
+                
+                if (!importedData.courses || !importedData.scores) {
+                    throw new Error("Invalid file structure. Courses or Scores data is missing.");
+                }
+
+                courses = importedData.courses;
+                scores = importedData.scores;
+                
+                fileInput.value = '';
+                document.getElementById('fileNameDisplay').innerText = 'No file selected';
+
+                saveData();
+                alert(`Data successfully imported! Loaded ${courses.length} courses and ${scores.length} scores.`);
+            } catch (e) {
+                alert(`Error reading file: ${e.message}`);
+            }
+        };
+        reader.readAsText(file);
     }
 
-    function toggle(id) {
-        const el = document.getElementById(id);
-        const all = ['groupsSec', 'postSec', 'historySec'];
-        all.forEach(sec => { if(sec !== id) document.getElementById(sec).style.display = 'none'; });
-        el.style.display = el.style.display === 'block' ? 'none' : 'block';
+    // --- 5. HANDICAP MATH (WHS Logic - UPDATED) ---
+    function calculateHandicap() {
+        if (scores.length === 0) {
+            document.getElementById('displayIndex').innerText = "--";
+            document.getElementById('displayCount').innerText = "Post 3 scores to start";
+            return;
+        }
+
+        // Sort by date (newest first)
+        let sorted = [...scores].sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        // WHS only considers the most recent 20 rounds
+        let recent = sorted.slice(0, 20); 
+
+        // Sort differentials low-to-high to find the "best" ones
+        // Ensure we map to numbers so the sort works correctly
+        let diffs = recent.map(s => parseFloat(s.diff)).sort((a, b) => a - b);
+        
+        let count = diffs.length;
+        let index = 0;
+        let nToAvg = 0;    // Number of differentials to average
+        let adjust = 0;    // Adjustment factor (if any)
+
+        if (count < 3) {
+            document.getElementById('displayIndex').innerText = "--";
+            document.getElementById('displayCount').innerText = `Need ${3-count} more`;
+            return;
+        } 
+        
+        // WHS Table 5.2a Logic:
+        if (count === 3)      { nToAvg = 1; adjust = -2.0; }
+        else if (count === 4) { nToAvg = 1; adjust = -1.0; }
+        else if (count === 5) { nToAvg = 1; adjust = 0; }
+        else if (count === 6) { nToAvg = 2; adjust = -1.0; }
+        else if (count <= 8)  { nToAvg = 2; adjust = 0; }
+        else if (count <= 11) { nToAvg = 3; adjust = 0; }
+        else if (count <= 14) { nToAvg = 4; adjust = 0; }
+        else if (count <= 16) { nToAvg = 5; adjust = 0; }
+        else if (count <= 18) { nToAvg = 6; adjust = 0; }
+        else if (count === 19){ nToAvg = 7; adjust = 0; }
+        else                  { nToAvg = 8; adjust = 0; } // count === 20
+
+        // Calculate Average
+        const bestDiffs = diffs.slice(0, nToAvg);
+        const sum = bestDiffs.reduce((a, b) => a + b, 0);
+        const avg = sum / nToAvg;
+
+        // Apply adjustment (if any)
+        index = avg + adjust;
+        
+        // WHS truncates to one decimal place (it does not round up)
+        let finalIndex = Math.floor(index * 10) / 10; 
+
+        document.getElementById('displayIndex').innerText = finalIndex.toFixed(1);
+        document.getElementById('displayCount').innerText = `${nToAvg} of ${count} rounds counted`;
     }
 
-    function copyCode(code) {
-        navigator.clipboard.writeText(code);
-        alert("Code copied to clipboard!");
+    // --- 6. SCORE FORM LOGIC ---
+    function handleCourseSelect() {
+        const idx = document.getElementById('courseSelect').value;
+        const infoBox = document.getElementById('courseInfoBox');
+        
+        if (idx === "") {
+            infoBox.style.display = "none";
+        } else {
+            const c = courses[idx];
+            infoBox.innerHTML = `${c.tee} Tee <span style="margin:0 8px">|</span> Rating: ${c.rating} <span style="margin:0 8px">|</span> Slope: ${c.slope}`;
+            infoBox.style.display = "block";
+        }
+        updateDiffPreview();
     }
 
-    async function logout() { 
-        if(confirm("Sign out of Golf Tracker?")) await sb.auth.signOut(); 
+    function updateDiffPreview() {
+        const idx = document.getElementById('courseSelect').value;
+        const score = document.getElementById('scoreVal').value;
+        const preview = document.getElementById('diffPreview');
+
+        if (idx === "" || !score) {
+            preview.style.display = "none";
+            return;
+        }
+        const c = courses[idx];
+        const diff = (score - c.rating) * 113 / c.slope;
+        preview.innerText = `Differential: ${diff.toFixed(1)}`;
+        preview.style.display = "block";
     }
+
+    function submitScore() {
+        const editId = document.getElementById('editScoreId').value;
+        const idx = document.getElementById('courseSelect').value;
+        const date = document.getElementById('scoreDate').value;
+        const val = parseFloat(document.getElementById('scoreVal').value);
+        const notes = document.getElementById('scoreNotes').value;
+
+        if (idx === "" || !date || !val) { alert("Please fill all required fields"); return; }
+
+        const c = courses[idx];
+        
+        // UPDATED: Calculate and store diff as a Number (Float), not a String
+        const diff = parseFloat(((val - c.rating) * 113 / c.slope).toFixed(1));
+
+        const entry = {
+            id: editId ? parseInt(editId) : Date.now(),
+            date: date,
+            courseName: c.name,
+            tee: c.tee,
+            rating: c.rating,
+            slope: c.slope,
+            score: val,
+            diff: diff,
+            notes: notes
+        };
+
+        if (editId) {
+            const i = scores.findIndex(s => s.id == editId);
+            if (i > -1) scores[i] = entry;
+            resetForm();
+        } else {
+            scores.unshift(entry);
+            document.getElementById('scoreVal').value = "";
+            document.getElementById('scoreNotes').value = "";
+            document.getElementById('diffPreview').style.display = 'none';
+        }
+        saveData();
+    }
+
+    function editScore(id) {
+        const s = scores.find(x => x.id === id);
+        if(!s) return;
+
+        document.getElementById('editScoreId').value = s.id;
+        document.getElementById('scoreDate').value = s.date;
+        document.getElementById('scoreVal').value = s.score;
+        document.getElementById('scoreNotes').value = s.notes || "";
+        
+        const idx = courses.findIndex(c => c.name === s.courseName && c.tee === s.tee);
+        const sel = document.getElementById('courseSelect');
+        if (idx > -1) {
+            sel.value = idx;
+            handleCourseSelect();
+        } else {
+            sel.value = "";
+            alert("Course not found in database. Please re-select.");
+        }
+
+        document.getElementById('postBtn').innerText = "Update";
+        document.getElementById('postBtn').className = "btn-update";
+        document.getElementById('cancelBtn').style.display = "block";
+        document.getElementById('scoreFormCard').scrollIntoView({behavior: 'smooth'});
+
+        const histContent = document.getElementById('historyContent');
+        if (histContent.classList.contains('hidden')) {
+            const header = document.querySelector('[onclick="toggleSection(\'historyContent\', this)"]');
+            toggleSection('historyContent', header);
+        }
+    }
+
+    function resetForm() {
+        document.getElementById('editScoreId').value = "";
+        document.getElementById('scoreVal').value = "";
+        document.getElementById('scoreNotes').value = "";
+        document.getElementById('courseSelect').value = "";
+        document.getElementById('courseInfoBox').style.display = "none";
+        document.getElementById('diffPreview').style.display = "none";
+        
+        document.getElementById('postBtn').innerText = "Post Score";
+        document.getElementById('postBtn').className = "btn-primary";
+        document.getElementById('cancelBtn').style.display = "none";
+    }
+
+    function deleteScore(id) {
+        if(confirm("Delete this score?")) {
+            scores = scores.filter(s => s.id !== id);
+            saveData();
+            if(document.getElementById('editScoreId').value == id) resetForm();
+        }
+    }
+
+    // --- 7. RENDER LISTS ---
+    function renderDropdown() {
+        const sel = document.getElementById('courseSelect');
+        const curr = sel.value;
+        sel.innerHTML = '<option value="">-- Choose Course --</option>';
+        courses.forEach((c, i) => {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.innerText = `${c.name} (${c.tee})`;
+            sel.appendChild(opt);
+        });
+        sel.value = curr;
+    }
+
+    function renderScoreList() {
+        const list = document.getElementById('scoreList');
+        list.innerHTML = "";
+        
+        const sorted = [...scores].sort((a,b) => new Date(b.date) - new Date(a.date));
+        
+        if (sorted.length === 0) {
+            list.innerHTML = "<li style='text-align:center; color:#888; padding:15px'>No history found.</li>";
+            return;
+        }
+
+        sorted.forEach(s => {
+            const li = document.createElement('li');
+            li.className = "score-item";
+            let notesHtml = s.notes ? `<div class="score-notes">📝 ${s.notes}</div>` : "";
+
+            li.innerHTML = `
+                <div class="score-top">
+                    <div>
+                        <div class="score-date">${s.date}</div>
+                        <div class="score-course">${s.courseName} <span style="font-weight:normal; font-size:0.85rem; color:#666">(${s.tee})</span></div>
+                    </div>
+                    <div style="text-align:right">
+                        <span class="score-val">${s.score}</span>
+                        <span class="score-diff">${s.diff}</span>
+                    </div>
+                </div>
+                ${notesHtml}
+                <div style="margin-top:10px; text-align:right;">
+                    <button class="btn-sm btn-edit" onclick="editScore(${s.id})">Edit</button>
+                    <button class="btn-sm btn-del" onclick="deleteScore(${s.id})">Del</button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function renderCourseDb() {
+        const list = document.getElementById('courseDbList');
+        list.innerHTML = "";
+        courses.forEach((c, i) => {
+            const li = document.createElement('li');
+            li.className = "score-item";
+            li.innerHTML = `
+                <div class="score-top">
+                    <div><strong>${c.name}</strong> (${c.tee})</div>
+                    <div>
+                        <button class="btn-sm btn-edit" onclick="loadCourseEdit(${i})">Edit</button>
+                        <button class="btn-sm btn-del" onclick="deleteCourse(${i})">Del</button>
+                    </div>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    // --- 8. COURSE MANAGER ---
+    function openCourseForm() {
+        document.getElementById('courseForm').style.display = 'block';
+        document.getElementById('cEditIndex').value = "-1";
+        document.getElementById('cName').value = "";
+        document.getElementById('cTee').value = "";
+        document.getElementById('cRating').value = "";
+        document.getElementById('cSlope').value = "";
+    }
+
+    function loadCourseEdit(i) {
+        const c = courses[i];
+        document.getElementById('courseForm').style.display = 'block';
+        document.getElementById('cEditIndex').value = i;
+        document.getElementById('cName').value = c.name;
+        document.getElementById('cTee').value = c.tee;
+        document.getElementById('cRating').value = c.rating;
+        document.getElementById('cSlope').value = c.slope;
+    }
+
+    function saveCourse() {
+        const i = parseInt(document.getElementById('cEditIndex').value);
+        const name = document.getElementById('cName').value;
+        const tee = document.getElementById('cTee').value;
+        const rating = parseFloat(document.getElementById('cRating').value);
+        const slope = parseFloat(document.getElementById('cSlope').value);
+
+        if(!name || !rating) return alert("Fill required fields");
+
+        const obj = { name, tee, rating, slope };
+        
+        if (i === -1) courses.push(obj);
+        else courses[i] = obj;
+
+        document.getElementById('courseForm').style.display = 'none';
+        saveData();
+    }
+
+    function deleteCourse(i) {
+        if(confirm("Delete this course?")) {
+            courses.splice(i, 1);
+            saveData();
+        }
+    }
+
+    init();
 </script>
+
 </body>
 </html>
