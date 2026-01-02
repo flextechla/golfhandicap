@@ -3,1149 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golf Tracker</title>
+    <title>Golf Tracker Pro | Groups Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { 
             --primary: #2E7D32; 
             --dark: #1B5E20; 
             --bg: #f4f6f8; 
             --accent: #FFA000; 
+            --red: #d32f2f; 
         }
-        body { 
-            font-family: -apple-system, system-ui, sans-serif; 
-            background-color: var(--bg); 
-            margin: 0; 
-            padding: 15px; 
-            color: #333; 
-        }
-        .dashboard { 
-            background: linear-gradient(135deg, var(--primary), var(--dark)); 
-            color: white; 
-            padding: 20px; 
-            border-radius: 12px; 
-            text-align: center; 
-            margin-bottom: 15px; 
-            border-bottom: 4px solid var(--accent); 
-        }
-        .handicap { 
-            font-size: 3.5rem; 
-            font-weight: bold; 
-            margin: 10px 0; 
-            min-height: 4rem; 
-        }
-        .card { 
-            background: white; 
-            border-radius: 10px; 
-            margin-bottom: 10px; 
-            border: 1px solid #ddd; 
-            overflow: hidden; 
-        }
-        .header { 
-            background: #eee; 
-            padding: 15px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            display: flex; 
-            justify-content: space-between; 
-            border-bottom: 1px solid #ddd; 
-        }
-        .content { 
-            padding: 15px; 
-            display: none; 
-        }
-        label { 
-            display: block; 
-            font-size: 0.8rem; 
-            font-weight: bold; 
-            margin-bottom: 5px; 
-            color: #444; 
-        }
-        input, select { 
-            width: 100%; 
-            padding: 12px; 
-            margin-bottom: 10px; 
-            border: 1px solid #ccc; 
-            border-radius: 8px; 
-            box-sizing: border-box; 
-            font-size: 16px; 
-        }
-        button { 
-            width: 100%; 
-            padding: 12px; 
-            background: var(--primary); 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            margin-bottom: 5px; 
-        }
-        button:hover {
-            background: var(--dark);
-        }
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .score-item { 
-            background: #f9f9f9; 
-            padding: 12px; 
-            border: 1px solid #eee; 
-            border-radius: 8px; 
-            margin-bottom: 8px; 
-        }
-        .edit-drawer { 
-            background: #fff; 
-            border: 2px solid var(--primary); 
-            padding: 10px; 
-            border-radius: 8px; 
-            margin-top: 10px; 
-            display: none; 
-            border-left: 5px solid var(--primary); 
-        }
-        .btn-outline { 
-            background: #fff; 
-            color: #333; 
-            border: 1px solid #ccc; 
-            width: auto; 
-            padding: 6px 12px; 
-            font-size: 0.75rem; 
-            border-radius: 4px; 
-            margin-right: 4px; 
-        }
-        .btn-outline:hover {
-            background: #f5f5f5;
-        }
-        .btn-outline:disabled {
-            background: #f5f5f5;
-            color: #999;
-            cursor: not-allowed;
-        }
-        .user-pill { 
-            display: inline-block; 
-            padding: 8px 12px; 
-            background: #e8f5e9; 
-            border: 1px solid #c8e6c9; 
-            border-radius: 20px; 
-            margin: 5px; 
-            cursor: pointer; 
-            font-size: 0.85rem; 
-            font-weight: bold;
-            position: relative;
-        }
-        .user-pill:hover {
-            background: #c8e6c9;
-        }
-        .active-pill { 
-            background: var(--dark); 
-            color: white; 
-            border-color: var(--dark); 
-        }
-        .delete-player-x {
-            display: inline-block;
-            margin-left: 8px;
-            color: #d32f2f;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .admin-badge {
-            display: inline-block;
-            background: #FFA000;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.7rem;
-            margin-left: 5px;
-        }
-        .view-only {
-            opacity: 0.6;
-            font-style: italic;
-            color: #666;
-            font-size: 0.85rem;
-        }
-        .login-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, var(--primary), var(--dark));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .login-box {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        }
-        .login-box h2 {
-            margin-top: 0;
-            color: var(--dark);
-            text-align: center;
-        }
-        .logout-btn {
-            background: #d32f2f;
-            font-size: 0.8rem;
-            padding: 8px 12px;
-            width: auto;
-            margin: 0;
-        }
-        .tab-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .tab {
-            flex: 1;
-            padding: 10px;
-            background: #f5f5f5;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            color: #333;
-        }
-        .tab.active {
-            background: var(--primary);
-            color: white;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .sync-indicator {
-            font-size: 0.75rem;
-            text-align: center;
-            margin-top: 10px;
-            color: #2E7D32;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 0; padding-bottom: 80px; }
+        
+        /* Dashboard */
+        .dashboard { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 30px 20px; text-align: center; border-bottom: 4px solid var(--accent); }
+        .handicap { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
+        
+        /* UI Components */
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; margin-bottom: 15px; border: 1px solid #ddd; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .header { background: #f8f9fa; padding: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+        .content { padding: 15px; display: none; }
+        .content.active { display: block; }
+        
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        button { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        button:active { transform: scale(0.98); opacity: 0.9; }
+        
+        .auth-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-top: 1px solid #ddd; display: flex; gap: 10px; z-index: 1000; }
+        .btn-alt { background: #f0f0f0; color: #333; }
+        
+        /* Lists */
+        .score-item { background: #f9f9f9; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
+        .league-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .league-pill { display: inline-block; padding: 5px 15px; background: rgba(255,255,255,0.2); color: white; border-radius: 20px; font-size: 0.8rem; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-<div id="loadingScreen" class="loading">
-    <h2>⛳ Loading Golf Tracker...</h2>
-    <p>Connecting to cloud database...</p>
-</div>
-
-<div id="loginScreen" class="login-screen" style="display:none;">
-    <div class="login-box">
-        <h2>⛳ Golf Tracker Login</h2>
-        
-        <div class="tab-container">
-            <button class="tab active" onclick="switchTab('existing')">Login</button>
-            <button class="tab" onclick="switchTab('new')">New Player</button>
-            <button class="tab" onclick="switchTab('reset')">Reset Password</button>
-        </div>
-
-        <div id="existingTab" class="tab-content active">
-            <label>Select Your Name</label>
-            <select id="loginSelect" onchange="checkPasswordStatus()">
-                <option value="">-- Choose Player --</option>
-            </select>
-            <div id="passwordHelp" style="font-size:0.85rem; color:#666; margin-bottom:10px; display:none;"></div>
-            <label>Password</label>
-            <input type="password" id="loginPassword" placeholder="Enter your password" onkeypress="if(event.key==='Enter') login()">
-            <button onclick="login()" type="button">Login</button>
-        </div>
-
-        <div id="newTab" class="tab-content">
-            <label>Your Name</label>
-            <input type="text" id="newPlayerName" placeholder="Enter your name">
-            <label>Create Password</label>
-            <input type="password" id="newPlayerPassword" placeholder="Create a password">
-            <label>Confirm Password</label>
-            <input type="password" id="newPlayerPasswordConfirm" placeholder="Confirm password">
-            <button onclick="createPlayer()">Create Account & Login</button>
-        </div>
-
-        <div id="resetTab" class="tab-content">
-            <p style="color:#666; font-size:0.9rem;">Forgot your password? Reset it here.</p>
-            <label>Select Your Name</label>
-            <select id="resetSelect" onchange="showAccountPreview()">
-                <option value="">-- Choose Player --</option>
-            </select>
-            <div id="accountPreview" style="display:none; background:#f9f9f9; padding:10px; border-radius:8px; margin:10px 0; border-left:3px solid var(--primary);">
-                <strong>Account Preview:</strong>
-                <div id="previewContent" style="margin-top:5px; font-size:0.9rem;"></div>
-            </div>
-            <label>New Password</label>
-            <input type="password" id="resetPassword" placeholder="Enter new password">
-            <label>Confirm New Password</label>
-            <input type="password" id="resetPasswordConfirm" placeholder="Confirm new password">
-            <button onclick="resetPassword()" style="background:#d32f2f;">Reset Password</button>
-        </div>
-        
-        <div class="sync-indicator">✓ Connected to cloud</div>
+<div id="app" style="display:none;">
+    <div class="dashboard">
+        <div id="pName" style="font-size: 1.1rem; font-weight: 600; opacity: 0.9;">Golfer Profile</div>
+        <div class="handicap" id="handicapDisplay">--</div>
+        <div style="font-size: 0.8rem; opacity: 0.8; letter-spacing: 1px;">WHS HANDICAP INDEX</div>
+        <div id="activeLeaguePill" class="league-pill">Loading Leagues...</div>
     </div>
-</div>
 
-<div id="mainApp" style="display:none;">
-
-<div class="dashboard">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div id="pDisp" style="font-size: 1.2rem; font-weight: bold;">Golf Tracker</div>
-        <button onclick="logout()" class="logout-btn">Logout</button>
-    </div>
-    <div class="handicap" id="idx">--</div>
-    <div style="font-size: 0.8rem; opacity: 0.9;">WHS HANDICAP INDEX</div>
-    <div class="sync-indicator">✓ Auto-syncing with cloud</div>
-</div>
-
-<div class="card">
-    <div class="header" onclick="toggleMenu('settings')"><span>⚙️ Settings</span><span>▼</span></div>
-    <div id="settings" class="content">
-        <div class="card" style="margin-bottom:15px;">
-            <div class="header" onclick="toggleMenu('changePwd')" style="background:#f9f9f9;">
-                <span>🔐 Change Password</span><span>▼</span>
-            </div>
-            <div id="changePwd" class="content">
-                <label>Current Password</label>
-                <input type="password" id="currentPwd" placeholder="Enter current password">
-                <label>New Password</label>
-                <input type="password" id="newPwd" placeholder="Enter new password">
-                <label>Confirm New Password</label>
-                <input type="password" id="confirmPwd" placeholder="Confirm new password">
-                <button onclick="changePassword()">Update Password</button>
+    <div class="container">
+        <div class="card">
+            <div class="header" onclick="toggle('groupsSec')"><span>👥 My Groups & Leagues</span><span>▼</span></div>
+            <div id="groupsSec" class="content">
+                <button class="btn-alt" onclick="promptCreateLeague()">+ Create New League</button>
+                <button class="btn-alt" onclick="promptJoinLeague()">🔗 Join via Invite Code</button>
+                <div id="leagueList" style="margin-top:15px;"></div>
             </div>
         </div>
 
-        <div class="card" style="margin-bottom:0;">
-            <div class="header" onclick="toggleMenu('courseSettings')" style="background:#f9f9f9;">
-                <span>⛳ Manage Courses</span><span>▼</span>
+        <div class="card">
+            <div class="header" onclick="toggle('postSec')"><span>⛳ Post New Score</span><span>▼</span></div>
+            <div id="postSec" class="content">
+                <label>Target League (Group)</label>
+                <select id="leagueSelect"></select>
+                <input type="text" id="courseName" placeholder="Course Name">
+                <input type="number" id="grossScore" placeholder="Gross Score">
+                <input type="date" id="datePlayed">
+                <button onclick="saveRound()">Save Round to Cloud</button>
             </div>
-            <div id="courseSettings" class="content">
-                <h3 style="margin-top:0; font-size:1rem;">Add New Course</h3>
-                <label>Course Name</label>
-                <input type="text" id="newCourseName" placeholder="e.g., Tiger Point">
-                <label>City</label>
-                <input type="text" id="newCourseCity" placeholder="e.g., Gulf Shores">
-                <label>Tee Box</label>
-                <input type="text" id="newCourseTee" placeholder="e.g., Blue, White, Gold">
-                <label>Course Rating</label>
-                <input type="number" id="newCourseRating" placeholder="e.g., 71.5" step="0.1">
-                <label>Slope Rating</label>
-                <input type="number" id="newCourseSlope" placeholder="e.g., 128">
-                <button onclick="addCourse()" style="background:#FF6F00;">Add Course</button>
-                
-                <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-                <h3 style="margin-top:0; font-size:1rem;">Course List</h3>
-                <div id="cList"></div>
+        </div>
+
+        <div class="card">
+            <div class="header" onclick="toggle('historySec')"><span>📝 Score History</span><span>▼</span></div>
+            <div id="historySec" class="content active">
+                <div id="scoreHistory"></div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="card">
-    <div class="header" onclick="toggleMenu('club')"><span>👥 View Other Players</span><span>▼</span></div>
-    <div id="club" class="content">
-        <div id="userList"></div>
-        <div id="adminDeleteInfo" style="margin-top:15px; padding:10px; background:#fff3cd; border-radius:8px; font-size:0.85rem; display:none;">
-            <strong>Admin Only:</strong> Click the ❌ next to a player's name to delete them.
-        </div>
+<div id="authOverlay" style="position:fixed; inset:0; background:var(--primary); display:flex; align-items:center; justify-content:center; padding:20px; z-index:2000;">
+    <div style="background:white; padding:30px; border-radius:20px; width:100%; max-width:400px; text-align:center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        <h2 style="color:var(--dark); margin-bottom: 5px;">⛳ Golf Tracker Pro</h2>
+        <p style="color:#666; font-size: 0.9rem; margin-bottom: 20px;">Manage your handicap and groups.</p>
+        <input type="email" id="email" placeholder="Email Address">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="handleAuth('login')">Sign In</button>
+        <button class="btn-alt" onclick="handleAuth('signup')">Create Account</button>
     </div>
 </div>
 
-<div class="card">
-    <div class="header" onclick="toggleMenu('post')"><span>⛳ Post New Score</span><span>▼</span></div>
-    <div id="post" class="content">
-        <label>Course</label><select id="cSel"></select>
-        <label>Date</label><input type="date" id="dIn">
-        <label>Gross Score</label><input type="number" id="sIn" placeholder="Score">
-        <label>Notes (Optional)</label>
-        <input type="text" id="noteIn" placeholder="e.g., Windy, rainy, playing with John...">
-        <button onclick="addScore()">Save Round for <span id="curNameDisplay">Don</span></button>
-    </div>
+<div class="auth-footer" id="footer" style="display:none;">
+    <div id="userEmail" style="font-size: 0.75rem; color: #666; display: flex; align-items: center;">...</div>
+    <button class="btn-alt" style="width: auto; margin: 0;" onclick="logout()">Sign Out</button>
 </div>
 
-<div class="card">
-    <div class="header" onclick="toggleMenu('hist')"><span>📝 Score History</span><span>▼</span></div>
-    <div id="hist" class="content" style="display:block;"><div id="sList"></div></div>
-</div>
+<script>
+    // Configuration - Using your provided Golf project credentials
+    const SUPABASE_URL = 'https://lxxlrujrxtphozisppsq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4eGxydWpyeHRwaG96aXNwcHNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwNTg3MTIsImV4cCI6MjA4MjYzNDcxMn0.cwLpWtOP7LJm1B9zczskVMU2vPL6shSJFyTb0Ox2vh8';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-</div>
+    let user = null;
+    let myLeagues = [];
+    let rounds = [];
 
-<script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-    // Supabase configuration - Your actual credentials
-    const supabaseUrl = 'https://lxxlrujrxtphozisppsq.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4eGxydWpyeHRwaG96aXNwcHNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwNTg3MTIsImV4cCI6MjA4MjYzNDcxMn0.cwLpWtOP7LJm1B9zczskVMU2vPL6shSJFyTb0Ox2vh8';
-    
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const TABLE_NAME = 'golf_data';
-
-    // Louisiana Courses Data - Pre-sorted alphabetically
-    const MASTER_COURSES = [
-        { name: "Beaver Creek", city: "Zachary", tee: "Blue", rating: 72, slope: 130 },
-        { name: "Belle Terre", city: "LaPlace", tee: "Blue", rating: 72.2, slope: 131 },
-        { name: "Cam2", city: "Amite", tee: "White", rating: 67.7, slope: 118 },
-        { name: "Carter Plantation", city: "Springfield", tee: "Blue", rating: 66.7, slope: 115 },
-        { name: "Carter Plantation", city: "Springfield", tee: "Blue/Gold", rating: 69.7, slope: 126 },
-        { name: "Carter Plantation", city: "Springfield", tee: "Gold", rating: 70.9, slope: 128 },
-        { name: "City Park", city: "Baton Rouge", tee: "Blue", rating: 70, slope: 125 },
-        { name: "Coppermill", city: "Zachary", tee: "Gold", rating: 71.8, slope: 129 },
-        { name: "Covington Country Club", city: "Covington", tee: "Blue", rating: 71.9, slope: 127 },
-        { name: "Fenwood", city: "Zachary", tee: "White/Blue", rating: 71, slope: 127.5 },
-        { name: "Greystone", city: "Denham Springs", tee: "Blue", rating: 70.8, slope: 128 },
-        { name: "Greystone", city: "Denham Springs", tee: "Gold", rating: 72.5, slope: 132 },
-        { name: "JS Clark", city: "Baker", tee: "White", rating: 68.5, slope: 120 },
-        { name: "Oak Knoll", city: "Hammond", tee: "White", rating: 70.1, slope: 124 },
-        { name: "Oak Lake", city: "Clinton", tee: "White/Blue", rating: 69.8, slope: 122 },
-        { name: "Pelican Point", city: "Gonzales", tee: "Gold", rating: 70, slope: 124 },
-        { name: "Pelican Point", city: "Gonzales", tee: "White", rating: 68.5, slope: 116 },
-        { name: "Santa Maria", city: "Baton Rouge", tee: "Blue", rating: 71.5, slope: 128 },
-        { name: "The Island", city: "Plaquemine", tee: "Blue", rating: 73.1, slope: 135 },
-        { name: "The Island", city: "Plaquemine", tee: "White", rating: 71.3, slope: 130 },
-        { name: "The Pines", city: "Denham Springs", tee: "White/Blue", rating: 70.5, slope: 125 },
-        { name: "Webb", city: "Baton Rouge", tee: "White", rating: 69.5, slope: 123 }
-    ];
-
-    // Admin user
-    const ADMIN_USER = "Don";
-
-    // Global state
-    let loggedInUser = null;
-    let viewingPlayer = null;
-    let allPlayers = {};
-    let userCredentials = {};
-    let courses = [];
-
-    // Simple hash function
-    function simpleHash(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return hash.toString();
-    }
-
-    // Load data from cloud (Supabase)
-    async function loadFromCloud() {
-        try {
-            const { data, error } = await supabase
-                .from(TABLE_NAME)
-                .select('*')
-                .eq('id', 1)
-                .single();
-            
-            if (error && error.code !== 'PGRST116') {
-                console.error("Supabase load error:", error.message, error.details, error.hint);
-                throw error;
-            }
-            
-            if (data) {
-                allPlayers = data.all_players || { [ADMIN_USER]: [] };
-                userCredentials = data.user_credentials || {};
-                courses = data.courses && data.courses.length > 0 ? data.courses : [...MASTER_COURSES];
+    // App Initialization
+    window.onload = () => {
+        sb.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                user = session.user;
+                showApp();
             } else {
-                // No data yet, use defaults
-                allPlayers = { [ADMIN_USER]: [] };
-                userCredentials = {};
-                courses = [...MASTER_COURSES];
-                
-                // Save the initial data to cloud
-                await saveToCloud();
+                showAuth();
             }
-            
-            courses.sort((a, b) => {
-                const nameCompare = a.name.localeCompare(b.name);
-                if (nameCompare !== 0) return nameCompare;
-                return a.tee.localeCompare(b.tee);
-            });
-            
-            console.log("Data loaded from Supabase");
-            return true;
-        } catch (error) {
-            console.error("Error loading from Supabase:", error.message, error.details, error.hint);
-            allPlayers = { [ADMIN_USER]: [] };
-            userCredentials = {};
-            courses = [...MASTER_COURSES];
-            return false;
-        }
-    }
+        });
+        document.getElementById('datePlayed').valueAsDate = new Date();
+    };
 
-    // Save data to cloud (Supabase)
-    async function saveToCloud() {
-        try {
-            const dataToSave = {
-                id: 1,
-                all_players: allPlayers,
-                user_credentials: userCredentials,
-                courses: courses,
-                last_updated: new Date().toISOString()
-            };
-            
-            const { error } = await supabase
-                .from(TABLE_NAME)
-                .upsert(dataToSave);
-            
-            if (error) {
-                console.error("Supabase save error:", error.message, error.details, error.hint);
-                throw error;
-            }
-            
-            console.log("Data saved to Supabase");
-        } catch (error) {
-            console.error("Error saving to Supabase:", error.message, error.details, error.hint);
-            alert("Warning: Failed to sync to cloud. Please check your internet connection.");
-        }
-    }
+    async function handleAuth(type) {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        if(!email || !password) return alert("Please fill in all fields");
 
-    // Listen for real-time changes from Supabase
-    supabase
-        .channel('golf_data_changes')
-        .on('postgres_changes', 
-            { event: '*', schema: 'public', table: TABLE_NAME },
-            async (payload) => {
-                if (loggedInUser) {
-                    await loadFromCloud();
-                    window.render();
-                    console.log("Real-time update received");
-                }
-            }
-        )
-        .subscribe();
-
-    // Check permissions
-    function canEdit(playerName) {
-        return loggedInUser === ADMIN_USER || loggedInUser === playerName;
-    }
-
-    function isAdmin() {
-        return loggedInUser === ADMIN_USER;
-    }
-
-    // Menu toggle
-    window.toggleMenu = function(id) {
-        const elem = document.getElementById(id);
-        if (elem) {
-            elem.style.display = (elem.style.display === "block") ? "none" : "block";
-        }
-    }
-
-    // Calculate handicap index
-    function calculateHandicap(scores) {
-        if (!scores || scores.length < 3) return "--";
+        const res = type === 'signup' 
+            ? await sb.auth.signUp({ email, password }) 
+            : await sb.auth.signInWithPassword({ email, password });
         
-        const sortedDiffs = [...scores]
-            .map(s => parseFloat(s.diff))
-            .sort((a, b) => a - b);
-        
-        let numToAverage;
-        if (scores.length >= 20) numToAverage = 8;
-        else if (scores.length >= 10) numToAverage = 3;
-        else numToAverage = 1;
-        
-        const avg = sortedDiffs.slice(0, numToAverage).reduce((sum, diff) => sum + diff, 0) / numToAverage;
-        return (Math.floor(avg * 10) / 10).toFixed(1);
+        if (res.error) alert(res.error.message);
     }
 
-    // Switch to view different player
-    window.viewPlayer = function(playerName) {
-        viewingPlayer = playerName;
-        window.render();
+    async function showApp() {
+        document.getElementById('authOverlay').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('footer').style.display = 'flex';
+        document.getElementById('userEmail').innerText = "Logged in: " + user.email;
+        document.getElementById('pName').innerText = user.email.split('@')[0].toUpperCase();
+        await loadData();
     }
 
-    // Delete player (admin only)
-    window.deletePlayer = function(playerName) {
-        if (!isAdmin()) {
-            alert("Only admin can delete players");
-            return;
-        }
-
-        if (playerName === ADMIN_USER) {
-            alert("Cannot delete the admin account");
-            return;
-        }
-
-        if (confirm(`Are you sure you want to delete ${playerName}? This will remove all their scores permanently.`)) {
-            delete allPlayers[playerName];
-            delete userCredentials[playerName];
-            saveToCloud();
-            
-            if (viewingPlayer === playerName) {
-                viewingPlayer = loggedInUser;
-            }
-            
-            window.render();
-            alert(`${playerName} has been deleted.`);
-        }
+    function showAuth() {
+        document.getElementById('authOverlay').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('footer').style.display = 'none';
     }
 
-    // Switch login tabs
-    window.switchTab = function(tab) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        
-        if (tab === 'existing') {
-            document.querySelectorAll('.tab')[0].classList.add('active');
-            document.getElementById('existingTab').classList.add('active');
-        } else if (tab === 'new') {
-            document.querySelectorAll('.tab')[1].classList.add('active');
-            document.getElementById('newTab').classList.add('active');
-        } else if (tab === 'reset') {
-            document.querySelectorAll('.tab')[2].classList.add('active');
-            document.getElementById('resetTab').classList.add('active');
-            const resetSelect = document.getElementById('resetSelect');
-            resetSelect.innerHTML = '<option value="">-- Choose Player --</option>';
-            Object.keys(allPlayers).sort().forEach(player => {
-                resetSelect.innerHTML += `<option value="${player}">${player}</option>`;
-            });
-        }
-    }
+    async function loadData() {
+        // 1. Fetch Leagues user belongs to
+        const { data: memberOf } = await sb.from('league_members').select('league_id').eq('user_id', user.id);
+        const leagueIds = memberOf ? memberOf.map(m => m.league_id) : [];
 
-    // Check password status
-    window.checkPasswordStatus = function() {
-        const selected = document.getElementById('loginSelect').value;
-        const helpDiv = document.getElementById('passwordHelp');
-        
-        if (selected && !userCredentials[selected]) {
-            helpDiv.style.display = 'block';
-            helpDiv.innerHTML = '💡 First time? Enter any password to create your account.';
+        if (leagueIds.length > 0) {
+            const { data: leagues } = await sb.from('leagues').select('*').in('id', leagueIds);
+            myLeagues = leagues || [];
         } else {
-            helpDiv.style.display = 'none';
+            myLeagues = [];
         }
+        
+        // 2. Fetch Rounds for the player
+        const { data: roundData } = await sb.from('rounds')
+            .select('*')
+            .eq('player_id', user.id)
+            .order('played_at', { ascending: false });
+        
+        rounds = roundData || [];
+        render();
     }
 
-    // Show login screen
-    async function showLoginScreen() {
-        document.getElementById('loadingScreen').style.display = 'none';
-        document.getElementById('loginScreen').style.display = 'flex';
-        document.getElementById('mainApp').style.display = 'none';
-        
-        const loginSelect = document.getElementById('loginSelect');
-        loginSelect.innerHTML = '<option value="">-- Choose Player --</option>';
-        Object.keys(allPlayers).sort().forEach(player => {
-            loginSelect.innerHTML += `<option value="${player}">${player}</option>`;
-        });
+    function render() {
+        // League List Rendering
+        const lList = document.getElementById('leagueList');
+        lList.innerHTML = myLeagues.length ? myLeagues.map(l => `
+            <div class="league-item">
+                <div>
+                    <strong>${l.name}</strong><br>
+                    <code style="font-size:0.7rem; color:var(--primary)">Invite Code: ${l.invite_code}</code>
+                </div>
+                <button class="btn-alt" style="width:auto; padding:5px 10px;" onclick="copyCode('${l.invite_code}')">Copy</button>
+            </div>
+        `).join('') : '<small style="color:#999">You haven\'t joined any groups yet.</small>';
 
-        document.getElementById('loginPassword').value = '';
-        document.getElementById('newPlayerName').value = '';
-        document.getElementById('newPlayerPassword').value = '';
-        document.getElementById('newPlayerPasswordConfirm').value = '';
-    }
+        // Dropdown for Posting
+        const lSel = document.getElementById('leagueSelect');
+        lSel.innerHTML = '<option value="">Personal Score (No Group)</option>' + 
+            myLeagues.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
 
-    // Login
-    window.login = function() {
-        const selected = document.getElementById('loginSelect').value;
-        const password = document.getElementById('loginPassword').value;
-        
-        if (!selected) {
-            alert("Please select a player");
-            return;
-        }
-        
-        if (!password) {
-            alert("Please enter your password");
-            return;
-        }
-
-        if (!userCredentials[selected]) {
-            userCredentials[selected] = simpleHash(password);
-            saveToCloud();
-            alert(`Password created! You can now login with this password anytime.`);
-        } else {
-            if (userCredentials[selected] !== simpleHash(password)) {
-                alert("Incorrect password");
-                return;
-            }
-        }
-
-        loggedInUser = selected;
-        viewingPlayer = selected;
-        localStorage.setItem('golf_logged_in_user', loggedInUser);
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-        window.render();
-    }
-
-    // Create player
-    window.createPlayer = async function() {
-        const name = document.getElementById('newPlayerName').value.trim();
-        const password = document.getElementById('newPlayerPassword').value;
-        const passwordConfirm = document.getElementById('newPlayerPasswordConfirm').value;
-        
-        if (!name) {
-            alert("Please enter your name");
-            return;
-        }
-        
-        if (!password) {
-            alert("Please create a password");
-            return;
-        }
-
-        if (password.length < 4) {
-            alert("Password must be at least 4 characters");
-            return;
-        }
-        
-        if (password !== passwordConfirm) {
-            alert("Passwords don't match");
-            return;
-        }
-
-        if (allPlayers[name] && userCredentials[name]) {
-            alert("Player already exists. Please use Login tab.");
-            return;
-        }
-        
-        if (!allPlayers[name]) {
-            allPlayers[name] = [];
-        }
-        userCredentials[name] = simpleHash(password);
-        await saveToCloud();
-        
-        loggedInUser = name;
-        viewingPlayer = name;
-        localStorage.setItem('golf_logged_in_user', loggedInUser);
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-        window.render();
-    }
-
-    // Reset password
-    window.resetPassword = async function() {
-        const selected = document.getElementById('resetSelect').value;
-        const newPassword = document.getElementById('resetPassword').value;
-        const confirmPassword = document.getElementById('resetPasswordConfirm').value;
-
-        if (!selected) {
-            alert("Please select your name");
-            return;
-        }
-
-        if (!newPassword) {
-            alert("Please enter a new password");
-            return;
-        }
-
-        if (newPassword.length < 4) {
-            alert("Password must be at least 4 characters");
-            return;
-        }
-
-        if (newPassword !== confirmPassword) {
-            alert("Passwords don't match");
-            return;
-        }
-
-        userCredentials[selected] = simpleHash(newPassword);
-        await saveToCloud();
-
-        document.getElementById('resetSelect').value = '';
-        document.getElementById('resetPassword').value = '';
-        document.getElementById('resetPasswordConfirm').value = '';
-        document.getElementById('accountPreview').style.display = 'none';
-
-        alert(`Password reset successfully for ${selected}! You can now login with your new password.`);
-        window.switchTab('existing');
-    }
-
-    // Show account preview
-    window.showAccountPreview = function() {
-        const selected = document.getElementById('resetSelect').value;
-        const previewDiv = document.getElementById('accountPreview');
-        const contentDiv = document.getElementById('previewContent');
-
-        if (!selected) {
-            previewDiv.style.display = 'none';
-            return;
-        }
-
-        const playerScores = allPlayers[selected] || [];
-        const handicap = calculateHandicap(playerScores);
-        
-        let previewHTML = `<div style="color:#666;">Handicap Index: <strong style="color:#333;">${handicap}</strong></div>`;
-        
-        if (playerScores.length > 0) {
-            const lastScore = playerScores[0];
-            previewHTML += `<div style="color:#666; margin-top:5px;">Last Round: <strong style="color:#333;">${lastScore.score}</strong> at ${lastScore.courseName} on ${lastScore.date}</div>`;
-            previewHTML += `<div style="color:#666; margin-top:5px;">Total Rounds: <strong style="color:#333;">${playerScores.length}</strong></div>`;
-        } else {
-            previewHTML += `<div style="color:#666; margin-top:5px;">No scores recorded yet</div>`;
-        }
-
-        contentDiv.innerHTML = previewHTML;
-        previewDiv.style.display = 'block';
-    }
-
-    // Logout
-    window.logout = function() {
-        loggedInUser = null;
-        viewingPlayer = null;
-        localStorage.removeItem('golf_logged_in_user');
-        showLoginScreen();
-    }
-
-    // Change password
-    window.changePassword = async function() {
-        const currentPwd = document.getElementById('currentPwd').value;
-        const newPwd = document.getElementById('newPwd').value;
-        const confirmPwd = document.getElementById('confirmPwd').value;
-
-        if (!currentPwd || !newPwd || !confirmPwd) {
-            alert("Please fill in all password fields");
-            return;
-        }
-
-        if (userCredentials[loggedInUser] !== simpleHash(currentPwd)) {
-            alert("Current password is incorrect");
-            return;
-        }
-
-        if (newPwd.length < 4) {
-            alert("New password must be at least 4 characters");
-            return;
-        }
-
-        if (newPwd !== confirmPwd) {
-            alert("New passwords don't match");
-            return;
-        }
-
-        userCredentials[loggedInUser] = simpleHash(newPwd);
-        await saveToCloud();
-        
-        document.getElementById('currentPwd').value = '';
-        document.getElementById('newPwd').value = '';
-        document.getElementById('confirmPwd').value = '';
-        
-        alert("Password updated successfully!");
-    }
-
-    // Add new course
-    window.addCourse = async function() {
-        const name = document.getElementById('newCourseName').value.trim();
-        const city = document.getElementById('newCourseCity').value.trim();
-        const tee = document.getElementById('newCourseTee').value.trim();
-        const rating = parseFloat(document.getElementById('newCourseRating').value);
-        const slope = parseFloat(document.getElementById('newCourseSlope').value);
-
-        if (!name || !city || !tee) {
-            alert("Please fill in course name, city, and tee box");
-            return;
-        }
-
-        if (isNaN(rating) || isNaN(slope)) {
-            alert("Please enter valid rating and slope numbers");
-            return;
-        }
-
-        if (rating < 60 || rating > 80) {
-            alert("Course rating should typically be between 60 and 80");
-            return;
-        }
-
-        if (slope < 55 || slope > 155) {
-            alert("Slope rating should typically be between 55 and 155");
-            return;
-        }
-
-        const exists = courses.some(c => 
-            c.name.toLowerCase() === name.toLowerCase() && 
-            c.tee.toLowerCase() === tee.toLowerCase()
-        );
-
-        if (exists) {
-            alert("This course and tee combination already exists");
-            return;
-        }
-
-        courses.push({
-            name: name,
-            city: city,
-            tee: tee,
-            rating: rating,
-            slope: slope
-        });
-
-        courses.sort((a, b) => {
-            const nameCompare = a.name.localeCompare(b.name);
-            if (nameCompare !== 0) return nameCompare;
-            return a.tee.localeCompare(b.tee);
-        });
-
-        await saveToCloud();
-
-        document.getElementById('newCourseName').value = '';
-        document.getElementById('newCourseCity').value = '';
-        document.getElementById('newCourseTee').value = '';
-        document.getElementById('newCourseRating').value = '';
-        document.getElementById('newCourseSlope').value = '';
-
-        alert("Course added successfully!");
-        window.render();
-    }
-
-    // Add new score
-    window.addScore = async function() {
-        const courseIdx = document.getElementById('cSel').value;
-        const score = parseFloat(document.getElementById('sIn').value);
-        const date = document.getElementById('dIn').value;
-        const notes = document.getElementById('noteIn').value.trim();
-        
-        if (courseIdx === "" || isNaN(score)) {
-            alert("Please select a course and enter a score");
-            return;
-        }
-        
-        const course = courses[courseIdx];
-        const differential = ((score - course.rating) * 113 / course.slope).toFixed(1);
-        
-        const newScore = {
-            date: date,
-            courseName: course.name,
-            city: course.city,
-            teeColor: course.tee,
-            score: score,
-            diff: differential,
-            notes: notes || null
-        };
-        
-        allPlayers[viewingPlayer].unshift(newScore);
-        await saveToCloud();
-        
-        document.getElementById('sIn').value = "";
-        document.getElementById('noteIn').value = "";
-        window.render();
-    }
-
-    // Update existing score
-    window.updateScore = async function(idx) {
-        if (!canEdit(viewingPlayer)) {
-            alert("You don't have permission to edit this player's scores");
-            return;
-        }
-
-        const newScore = parseFloat(document.getElementById('ev-' + idx).value);
-        const newNotes = document.getElementById('en-' + idx).value.trim();
-        const scoreObj = allPlayers[viewingPlayer][idx];
-        
-        const course = courses.find(c => 
-            c.name === scoreObj.courseName && 
-            c.tee === scoreObj.teeColor
-        );
-        
-        if (course && !isNaN(newScore)) {
-            scoreObj.score = newScore;
-            scoreObj.diff = ((newScore - course.rating) * 113 / course.slope).toFixed(1);
-            scoreObj.notes = newNotes || null;
-            await saveToCloud();
-            window.render();
-        }
-    }
-
-    // Delete score
-    window.deleteScore = async function(idx) {
-        if (!canEdit(viewingPlayer)) {
-            alert("You don't have permission to delete this player's scores");
-            return;
-        }
-
-        if (confirm("Delete this score?")) {
-            allPlayers[viewingPlayer].splice(idx, 1);
-            await saveToCloud();
-            window.render();
-        }
-    }
-
-    // Update course rating/slope
-    window.updateCourse = async function(idx) {
-        const newRating = parseFloat(document.getElementById('er-' + idx).value);
-        const newSlope = parseFloat(document.getElementById('es-' + idx).value);
-        
-        if (!isNaN(newRating) && !isNaN(newSlope)) {
-            courses[idx].rating = newRating;
-            courses[idx].slope = newSlope;
-            await saveToCloud();
-            window.render();
-        }
-    }
-
-    // Main render function
-    window.render = function() {
-        const playerScores = allPlayers[viewingPlayer] || [];
-        const hasEditPermission = canEdit(viewingPlayer);
-        
-        // Update handicap display
-        document.getElementById('idx').innerText = calculateHandicap(playerScores);
-        document.getElementById('pDisp').innerText = viewingPlayer + (isAdmin() ? ' (Admin)' : '');
-        document.getElementById('curNameDisplay').innerText = viewingPlayer;
-
-        // Show admin delete info
-        if (isAdmin()) {
-            document.getElementById('adminDeleteInfo').style.display = 'block';
-        }
-
-        // Render player list
-        const userList = document.getElementById('userList');
-        userList.innerHTML = "";
-        Object.keys(allPlayers).sort().forEach(playerName => {
-            const isViewing = playerName === viewingPlayer;
-            const adminBadge = playerName === ADMIN_USER ? '<span class="admin-badge">ADMIN</span>' : '';
-            const deleteBtn = (isAdmin() && playerName !== ADMIN_USER) ? 
-                `<span class="delete-player-x" onclick="event.stopPropagation(); deletePlayer('${playerName}')">❌</span>` : '';
-            
-            userList.innerHTML += `<span class="user-pill ${isViewing ? 'active-pill' : ''}" 
-                onclick="viewPlayer('${playerName}')">${playerName}${adminBadge}${deleteBtn}</span>`;
-        });
-
-        // Render course dropdown
-        const courseSel = document.getElementById('cSel');
-        courseSel.innerHTML = '<option value="">-- Select Course --</option>';
-        courses.forEach((c, i) => {
-            courseSel.innerHTML += `<option value="${i}">${c.name} - ${c.city} (${c.tee})</option>`;
-        });
-
-        // Render score history
-        const scoreList = document.getElementById('sList');
-        if (playerScores.length === 0) {
-            scoreList.innerHTML = `<small style="color:#666;">No scores recorded for ${viewingPlayer}</small>`;
-        } else {
-            scoreList.innerHTML = "";
-            if (!hasEditPermission) {
-                scoreList.innerHTML += `<div class="view-only">👁️ View Only - You can only edit your own scores</div>`;
-            }
-            playerScores.forEach((s, i) => {
-                const editBtn = hasEditPermission ? 
-                    `<button class="btn-outline" onclick="toggleMenu('ed-s-${i}')">Edit</button>` :
-                    `<button class="btn-outline" disabled title="You can only edit your own scores">Edit</button>`;
-                
-                const deleteBtn = hasEditPermission ?
-                    `<button class="btn-outline" style="color:red" onclick="deleteScore(${i})">Delete</button>` :
-                    `<button class="btn-outline" disabled title="You can only edit your own scores" style="color:#ccc">Delete</button>`;
-
-                const notesDisplay = s.notes ? `<div style="margin-top:5px; padding:5px; background:#fff3cd; border-left:3px solid #ffc107; border-radius:3px; font-size:0.85rem;">📝 ${s.notes}</div>` : '';
-
-                scoreList.innerHTML += `
-                    <div class="score-item">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <b>${s.score}</b> at ${s.courseName} (${s.teeColor})
-                                <br><small>${s.date} | Differential: ${s.diff}</small>
-                            </div>
-                            <div>
-                                ${editBtn}
-                                ${deleteBtn}
-                            </div>
-                        </div>
-                        ${notesDisplay}
-                        ${hasEditPermission ? `
-                        <div id="ed-s-${i}" class="edit-drawer">
-                            <label>Edit Score</label>
-                            <input type="number" id="ev-${i}" value="${s.score}">
-                            <label>Notes</label>
-                            <input type="text" id="en-${i}" value="${s.notes || ''}" placeholder="Add notes...">
-                            <button onclick="updateScore(${i})">Save Changes</button>
-                        </div>` : ''}
-                    </div>`;
-            });
-        }
-
-        // Render course list
-        const courseList = document.getElementById('cList');
-        courseList.innerHTML = "";
-        courses.forEach((c, i) => {
-            const canEditCourse = isAdmin();
-            const editButton = canEditCourse ? 
-                `<button class="btn-outline" onclick="toggleMenu('ed-c-${i}')">Edit</button>` :
-                `<button class="btn-outline" disabled title="Only admin can edit courses">Edit</button>`;
-            
-            courseList.innerHTML += `
-                <div class="score-item">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <b>${c.name}</b> - ${c.city} (${c.tee})
-                            <br><small>Rating: ${c.rating} | Slope: ${c.slope}</small>
-                        </div>
-                        <div>
-                            ${editButton}
-                        </div>
+        // Score History
+        const rList = document.getElementById('scoreHistory');
+        rList.innerHTML = rounds.length ? rounds.map(r => `
+            <div class="score-item">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <span style="font-weight:bold; font-size:1.2rem;">${r.score}</span>
+                        <span style="font-size:0.8rem; color:#666; margin-left:10px;">${r.course_name}</span>
                     </div>
-                    ${canEditCourse ? `
-                    <div id="ed-c-${i}" class="edit-drawer">
-                        <label>Course Rating</label>
-                        <input type="number" id="er-${i}" value="${c.rating}" step="0.1">
-                        <label>Slope Rating</label>
-                        <input type="number" id="es-${i}" value="${c.slope}" step="0.1">
-                        <button onclick="updateCourse(${i})">Save Changes</button>
-                    </div>` : ''}
-                </div>`;
-        });
+                    <span style="font-size:0.75rem; color:#999;">${r.played_at}</span>
+                </div>
+                <div style="font-size:0.7rem; margin-top:5px; color:var(--primary); font-weight:700;">
+                    DIFF: ${r.differential}
+                </div>
+            </div>
+        `).join('') : '<small style="color:#999">No rounds posted yet.</small>';
+
+        document.getElementById('activeLeaguePill').innerText = `${myLeagues.length} Groups Active`;
+        calculateHandicap();
     }
 
-    // Initialize
-    document.getElementById('dIn').valueAsDate = new Date();
-    
-    // Load data and check login
-    async function initialize() {
-        await loadFromCloud();
-        
-        const savedLogin = localStorage.getItem('golf_logged_in_user');
-        if (savedLogin && allPlayers[savedLogin] && userCredentials[savedLogin]) {
-            loggedInUser = savedLogin;
-            viewingPlayer = savedLogin;
-            document.getElementById('loadingScreen').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            window.render();
+    async function saveRound() {
+        const score = parseInt(document.getElementById('grossScore').value);
+        const course = document.getElementById('courseName').value;
+        const date = document.getElementById('datePlayed').value;
+        const leagueId = document.getElementById('leagueSelect').value || null;
+
+        if(!score || !course || !date) return alert("Please fill in score, course, and date");
+
+        const diff = ((score - 72) * 113 / 113).toFixed(1); // Simplified formula for base handicapping
+
+        const { error } = await sb.from('rounds').insert([{
+            player_id: user.id,
+            player_name: user.email.split('@')[0],
+            league_id: leagueId ? parseInt(leagueId) : null,
+            score: score,
+            course_name: course,
+            played_at: date,
+            differential: diff
+        }]);
+
+        if (error) {
+            alert("Error saving: " + error.message);
         } else {
-            localStorage.removeItem('golf_logged_in_user');
-            showLoginScreen();
+            document.getElementById('grossScore').value = '';
+            document.getElementById('courseName').value = '';
+            await loadData();
+            alert("Score synced to cloud!");
         }
     }
-    
-    initialize();
+
+    async function promptCreateLeague() {
+        const name = prompt("Enter Group/League Name:");
+        if (!name) return;
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        
+        const { data: league, error } = await sb.from('leagues').insert([{
+            name: name, 
+            invite_code: code, 
+            admin_id: user.id
+        }]).select().single();
+
+        if (error) {
+            alert(error.message);
+        } else {
+            await sb.from('league_members').insert([{ league_id: league.id, user_id: user.id }]);
+            await loadData();
+            alert(`Group Created! Share code ${code} with your friends.`);
+        }
+    }
+
+    async function promptJoinLeague() {
+        const code = prompt("Enter 6-digit Invite Code:");
+        if(!code) return;
+        
+        const { data: league, error } = await sb.from('leagues').select('*').eq('invite_code', code.toUpperCase()).single();
+        
+        if (league) {
+            const { error: joinError } = await sb.from('league_members').insert([{ league_id: league.id, user_id: user.id }]);
+            if(joinError) alert("You are already a member of this group.");
+            else await loadData();
+        } else {
+            alert("Invalid Invite Code.");
+        }
+    }
+
+    function calculateHandicap() {
+        if (rounds.length < 3) {
+            document.getElementById('handicapDisplay').innerText = "--";
+            return;
+        }
+        const diffs = rounds.map(r => parseFloat(r.differential)).sort((a,b) => a-b);
+        const numToUse = Math.min(diffs.length, 8);
+        const avg = diffs.slice(0, numToUse).reduce((a,b) => a+b, 0) / numToUse;
+        document.getElementById('handicapDisplay').innerText = (avg * 0.96).toFixed(1);
+    }
+
+    function toggle(id) {
+        const el = document.getElementById(id);
+        const all = ['groupsSec', 'postSec', 'historySec'];
+        all.forEach(sec => { if(sec !== id) document.getElementById(sec).style.display = 'none'; });
+        el.style.display = el.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function copyCode(code) {
+        navigator.clipboard.writeText(code);
+        alert("Code copied to clipboard!");
+    }
+
+    async function logout() { 
+        if(confirm("Sign out of Golf Tracker?")) await sb.auth.signOut(); 
+    }
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
