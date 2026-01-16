@@ -3,44 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Golf Tracker</title>
+  <title>Golf Handicap Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root { --primary: #2e7d32; --dark: #1b5e20; --accent: #ffa000; --bg: #f4f6f8; --danger: #d32f2f; }
-    body { font-family: system-ui, sans-serif; background: var(--bg); margin: 0; padding-bottom: 20px; }
-    .dashboard-header { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 25px 20px; text-align: center; border-bottom: 5px solid var(--accent); }
+    :root {
+      --primary: #2e7d32; --dark: #1b5e20; --accent: #ffa000;
+      --bg: #f4f6f8; --text: #333; --white: #ffffff; --danger: #d32f2f;
+    }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 20px; }
+    
+    .dashboard-header {
+      background: linear-gradient(135deg, var(--primary), var(--dark));
+      color: white; padding: 25px 20px; text-align: center;
+      border-bottom: 5px solid var(--accent);
+    }
     .hcp-display { font-size: 4rem; font-weight: 900; margin: 10px 0; }
-    .nav-tabs { display: flex; background: white; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .tab-link { flex: 1; padding: 15px; text-align: center; font-size: 0.7rem; font-weight: bold; cursor: pointer; color: #666; border-bottom: 3px solid transparent; }
+    
+    .nav-tabs {
+      display: flex; background: white; position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-x: auto;
+    }
+    .tab-link {
+      flex: 1; padding: 15px; text-align: center; font-size: 0.7rem;
+      font-weight: bold; cursor: pointer; color: #666; border-bottom: 3px solid transparent;
+      white-space: nowrap;
+    }
     .tab-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+
     .container { max-width: 600px; margin: 0 auto; padding: 15px; }
-    .card { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border: 1px solid #ddd; }
+    .card { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border: 1px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-bottom: 10px; }
     .btn-primary { background: var(--primary); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-link { background: none; color: var(--primary); font-size: 0.85rem; padding: 5px; text-decoration: underline; cursor: pointer; border: none; }
+    
     .form-control { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
     .hidden { display: none !important; }
+    .round-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
   </style>
 </head>
 <body>
 
 <div id="view-auth" class="container" style="margin-top: 10vh;">
   <div class="card" style="text-align: center;">
-    <h2 style="color: var(--primary);">⛳ Golf Tracker</h2>
+    <h2 style="color: var(--primary); margin-top: 0;">⛳ Golf Tracker</h2>
     <input type="email" id="email" class="form-control" placeholder="Email">
     <input type="password" id="password" class="form-control" placeholder="Password">
-    <button class="btn btn-primary" onclick="handleAuth()">Sign In / Create Account</button>
-    <div id="auth-error" style="color:red; font-size:0.8rem;"></div>
+    <button class="btn btn-primary" id="btn-login" onclick="handleAuth()">Sign In / Create Account</button>
+    <button class="btn-link" onclick="forgotPassword()">Forgot Password?</button>
+    <p id="auth-msg" style="font-size: 0.8rem; color: var(--danger);"></p>
   </div>
 </div>
 
 <div id="view-app" class="hidden">
   <div class="dashboard-header">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-      <span id="user-display-name" style="font-weight: bold;">Golfer</span>
-      <button onclick="sb.auth.signOut()" style="background:none; border:1px solid white; color:white; border-radius:4px; padding:4px 10px;">Logout</button>
+      <span id="user-display-name" style="font-weight: bold; font-size: 0.9rem;">Golfer</span>
+      <button onclick="logoutNow()" style="background:none; border:1px solid white; color:white; border-radius:4px; padding:4px 10px; cursor: pointer;">Logout</button>
     </div>
     <div class="hcp-display" id="dash-hcp">--</div>
-    <div style="font-size: 0.7rem; font-weight: bold;">WHS HANDICAP INDEX</div>
+    <div style="font-size: 0.7rem; opacity: 0.8; letter-spacing: 1px; font-weight: bold;">WHS HANDICAP INDEX</div>
   </div>
 
   <div class="nav-tabs">
@@ -55,65 +77,176 @@
     <div id="tab-dash">
       <div class="card"><h3>Recent Rounds</h3><div id="recent-list"></div></div>
     </div>
+
     <div id="tab-add" class="hidden">
       <div class="card">
         <h3>Post Score</h3>
-        <select id="course-sel" class="form-control"></select>
-        <input type="number" id="r-score" class="form-control" placeholder="Score">
+        <select id="r-course-select" class="form-control" onchange="autoFillCourse()"></select>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <input type="number" step="0.1" id="r-rating" class="form-control" placeholder="Rating">
+          <input type="number" id="r-slope" class="form-control" placeholder="Slope">
+        </div>
+        <input type="number" id="r-score" class="form-control" placeholder="Gross Score">
         <input type="date" id="r-date" class="form-control">
-        <button class="btn btn-primary" onclick="saveScore()">Save</button>
+        <button class="btn btn-primary" onclick="saveRound()">Save Round</button>
       </div>
     </div>
-    <div id="tab-leader" class="hidden"><div class="card"><h3>Rankings</h3><div id="lb-list"></div></div></div>
-    <div id="tab-groups" class="hidden"><div class="card"><h3>My Groups</h3><div id="group-list"></div></div></div>
-    <div id="tab-settings" class="hidden"><div class="card"><h3>Settings</h3><button class="btn" style="background:red; color:white;" onclick="deleteAcc()">Delete Account</button></div></div>
+
+    <div id="tab-leader" class="hidden">
+      <div class="card">
+        <label style="font-size: 0.7rem; font-weight: bold;">FILTER BY GROUP</label>
+        <select id="leader-group-filter" class="form-control" onchange="loadLeaderboard()"></select>
+        <div id="lb-list"></div>
+      </div>
+    </div>
+
+    <div id="tab-groups" class="hidden">
+      <div class="card">
+        <h3>Group Management</h3>
+        <input type="text" id="group-name-input" class="form-control" placeholder="New Group Name">
+        <button class="btn btn-primary" onclick="createGroup()">Create Group</button>
+        <hr>
+        <input type="text" id="invite-code-input" class="form-control" placeholder="Enter Invite Code">
+        <button class="btn btn-primary" onclick="joinGroup()">Join Group</button>
+      </div>
+      <div class="card"><h3>My Groups</h3><div id="my-groups-list"></div></div>
+    </div>
+
+    <div id="tab-settings" class="hidden">
+      <div class="card">
+        <h3>Account</h3>
+        <input type="text" id="set-name" class="form-control" placeholder="Update Display Name">
+        <button class="btn btn-primary" onclick="updateName()">Update Name</button>
+        <button class="btn btn-danger" style="margin-top:20px;" onclick="deleteOwnAccount()">Delete My Account</button>
+      </div>
+      <div class="card" id="super-admin-card" style="border: 2px solid var(--danger); display:none;">
+        <h3 style="color: var(--danger);">SUPER ADMIN TOOLS</h3>
+        <p>You can delete any score or user from the database.</p>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
   const S_URL = 'https://vonbibroncsxrgstetow.supabase.co'; //
   const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk'; //
-  const sb = supabase.createClient(S_URL, S_KEY);
+  const sb = window.supabase.createClient(S_URL, S_KEY);
+
+  let user = null, profile = null, masterCourses = [];
 
   async function handleAuth() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) {
-      const { error: sError } = await sb.auth.signUp({ email, password });
-      if (sError) document.getElementById('auth-error').innerText = sError.message;
-      else alert("Account created! Please Sign In.");
+        const { error: signUpErr } = await sb.auth.signUp({ email, password });
+        if(signUpErr) alert(signUpErr.message);
+        else alert("Account created! You can now Sign In.");
     }
   }
 
-  sb.auth.onAuthStateChange((event, session) => {
-    if (session) {
-      document.getElementById('view-auth').classList.add('hidden');
-      document.getElementById('view-app').classList.remove('hidden');
-      initApp();
-    } else {
-      document.getElementById('view-auth').classList.remove('hidden');
-      document.getElementById('view-app').classList.add('hidden');
-    }
-  });
-
-  async function initApp() {
-    const courses = [
-      { name: "Beaver Creek", rating: 72, slope: 130 },
-      { name: "Santa Maria", rating: 71.5, slope: 128 },
-      { name: "The Island", rating: 73.1, slope: 135 }
-    ];
-    const sel = document.getElementById('course-sel');
-    sel.innerHTML = courses.map(c => `<option value="${c.rating}|${c.slope}">${c.name}</option>`).join('');
-    document.getElementById('r-date').valueAsDate = new Date();
+  async function forgotPassword() {
+    const email = document.getElementById('email').value;
+    if(!email) return alert("Enter email first.");
+    await sb.auth.resetPasswordForEmail(email);
+    alert("Reset link sent to your email.");
   }
 
-  function showTab(tab, el) {
+  function logoutNow() { sb.auth.signOut(); window.location.reload(); }
+
+  async function startApp(session) {
+    user = session.user;
+    document.getElementById('view-auth').classList.add('hidden');
+    document.getElementById('view-app').classList.remove('hidden');
+    
+    let { data: p } = await sb.from('profiles').select('*').eq('id', user.id).single();
+    if(!p) {
+        const dName = user.email.split('@')[0];
+        const { data: newP } = await sb.from('profiles').insert({ id: user.id, display_name: dName }).select().single();
+        profile = newP;
+    } else { profile = p; }
+
+    document.getElementById('user-display-name').textContent = profile?.display_name || 'Golfer';
+    if(profile?.is_super_admin) document.getElementById('super-admin-card').style.display = 'block';
+
+    refreshData();
+  }
+
+  async function refreshData() { loadDashboard(); loadCourses(); loadMyGroups(); loadGroupFilters(); }
+
+  async function loadDashboard() {
+    const { data: p } = await sb.from('profiles').select('handicap_index').eq('id', user.id).single();
+    document.getElementById('dash-hcp').textContent = p?.handicap_index || '--';
+    const { data: rounds } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
+    document.getElementById('recent-list').innerHTML = rounds?.map(r => `
+      <div class="round-item">
+        <div><b>${r.score}</b> @ ${r.course_name}<br><small>${r.date_played}</small></div>
+        <button onclick="deleteRound('${r.id}')" style="color:red; background:none; border:none; cursor:pointer;">Delete</button>
+      </div>
+    `).join('') || 'No rounds.';
+  }
+
+  async function loadCourses() {
+    const { data } = await sb.from('courses').select('*').order('name');
+    masterCourses = data || [];
+    const sel = document.getElementById('r-course-select');
+    sel.innerHTML = '<option value="">-- Select Course --</option>';
+    masterCourses.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.name} (${c.tee || 'Std'})</option>`);
+  }
+
+  function autoFillCourse() {
+    const c = masterCourses.find(x => x.id === document.getElementById('r-course-select').value);
+    if(c) { document.getElementById('r-rating').value = c.course_rating; document.getElementById('r-slope').value = c.slope_rating; }
+  }
+
+  async function saveRound() {
+    const sel = document.getElementById('r-course-select');
+    await sb.from('rounds').insert({
+      user_id: user.id, course_name: sel.options[sel.selectedIndex].text,
+      score: parseInt(document.getElementById('r-score').value),
+      course_rating: parseFloat(document.getElementById('r-rating').value),
+      slope_rating: parseInt(document.getElementById('r-slope').value),
+      date_played: document.getElementById('r-date').value
+    });
+    showTab('dash', document.querySelector('.tab-link')); refreshData();
+  }
+
+  async function createGroup() {
+      const name = document.getElementById('group-name-input').value;
+      const code = Math.random().toString(36).substring(2,8).toUpperCase();
+      const { data: g } = await sb.from('groups').insert({ name, admin_id: user.id, invite_code: code }).select().single();
+      if(g) {
+          await sb.from('group_members').insert({ group_id: g.id, user_id: user.id });
+          alert("Group Created! Code: " + code);
+          refreshData();
+      }
+  }
+
+  async function joinGroup() {
+      const code = document.getElementById('invite-code-input').value.toUpperCase();
+      const { data: g } = await sb.from('groups').select('id').eq('invite_code', code).single();
+      if(g) {
+          await sb.from('group_members').insert({ group_id: g.id, user_id: user.id });
+          alert("Joined Group!");
+          refreshData();
+      } else alert("Invalid Code");
+  }
+
+  async function loadMyGroups() {
+      const { data: ms } = await sb.from('group_members').select('group_id').eq('user_id', user.id);
+      const ids = ms.map(m => m.group_id);
+      const { data: gs } = await sb.from('groups').select('*').in('id', ids);
+      document.getElementById('my-groups-list').innerHTML = gs?.map(g => `<div class="round-item"><b>${g.name}</b> <code>${g.invite_code}</code></div>`).join('') || 'None.';
+  }
+
+  function showTab(name, el) {
     document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
-    document.getElementById('tab-' + tab).classList.remove('hidden');
-    document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.remove('hidden');
+    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
   }
+
+  sb.auth.onAuthStateChange((ev, sess) => { if (sess) startApp(sess); else { document.getElementById('view-auth').classList.remove('hidden'); document.getElementById('view-app').classList.add('hidden'); } });
 </script>
 </body>
 </html>
