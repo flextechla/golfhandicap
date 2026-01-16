@@ -7,19 +7,24 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root { --primary: #2d5a27; --accent: #f4a460; --bg: #f5f7f5; --text: #333; --border: #e0e0e0; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; }
     .header { background: var(--primary); color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
     .container { max-width: 600px; margin: 0 auto; padding: 1rem; }
     .card { background: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .btn { padding: 0.7rem 1.2rem; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; width: 100%; transition: opacity 0.2s; }
+    .btn { padding: 0.7rem 1.2rem; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; width: 100%; }
     .btn-primary { background: var(--primary); color: white; }
-    .form-control { width: 100%; padding: 0.8rem; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+    .form-control { width: 100%; padding: 0.8rem; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; }
     .hidden { display: none !important; }
-    .tab-nav { display: flex; gap: 10px; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
-    .tab-link { padding: 10px; cursor: pointer; opacity: 0.6; }
+    .tab-nav { display: flex; gap: 10px; margin-bottom: 1rem; border-bottom: 1px solid var(--border); overflow-x: auto; }
+    .tab-link { padding: 10px; cursor: pointer; opacity: 0.6; white-space: nowrap; }
     .tab-link.active { opacity: 1; border-bottom: 2px solid var(--primary); font-weight: bold; }
-    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: center; }
-    .round-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    
+    /* Leaderboard Styling */
+    .lb-row { display: grid; grid-template-columns: 40px 1fr 60px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .lb-rank { font-weight: bold; color: #888; }
+    .lb-name { font-weight: 500; }
+    .lb-hcp { text-align: right; font-weight: 800; color: var(--primary); }
+    .lb-me { background: #f0fff0; margin: 0 -15px; padding: 12px 15px; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -32,43 +37,50 @@
       <input type="password" id="auth-password" class="form-control" placeholder="Password" required>
       <button type="submit" class="btn btn-primary">Sign In / Sign Up</button>
     </form>
-    <p id="auth-error" style="color: red; text-align: center; font-size: 0.9rem;"></p>
+    <p id="auth-error" style="color: red; text-align: center;"></p>
   </div>
 </div>
 
 <div id="view-app" class="hidden">
   <header class="header">
-    <div style="font-weight: 800; font-size: 1.2rem;">GOLF HANDICAP</div>
-    <button onclick="handleSignOut()" style="background: none; border: 1px solid white; color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer;">Sign Out</button>
+    <div style="font-weight: 800;">GOLF HANDICAP</div>
+    <button onclick="handleSignOut()" style="background: none; border: 1px solid white; color: white; padding: 4px 10px; border-radius: 4px;">Sign Out</button>
   </header>
 
   <div class="container">
     <div class="card" style="background: #eef2ee; border: 1px solid #d4ddd4;">
-      <label style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">ACTIVE GROUP</label>
-      <select id="group-select" class="form-control" onchange="onGroupChange(this.value)" style="margin-bottom: 0; margin-top: 5px;">
-        <option value="">Personal Scores Only</option>
-      </select>
+      <label style="font-size: 0.7rem; font-weight: bold; color: var(--primary);">ACTIVE GROUP</label>
+      <select id="group-select" class="form-control" onchange="onGroupChange(this.value)" style="margin: 5px 0 0 0;"></select>
     </div>
 
     <div class="tab-nav">
       <div class="tab-link active" onclick="switchTab('dash', this)">Dashboard</div>
+      <div class="tab-link" onclick="switchTab('leader', this)">Leaderboard</div>
       <div class="tab-link" onclick="switchTab('add', this)">Add Score</div>
     </div>
 
     <div id="tab-dash">
-      <div class="card stat-grid">
+      <div class="card" style="display: grid; grid-template-columns: 1fr 1fr; text-align: center;">
         <div><h1 id="stat-idx">--</h1><small>HANDICAP</small></div>
         <div><h1 id="stat-cnt">0</h1><small>ROUNDS</small></div>
       </div>
       <div class="card">
-        <h3 style="margin-top: 0;">Recent Rounds</h3>
+        <h3>Recent Rounds</h3>
         <div id="round-list"></div>
+      </div>
+    </div>
+
+    <div id="tab-leader" class="hidden">
+      <div class="card">
+        <h3 id="lb-title">Leaderboard</h3>
+        <div id="lb-list">
+          <p style="color: #999;">Select a group to see rankings...</p>
+        </div>
       </div>
     </div>
 
     <div id="tab-add" class="hidden">
       <div class="card">
-        <h3>Log New Round</h3>
         <form onsubmit="handleAddRound(event)">
           <input type="text" id="in-course" class="form-control" placeholder="Course Name" required>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -83,137 +95,106 @@
 </div>
 
 <script>
-  // 1. Initialize Supabase
-  const SUPABASE_URL = 'https://vonbibroncsxrgstetow.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
-  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const S_URL = 'https://vonbibroncsxrgstetow.supabase.co';
+  const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
+  const db = window.supabase.createClient(S_URL, S_KEY);
 
   let user = null;
-  let groups = [];
+  let activeGroupId = null;
 
-  // 2. Auth Logic
   async function handleAuth(e) {
     e.preventDefault();
     const email = document.getElementById('auth-email').value;
     const password = document.getElementById('auth-password').value;
-    
     let { data, error } = await db.auth.signInWithPassword({ email, password });
-    
-    if (error) { // If login fails, try signing up
-      let { data: upData, error: upError } = await db.auth.signUp({ email, password });
-      if (upError) document.getElementById('auth-error').textContent = upError.message;
-    }
+    if (error) await db.auth.signUp({ email, password });
   }
 
-  async function handleSignOut() {
-    await db.auth.signOut();
-    window.location.reload();
-  }
+  async function handleSignOut() { await db.auth.signOut(); window.location.reload(); }
 
-  // 3. Core App Logic
   async function startApp(session) {
     user = session.user;
-    console.log("-----------------------------------------");
-    console.log("I AM LOGGED IN AS (User ID):", user.id);
-    console.log("Make sure this ID matches your database!");
-    console.log("-----------------------------------------");
-
+    console.log("LOGGED IN AS:", user.id);
     document.getElementById('view-auth').classList.add('hidden');
     document.getElementById('view-app').classList.remove('hidden');
     document.getElementById('in-date').value = new Date().toISOString().split('T')[0];
-
     await fetchGroups();
     await fetchDashboard();
   }
 
   async function fetchGroups() {
-    // 1. Get memberships for THIS user
-    const { data: members, error: mErr } = await db.from('group_members').select('group_id').eq('user_id', user.id);
-    
-    if (mErr) { console.error("Error fetching memberships:", mErr); return; }
-    
-    if (members && members.length > 0) {
-      const gIds = members.map(m => m.group_id);
-      const { data: gData } = await db.from('groups').select('*').in('id', gIds);
-      
-      groups = gData || [];
-      const select = document.getElementById('group-select');
-      select.innerHTML = '<option value="">Personal Scores Only</option>';
-      groups.forEach(g => {
-        select.innerHTML += `<option value="${g.id}">${g.name}</option>`;
-      });
-    } else {
-      console.log("No memberships found in DB for ID:", user.id);
+    const { data: members } = await db.from('group_members').select('group_id').eq('user_id', user.id);
+    const select = document.getElementById('group-select');
+    select.innerHTML = '<option value="">Personal Scores Only</option>';
+    if (members) {
+      const { data: gData } = await db.from('groups').select('*').in('id', members.map(m => m.group_id));
+      gData?.forEach(g => select.innerHTML += `<option value="${g.id}">${g.name}</option>`);
     }
   }
 
   async function fetchDashboard() {
-    const { data: rounds } = await db.from('rounds')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('date_played', { ascending: false });
-
+    const { data: rounds } = await db.from('rounds').select('*').eq('user_id', user.id).order('date_played', { ascending: false });
     document.getElementById('stat-cnt').textContent = rounds?.length || 0;
-    
-    const list = document.getElementById('round-list');
-    if (!rounds || rounds.length === 0) {
-      list.innerHTML = '<p style="text-align:center; color:#999;">No rounds yet.</p>';
-    } else {
-      list.innerHTML = rounds.slice(0, 10).map(r => `
-        <div class="round-item">
-          <span><strong>${r.score}</strong> @ ${r.course_name}</span>
-          <small>${r.date_played}</small>
-        </div>
-      `).join('');
+    document.getElementById('round-list').innerHTML = rounds?.slice(0, 5).map(r => `
+      <div class="round-item"><span><b>${r.score}</b> @ ${r.course_name}</span><small>${r.date_played}</small></div>
+    `).join('') || 'No rounds.';
+    if (rounds?.length) {
+      const avg = rounds.slice(0, 5).reduce((a, b) => a + b.score, 0) / Math.min(rounds.length, 5);
+      document.getElementById('stat-idx').textContent = (avg - 72).toFixed(1);
+    }
+  }
+
+  async function fetchLeaderboard() {
+    if (!activeGroupId) {
+      document.getElementById('lb-list').innerHTML = '<p>Select a group to see rankings.</p>';
+      return;
     }
     
-    // Simple Handicap Average (Top 5)
-    if (rounds && rounds.length > 0) {
-      const avg = rounds.slice(0, 5).reduce((acc, r) => acc + r.score, 0) / Math.min(rounds.length, 5);
-      document.getElementById('stat-idx').textContent = (avg - 72).toFixed(1); // Rough estimate
-    }
+    // 1. Get all users in this group
+    const { data: members } = await db.from('group_members').select('user_id').eq('group_id', activeGroupId);
+    const userIds = members.map(m => m.user_id);
+
+    // 2. Get their scores/profiles (using the View we created in SQL Editor)
+    const { data: standings } = await db.from('profiles')
+        .select('id, display_name, handicap_index')
+        .in('id', userIds)
+        .order('handicap_index', { ascending: true });
+
+    document.getElementById('lb-list').innerHTML = standings.map((s, i) => `
+      <div class="lb-row ${s.id === user.id ? 'lb-me' : ''}">
+        <div class="lb-rank">#${i + 1}</div>
+        <div class="lb-name">${s.display_name || 'Guest Golfer'} ${s.id === user.id ? '(You)' : ''}</div>
+        <div class="lb-hcp">${s.handicap_index || '--'}</div>
+      </div>
+    `).join('');
   }
 
   async function handleAddRound(e) {
     e.preventDefault();
-    const newRound = {
+    const { error } = await db.from('rounds').insert({
       user_id: user.id,
       course_name: document.getElementById('in-course').value,
       score: parseInt(document.getElementById('in-score').value),
       date_played: document.getElementById('in-date').value
-    };
-
-    const { error } = await db.from('rounds').insert(newRound);
-    if (error) alert(error.message);
-    else {
-      alert("Round Saved!");
-      document.getElementById('in-course').value = '';
-      document.getElementById('in-score').value = '';
-      fetchDashboard();
-      switchTab('dash', document.querySelector('.tab-link'));
-    }
+    });
+    if (!error) { alert("Saved!"); fetchDashboard(); switchTab('dash', document.querySelector('.tab-link')); }
   }
 
-  // 4. UI Helpers
   function switchTab(tab, el) {
-    document.getElementById('tab-dash').classList.add('hidden');
-    document.getElementById('tab-add').classList.add('hidden');
+    document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
     document.getElementById('tab-' + tab).classList.remove('hidden');
-    
     document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
     el.classList.add('active');
+    if (tab === 'leader') fetchLeaderboard();
   }
 
   function onGroupChange(val) {
-    console.log("Selected group:", val);
-    // Future: Fetch group-specific leaderboard
+    activeGroupId = val;
+    const activeTab = document.querySelector('.tab-link.active').textContent;
+    if (activeTab === 'Leaderboard') fetchLeaderboard();
   }
 
-  // 5. Auth Listener
-  db.auth.onAuthStateChange((event, session) => {
-    if (session) startApp(session);
-  });
+  db.auth.onAuthStateChange((event, session) => { if (session) startApp(session); });
 </script>
-
 </body>
 </html>
