@@ -814,7 +814,7 @@ async function signOut() {
 // PROFILE FUNCTIONS
 // =============================================
 async function loadProfile() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('profiles')
     .select('*')
     .eq('id', currentUser.id)
@@ -840,7 +840,7 @@ function updateHandicapDisplay() {
 // GROUP FUNCTIONS
 // =============================================
 async function loadGroups() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('group_members')
     .select(`
       role,
@@ -992,7 +992,7 @@ async function loadDashboard() {
 }
 
 async function loadRoundsForContext(limit = 50) {
-  let query = supabase
+  let query = db
     .from('rounds')
     .select('*, profiles(display_name, full_name)')
     .order('date_played', { ascending: false })
@@ -1000,7 +1000,7 @@ async function loadRoundsForContext(limit = 50) {
   
   if (currentGroupId) {
     // Get group member IDs first
-    const { data: members } = await supabase
+    const { data: members } = await db
       .from('group_members')
       .select('user_id')
       .eq('group_id', currentGroupId);
@@ -1152,7 +1152,7 @@ async function loadLeaderboard() {
 // COURSES
 // =============================================
 async function loadCourses() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('courses')
     .select('*')
     .order('name');
