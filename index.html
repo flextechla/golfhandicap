@@ -211,27 +211,93 @@
     });
     alert("Course Added!"); loadCourses();
   }
-
+// --- UPDATED LEADERBOARD & TAB LOGIC ---
   async function loadLeaderboard() {
-    if (!activeGid) { document.getElementById('lb-list').innerHTML = 'Select a group above.'; return; }
-    const { data: ms } = await sb.from('group_members').select('user_id').eq('group_id', activeGid);
-    const { data: p } = await sb.from('profiles').select('*').in('id', ms.map(m => m.user_id)).order('handicap_index', {ascending:true});
-    document.getElementById('lb-list').innerHTML = p?.map((s, i) => `
-      <div class="round-item"><b>#${i+1}</b><span>${s.display_name || 'Golfer'}</span><b style="color:var(--primary);">${s.handicap_index || '--'}</b></div>
-    `).join('') || 'No players found.';
+    const lbContainer = document.getElementById('lb-list');
+    
+    // Check if a group is actually selected in your dropdown
+    if (!activeGid) { 
+      lbContainer.innerHTML = '<p style="text-align:center; padding: 20px; color:#999;">Select a group in the dropdown above to see other players.</p>'; 
+      return; 
+    }
+
+    // 1. Get all user IDs belonging to the selected group
+    const { data: members, error: mErr } = await sb
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', activeGid);
+
+    if (mErr) {
+      console.error("Leaderboard Error (Members):", mErr);
+      return;
+    }
+
+    const userIds = members.map(m => m.user_id);
+
+    // 2. Fetch profiles and handicaps for ALL those users
+    const { data: standings, error: sErr } = await sb
+      .from('profiles')
+      .select('id, display_name, handicap_index')
+      .in('id', userIds)
+      .order('handicap_index', { ascending: true });
+
+    if (sErr) {
+      console.error("Leaderboard Error (Profiles):", sErr);
+      return;
+    }
+
+    // 3. Render the list of players
+    if (!standings || standings.length === 0) {
+      lbContainer.innerHTML = '<p style="text-align:center; padding: 20px;">No player data found for this group.</p>';
+    } else {
+      lbContainer.innerHTML = standings.map((player, i) => `
+        <div class="round-item" style="background: ${player.id === user.id ? 'rgba(45, 90, 39, 0.05)' : 'transparent'}; padding: 10px; border-radius: 8px; margin-bottom: 5px;">
+          <div style="display: flex; align-items: center; gap: 15px;">
+            <b style="color: #888; width: 25px;">#${i + 1}</b>
+            <span style="font-weight: 500;">${player.display_name || 'Anonymous'} ${player.id === user.id ? '(You)' : ''}</span>
+          </div>
+          <b style="color:var(--primary); font-size: 1.1rem;">${player.handicap_index !== null ? player.handicap_index : '--'}</b>
+        </div>
+      `).join('');
+    }
   }
 
   function switchTab(t, el) {
+    // Hide all tab content
     document.querySelectorAll('[id^="tab-"]').forEach(x => x.classList.add('hidden'));
-    document.getElementById('tab-' + t).classList.remove('hidden');
+    
+    // Show the one you clicked
+    const targetTab = document.getElementById('tab-' + t);
+    if (targetTab) targetTab.classList.remove('hidden');
+    
+    // Make the button look "clicked"
     document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-    el.classList.add('active');
+    if (el) el.classList.add('active');
+    
+    // Automatically refresh the data for that tab
     if (t === 'leader') loadLeaderboard();
+    if (t === 'dash') loadDashboard();
   }
 
-  function changeGroup(v) { activeGid = v; if (document.getElementById('tab-leader').className === '') loadLeaderboard(); }
+  function changeGroup(v) { 
+    activeGid = v; 
+    console.log("Active Group Changed to:", activeGid);
+    // If the user is currently looking at the leaderboard, refresh it immediately
+    if (!document.getElementById('tab-leader').classList.contains('hidden')) {
+      loadLeaderboard();
+    }
+  }
 
-  sb.auth.onAuthStateChange((ev, sess) => { if (sess) startApp(sess); });
+  // This handles the login process and starts the app
+  sb.auth.onAuthStateChange((ev, sess) => { 
+    if (sess) {
+      startApp(sess); 
+    } else {
+      document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('app-screen').classList.add('hidden');
+    }
+  });
 </script>
 </body>
 </html>
+ 
