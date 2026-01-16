@@ -981,7 +981,7 @@ async function loadDashboard() {
     <div class="round-item">
       <div>
         <div class="round-course">${r.course_name || 'Unknown Course'}</div>
-        <div class="round-date">${formatDate(r.date_played)}${r.profiles?.display_name || r.profiles?.full_name ? ' • ' + (r.profiles.display_name || r.profiles.full_name) : ''}</div>
+        <div class="round-date">${formatDate(r.date_played)}</div>
       </div>
       <div style="text-align: right;">
         <div class="round-score">${r.score}</div>
@@ -994,7 +994,7 @@ async function loadDashboard() {
 async function loadRoundsForContext(limit = 50) {
   let query = db
     .from('rounds')
-    .select('*, profiles(display_name, full_name)')
+    .select('*')
     .order('date_played', { ascending: false })
     .limit(limit);
   
@@ -1043,7 +1043,6 @@ async function loadHistory() {
         <div class="round-course">${r.course_name || 'Unknown Course'}</div>
         <div class="round-date">
           ${formatDate(r.date_played)}
-          ${currentGroupId && r.profiles ? ' • ' + (r.profiles.display_name || r.profiles.full_name) : ''}
           ${r.notes ? ' • ' + r.notes : ''}
         </div>
       </div>
