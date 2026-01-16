@@ -59,7 +59,7 @@
   <div class="dashboard-header">
     <div style="display: flex; justify-content: space-between; align-items: center;">
       <span id="user-display-name" style="font-weight: bold; font-size: 0.9rem;">Golfer</span>
-      <button onclick="sb.auth.signOut()" style="background:none; border:1px solid white; color:white; border-radius:4px; padding:4px 10px; cursor: pointer;">Logout</button>
+      <button onclick="logoutNow()" style="background:none; border:1px solid white; color:white; border-radius:4px; padding:4px 10px; cursor: pointer;">Logout</button>
     </div>
     <div class="hcp-display" id="dash-hcp">--</div>
     <div style="font-size: 0.7rem; opacity: 0.8; letter-spacing: 1px; font-weight: bold;">WHS HANDICAP INDEX</div>
@@ -94,6 +94,7 @@
 
     <div id="tab-leader" class="hidden">
       <div class="card">
+        <label>Filter by Group</label>
         <select id="leader-group-filter" class="form-control" onchange="loadLeaderboard()"></select>
         <div id="lb-list"></div>
       </div>
@@ -102,11 +103,11 @@
     <div id="tab-groups" class="hidden">
       <div class="card">
         <h3>Create Group</h3>
-        <input type="text" id="group-name" class="form-control" placeholder="Group Name">
+        <input type="text" id="group-name-input" class="form-control" placeholder="Group Name">
         <button class="btn btn-primary" onclick="createGroup()">Create</button>
         <hr>
         <h3>Join Group</h3>
-        <input type="text" id="invite-code" class="form-control" placeholder="Invite Code">
+        <input type="text" id="invite-code-input" class="form-control" placeholder="Invite Code">
         <button class="btn btn-primary" onclick="joinGroup()">Join</button>
       </div>
       <div class="card"><h3>My Groups</h3><div id="my-groups-list"></div></div>
@@ -121,12 +122,18 @@
       </div>
       <div class="card" id="super-admin-card" style="border: 2px solid var(--danger); display:none;">
         <h3 style="color: var(--danger);">SUPER ADMIN</h3>
-        <button class="btn btn-danger" onclick="deleteAnyAccount()">Delete Other User</button>
+        <p>You have full deletion power.</p>
       </div>
     </div>
   </div>
 </div>
 
 <script>
+  // 1. INITIALIZE SUPABASE
   const S_URL = 'https://vonbibroncsxrgstetow.supabase.co';
-  const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6
+  const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
+  const sb = window.supabase.createClient(S_URL, S_KEY);
+
+  let user = null, profile = null, masterCourses = [];
+
+  // 2. AUTH LOGIC
