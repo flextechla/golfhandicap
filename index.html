@@ -840,27 +840,45 @@ function updateHandicapDisplay() {
 // GROUP FUNCTIONS
 // =============================================
 async function loadGroups() {
-  const { data, error } = await db
+  // First get group memberships
+  const { data: memberships, error: memberError } = await db
     .from('group_members')
-    .select(`
-      role,
-      groups (
-        id,
-        name,
-        invite_code
-      )
-    `)
+    .select('group_id, role')
     .eq('user_id', currentUser.id);
   
-  if (error) {
-    console.error('Error loading groups:', error);
+  if (memberError) {
+    console.error('Error loading group memberships:', memberError);
     return;
   }
   
-  myGroups = data.map(gm => ({
-    ...gm.groups,
-    role: gm.role
-  }));
+  if (!memberships || memberships.length === 0) {
+    console.log('No group memberships found');
+    myGroups = [];
+    return;
+  }
+  
+  // Then get group details
+  const groupIds = memberships.map(m => m.group_id);
+  const { data: groups, error: groupError } = await db
+    .from('groups')
+    .select('id, name, invite_code')
+    .in('id', groupIds);
+  
+  if (groupError) {
+    console.error('Error loading groups:', groupError);
+    return;
+  }
+  
+  // Combine the data
+  myGroups = (groups || []).map(g => {
+    const membership = memberships.find(m => m.group_id === g.id);
+    return {
+      ...g,
+      role: membership?.role || 'member'
+    };
+  });
+  
+  console.log('Loaded groups:', myGroups);
   
   const select = document.getElementById('group-select');
   select.innerHTML = '<option value="">My Scores Only</option>';
