@@ -172,7 +172,11 @@
     refreshData();
   }
 
-  async function refreshData() { loadDashboard(); loadCourses(); loadMyGroups(); loadGroupFilters(); }
+  async function refreshData() { 
+  loadDashboard(); 
+  loadCourses(); 
+  loadMyGroups(); 
+}
 
   async function loadDashboard() {
     const { data: p } = await sb.from('profiles').select('handicap_index').eq('id', user.id).single();
@@ -250,3 +254,4 @@
 </script>
 </body>
 </html>
+
