@@ -739,7 +739,7 @@
 const SUPABASE_URL = 'https://vonbibroncsxrgstetow.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // =============================================
 // STATE
@@ -774,7 +774,7 @@ async function handleAuth(e) {
   
   try {
     if (authMode === 'signup') {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await db.auth.signUp({
         email,
         password,
         options: {
@@ -789,7 +789,7 @@ async function handleAuth(e) {
         messageEl.style.color = 'var(--success)';
       }
     } else {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await db.auth.signInWithPassword({
         email,
         password
       });
@@ -803,7 +803,7 @@ async function handleAuth(e) {
 }
 
 async function signOut() {
-  await supabase.auth.signOut();
+  await db.auth.signOut();
   currentUser = null;
   currentProfile = null;
   document.getElementById('auth-screen').classList.remove('hidden');
@@ -899,7 +899,7 @@ async function createGroup(e) {
   const desc = document.getElementById('new-group-desc').value.trim();
   
   try {
-    const { data, error } = await supabase.rpc('create_group_with_owner', {
+    const { data, error } = await db.rpc('create_group_with_owner', {
       p_name: name,
       p_description: desc || null
     });
@@ -924,7 +924,7 @@ async function joinGroup(e) {
   const code = document.getElementById('join-code').value.trim().toUpperCase();
   
   try {
-    const { data, error } = await supabase.rpc('join_group_by_code', {
+    const { data, error } = await db.rpc('join_group_by_code', {
       p_code: code
     });
     
@@ -1074,11 +1074,11 @@ async function submitRound(e) {
   };
   
   try {
-    const { error } = await supabase.from('rounds').insert(round);
+    const { error } = await db.from('rounds').insert(round);
     if (error) throw error;
     
     // Recalculate handicap
-    await supabase.rpc('calculate_handicap_index', { p_user_id: currentUser.id });
+    await db.rpc('calculate_handicap_index', { p_user_id: currentUser.id });
     
     // Reload profile and data
     await loadProfile();
@@ -1113,7 +1113,7 @@ async function loadLeaderboard() {
   }
   
   try {
-    const { data, error } = await supabase.rpc('get_group_leaderboard', {
+    const { data, error } = await db.rpc('get_group_leaderboard', {
       p_group_id: currentGroupId
     });
     
@@ -1221,7 +1221,7 @@ async function addCourse(e) {
   };
   
   try {
-    const { error } = await supabase.from('courses').insert(course);
+    const { error } = await db.from('courses').insert(course);
     if (error) throw error;
     
     hideModal('add-course');
@@ -1274,7 +1274,7 @@ async function initApp() {
   document.getElementById('round-date').value = new Date().toISOString().split('T')[0];
   
   // Check auth state
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await db.auth.getSession();
   
   if (session) {
     currentUser = session.user;
@@ -1282,7 +1282,7 @@ async function initApp() {
   }
   
   // Listen for auth changes
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  db.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
       currentUser = session.user;
       await loadAppData();
