@@ -92,22 +92,50 @@
     }
   });
 
-  async function startApp(session) {
-    refreshData();
+ async function startApp(session) {
+    // 1. We immediately save the user from the session so it's not 'undefined'
+    const currentUser = session.user;
+    
+    document.getElementById('view-auth').classList.add('hidden');
+    document.getElementById('view-app').classList.remove('hidden');
+    
+    // 2. We pass that user directly into the refresh function
+    await refreshData(currentUser);
   }
 
-  async function refreshData() {
-    // Missing 'loadGroupFilters' is gone, app will no longer crash
-    loadDashboard();
+  async function refreshData(currentUser) {
+    // We pass the user down to the dashboard so it has the ID ready
+    loadDashboard(currentUser);
     loadCourses();
     loadMyGroups();
   }
 
-  async function loadDashboard() {
-    const { data: p } = await sb.from('profiles').select('handicap_index').eq('id', sb.auth.getUser().id).single();
-    document.getElementById('dash-hcp').textContent = p?.handicap_index || '--';
-  }
+  async function loadDashboard(currentUser) {
+    if (!currentUser) return;
 
+    // Fetch the profile using the confirmed ID
+    const { data: p } = await sb.from('profiles')
+        .select('handicap_index, display_name')
+        .eq('id', currentUser.id)
+        .single();
+
+    if (p) {
+        document.getElementById('dash-hcp').textContent = p.handicap_index || '--';
+        document.getElementById('user-display-name').textContent = p.display_name || 'Don';
+    }
+    
+    // Fetch ONLY Don's rounds
+    const { data: rounds } = await sb.from('rounds')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('date_played', {ascending: false});
+
+    document.getElementById('recent-list').innerHTML = rounds?.map(r => `
+      <div class="round-item">
+        <div><b>${r.score}</b> @ ${r.course_name}<br><small>${r.date_played}</small></div>
+      </div>
+    `).join('') || 'No rounds logged.';
+}
   async function loadCourses() {
     const { data } = await sb.from('courses').select('*').order('name');
     const sel = document.getElementById('r-course-select');
@@ -128,3 +156,4 @@
 </script>
 </body>
 </html>
+
