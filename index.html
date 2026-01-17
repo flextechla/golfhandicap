@@ -89,6 +89,75 @@
 </div>
 
 <script>
+<script>
+  // 1. Initialize Supabase
+  const S_URL = 'https://vonbibroncsxrgstetow.supabase.co'; 
+  const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
+  const sb = supabase.createClient(S_URL, S_KEY);
+
+  let user = null;
+  let profile = null;
+  let authMode = 'in';
+
+  // 2. THE MISSING LISTENER (Paste this carefully)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    console.log("Auth Event:", event);
+    
+    if (session) {
+      user = session.user;
+      console.log("Login detected for:", user.id);
+
+      // Fetch the user's name/admin status
+      const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
+      profile = data;
+
+      // SWITCH THE SCREEN
+      document.getElementById('view-auth').classList.add('hidden');
+      document.getElementById('view-app').classList.remove('hidden');
+      
+      refreshData();
+    } else {
+      // SHOW LOGIN SCREEN
+      document.getElementById('view-auth').classList.remove('hidden');
+      document.getElementById('view-app').classList.add('hidden');
+    }
+  });
+
+  // 3. AUTHENTICATION FUNCTIONS
+  window.toggleAuthMode = function(mode) {
+    authMode = mode;
+    document.getElementById('confirm-password').classList.toggle('hidden', mode === 'in');
+    document.getElementById('btn-auth-submit').innerText = mode === 'in' ? 'Sign In' : 'Register Account';
+  };
+
+  window.handleAuth = async function() {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
+    const errBox = document.getElementById('auth-error');
+    errBox.innerText = "Checking...";
+
+    if (authMode === 'up') {
+      const conf = document.getElementById('confirm-password').value;
+      if (pass !== conf) return errBox.innerText = "Passwords do not match";
+      const { error } = await sb.auth.signUp({ email, password: pass });
+      if (error) errBox.innerText = error.message;
+      else alert("Account created! Now please Sign In.");
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error) errBox.innerText = error.message;
+    }
+  };
+
+  // 4. DATA LOADING FUNCTIONS
+  async function refreshData() {
+    loadDashboard();
+    loadCourses();
+    loadLeaderboard();
+  }
+
+  // ... (Your loadDashboard, loadCourses, and loadLeaderboard functions go here)
+</script>
+  
   // 2. Wrap everything in a check to see if Supabase loaded
   if (typeof supabase === 'undefined') {
     alert("CRITICAL ERROR: Supabase failed to load. Please disable Tracking Prevention in your browser settings and refresh.");
@@ -215,5 +284,6 @@
 </script>
 </body>
 </html>
+
 
 
