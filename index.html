@@ -31,9 +31,25 @@
 <div id="view-auth" class="container" style="margin-top: 5vh;">
   <div class="card" style="text-align: center;">
     <h2 style="color: var(--primary);">⛳ Golf Tracker</h2>
+
+    <!-- Auth mode toggle -->
+    <div style="margin-bottom:10px; font-size:0.8rem;">
+      <button class="btn-sm" onclick="setAuthMode('signin')">Sign In</button>
+      <button class="btn-sm" onclick="setAuthMode('signup')">Create Account</button>
+    </div>
+
     <input type="email" id="email" class="form-control" placeholder="Email">
     <input type="password" id="password" class="form-control" placeholder="Password">
-    <button class="btn btn-primary" onclick="handleAuth()">Sign In</button>
+    <input type="password" id="password-confirm" class="form-control" placeholder="Confirm Password" style="display:none;">
+
+    <button class="btn btn-primary" onclick="handleAuth()" id="auth-btn-label">Sign In</button>
+
+    <button type="button"
+            class="btn btn-outline"
+            style="margin-top:8px; font-size:0.8rem;"
+            onclick="handleForgotPassword()">
+      Forgot password?
+    </button>
   </div>
 </div>
 
@@ -47,21 +63,22 @@
     <div style="font-size: 0.7rem; font-weight: bold;">WHS HANDICAP INDEX</div>
   </div>
 
- <div class="nav-tabs">
-  <div class="tab-link active" onclick="showTab('history', this)">SCORE HISTORY</div>
-  <div class="tab-link" onclick="showTab('add', this)">ADD SCORES</div>
-  <div class="tab-link" onclick="showTab('leader', this)">RANKINGS</div>
-  <div class="tab-link" onclick="showTab('groups', this)">GROUPS</div>
-  <div class="tab-link" onclick="showTab('settings', this)">SETTINGS</div>
-</div>
-
+  <div class="nav-tabs">
+    <div class="tab-link active" onclick="showTab('history', this)">SCORE HISTORY</div>
+    <div class="tab-link" onclick="showTab('add', this)">ADD SCORES</div>
+    <div class="tab-link" onclick="showTab('leader', this)">RANKINGS</div>
+    <div class="tab-link" onclick="showTab('groups', this)">GROUPS</div>
+    <div class="tab-link" onclick="showTab('settings', this)">SETTINGS</div>
+  </div>
 
   <div class="container">
-    <div id="tab-history"><div id="recent-list"></div></div>
+    <div id="tab-history">
+      <div id="recent-list"></div>
+    </div>
 
     <div id="tab-add" class="hidden">
       <div class="card">
-        <h3>Post Score</h3>
+        <h3>Add Scores</h3>
         <select id="r-course-select" class="form-control" onchange="autoFillCourse()"></select>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
           <input type="number" step="0.1" id="r-rating" class="form-control" placeholder="Rating">
@@ -77,7 +94,7 @@
       <div class="card">
         <h3>Group Leaderboard</h3>
         <div style="display: grid; grid-template-columns: 30px 1fr 60px 50px; font-size: 0.65rem; font-weight: bold; color: #999; margin-bottom: 5px;">
-            <span>#</span><span>NAME</span><span>INDEX</span><span>ROUNDS</span>
+          <span>#</span><span>NAME</span><span>INDEX</span><span>ROUNDS</span>
         </div>
         <div id="lb-list"></div>
       </div>
@@ -86,13 +103,13 @@
     <div id="tab-groups" class="hidden">
       <div id="group-status" class="card">No group joined.</div>
       <div class="card">
-          <h3>Group Actions</h3>
-          <input type="text" id="new-group-name" class="form-control" placeholder="New Group Name">
-          <input type="text" id="new-group-code" class="form-control" placeholder="Create Unique Code">
-          <button class="btn btn-primary" onclick="createGroup()">Create & Join</button>
-          <hr>
-          <input type="text" id="join-code" class="form-control" placeholder="Enter Join Code">
-          <button class="btn btn-outline" onclick="joinGroup()">Join Group</button>
+        <h3>Group Actions</h3>
+        <input type="text" id="new-group-name" class="form-control" placeholder="New Group Name">
+        <input type="text" id="new-group-code" class="form-control" placeholder="Create Unique Code">
+        <button class="btn btn-primary" onclick="createGroup()">Create & Join</button>
+        <hr>
+        <input type="text" id="join-code" class="form-control" placeholder="Enter Join Code">
+        <button class="btn btn-outline" onclick="joinGroup()">Join Group</button>
       </div>
     </div>
 
@@ -133,107 +150,184 @@
 </div>
 
 <script>
-  const S_URL = 'https://vonbibroncsxrgstetow.supabase.co'; 
+  const S_URL = 'https://vonbibroncsxrgstetow.supabase.co';
   const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
   const sb = supabase.createClient(S_URL, S_KEY);
 
   let user = null, profile = null, masterCourses = [];
+  let authMode = 'signin';
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    const confirmInput = document.getElementById('password-confirm');
+    const btn = document.getElementById('auth-btn-label');
+
+    if (mode === 'signup') {
+      confirmInput.style.display = 'block';
+      btn.textContent = 'Create Account';
+    } else {
+      confirmInput.style.display = 'none';
+      btn.textContent = 'Sign In';
+    }
+  }
 
   sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      // basic inline reset flow; you can swap this for a dedicated page later
+      const newPassword = prompt('Enter a new password:');
+      if (newPassword) {
+        const { error } = await sb.auth.updateUser({ password: newPassword });
+        if (error) alert(error.message);
+        else alert('Password updated successfully.');
+      }
+      return;
+    }
+
     if (session) {
       user = session.user;
       document.getElementById('view-auth').classList.add('hidden');
       document.getElementById('view-app').classList.remove('hidden');
       refreshData();
     } else {
+      user = null;
+      profile = null;
       document.getElementById('view-auth').classList.remove('hidden');
       document.getElementById('view-app').classList.add('hidden');
     }
   });
 
   async function handleAuth() {
-    const email = document.getElementById('email').value;
+    const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) alert(error.message);
+    const passwordConfirm = document.getElementById('password-confirm').value;
+
+    if (!email || !password) {
+      alert('Email and password are required.');
+      return;
+    }
+
+    if (authMode === 'signup') {
+      if (password !== passwordConfirm) {
+        alert('Passwords do not match.');
+        return;
+      }
+
+      const { error } = await sb.auth.signUp({ email, password });
+      if (error) {
+        alert(error.message);
+      } else {
+        alert('Account created. Check your email for confirmation if required.');
+      }
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) alert(error.message);
+    }
+  }
+
+  async function handleForgotPassword() {
+    const email = document.getElementById('email').value.trim();
+    if (!email) {
+      alert('Enter your email first, then click Forgot password.');
+      return;
+    }
+
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin // optionally add /update-password.html
+    });
+    if (error) {
+      alert(error.message);
+    } else {
+      alert('If an account exists for that email, a reset link has been sent.');
+    }
   }
 
   async function refreshData() {
     if (!user) return;
-    
-    console.log("Fetching profile for user:", user.id);
-    
-    // 1. Fetch Profile
-    const { data: pData, error: pError } = await sb.from('profiles').select('*, groups(*)').eq('id', user.id).single();
-    
+
+    console.log('Fetching profile for user:', user.id);
+
+    const { data: pData, error: pError } = await sb
+      .from('profiles')
+      .select('*, groups(*)')
+      .eq('id', user.id)
+      .single();
+
     if (pError) {
-        console.error("Profile fetch error:", pError);
-        // Fallback: If no profile found, use 'Don'
-        document.getElementById('user-display-name').textContent = "Don";
+      console.error('Profile fetch error:', pError);
+      document.getElementById('user-display-name').textContent = 'Don';
     } else {
-        profile = pData;
-        document.getElementById('user-display-name').textContent = profile.display_name || "Don";
-        document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
+      profile = pData;
+      document.getElementById('user-display-name').textContent = profile.display_name || 'Don';
+      document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
     }
 
-    // 2. Load other data
     loadHistory();
-    loadCourses(); 
+    loadCourses();
     loadLeaderboard();
     loadGroupsUI();
-}
-
-async function loadCourses() {
-  console.log("Loading courses...");
-  const { data, error } = await sb
-    .from('courses')
-    .select('*')
-    .order('name');
-
-  if (error) {
-    console.error("Course load error:", error);
-    return;
   }
 
-  masterCourses = data || [];
-  console.log("Courses loaded:", masterCourses.length);
+  async function loadCourses() {
+    console.log('Loading courses...');
+    const { data, error } = await sb
+      .from('courses')
+      .select('*')
+      .order('name');
 
-  const sel = document.getElementById('r-course-select');
-  const mSel = document.getElementById('m-course-select');
+    if (error) {
+      console.error('Course load error:', error);
+      return;
+    }
 
-  if (!masterCourses.length) {
-    sel.innerHTML = '<option value="">(No courses in database)</option>';
-    mSel.innerHTML = '<option value="new">-- Add New Course --</option>';
-  } else {
-    const opts = masterCourses
-      .map(c => `<option value="${c.id}">${c.name} (${c.tee})</option>`)
-      .join('');
-    sel.innerHTML = '<option value="">-- Select Course --</option>' + opts;
-    mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
+    masterCourses = data || [];
+    console.log('Courses loaded:', masterCourses.length);
+
+    const sel = document.getElementById('r-course-select');
+    const mSel = document.getElementById('m-course-select');
+
+    if (!masterCourses.length) {
+      sel.innerHTML = '<option value="">(No courses in database)</option>';
+      mSel.innerHTML = '<option value="new">-- Add New Course --</option>';
+    } else {
+      const opts = masterCourses
+        .map(c => `<option value="${c.id}">${c.name} (${c.tee ?? ''})</option>`)
+        .join('');
+      sel.innerHTML = '<option value="">-- Select Course --</option>' + opts;
+      mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
+    }
   }
-}
 
-  // --- LEADERBOARD LOGIC ---
+  // LEADERBOARD
   async function loadLeaderboard() {
-    if (!profile?.group_id) { document.getElementById('lb-list').innerText = "Join a group to see rankings."; return; }
-    
-    // Fetch users and their round counts
-    const { data: golfers } = await sb.from('profiles')
-        .select(`display_name, handicap_index, rounds(count)`)
-        .eq('group_id', profile.group_id)
-        .order('handicap_index', { ascending: true });
+    if (!profile?.group_id) {
+      document.getElementById('lb-list').innerText = 'Join a group to see rankings.';
+      return;
+    }
 
-    document.getElementById('lb-list').innerHTML = golfers.map((p, i) => `
-      <div class="lb-row">
-        <span style="color:#aaa; font-weight:bold;">${i+1}</span>
-        <span style="font-weight:bold;">${p.display_name}</span>
-        <span style="color:var(--primary); font-weight:900;">${p.handicap_index || '--'}</span>
-        <span style="font-size:0.7rem; color:#888; text-align:center;">${p.rounds[0].count}</span>
-      </div>
-    `).join('');
+    const { data: golfers, error } = await sb
+      .from('profiles')
+      .select('display_name, handicap_index, rounds(count)')
+      .eq('group_id', profile.group_id)
+      .order('handicap_index', { ascending: true });
+
+    if (error || !golfers) {
+      document.getElementById('lb-list').innerText = 'Unable to load leaderboard.';
+      return;
+    }
+
+    document.getElementById('lb-list').innerHTML = golfers
+      .map((p, i) => `
+        <div class="lb-row">
+          <span style="color:#aaa; font-weight:bold;">${i + 1}</span>
+          <span style="font-weight:bold;">${p.display_name}</span>
+          <span style="color:var(--primary); font-weight:900;">${p.handicap_index || '--'}</span>
+          <span style="font-size:0.7rem; color:#888; text-align:center;">${p.rounds?.[0]?.count ?? 0}</span>
+        </div>
+      `)
+      .join('');
   }
 
-  // --- SETTINGS UI ---
+  // SETTINGS UI
   function toggleSub(id) {
     document.getElementById('set-courses').classList.add('hidden');
     document.getElementById('set-help').classList.add('hidden');
@@ -241,131 +335,171 @@ async function loadCourses() {
     document.getElementById(id).classList.remove('hidden');
   }
 
-   async function saveCourse() {
-  const id = document.getElementById('edit-c-id').value;
-  const data = {
-    name: document.getElementById('edit-c-name').value,
-    tee: document.getElementById('edit-c-tee').value,
-    course_rating: parseFloat(document.getElementById('edit-c-rating').value),
-    slope_rating: parseInt(document.getElementById('edit-c-slope').value),
-    created_by: user.id
+  window.prepCourseEdit = function () {
+    const id = document.getElementById('m-course-select').value;
+    const btnDel = document.getElementById('btn-c-del');
+    if (id === 'new') {
+      document.getElementById('edit-c-id').value = '';
+      document.getElementById('edit-c-name').value = '';
+      document.getElementById('edit-c-tee').value = '';
+      document.getElementById('edit-c-rating').value = '';
+      document.getElementById('edit-c-slope').value = '';
+      btnDel.classList.add('hidden');
+    } else {
+      const c = masterCourses.find(x => String(x.id) === String(id));
+      if (!c) return;
+      document.getElementById('edit-c-id').value = c.id;
+      document.getElementById('edit-c-name').value = c.name;
+      document.getElementById('edit-c-tee').value = c.tee;
+      document.getElementById('edit-c-rating').value = c.course_rating;
+      document.getElementById('edit-c-slope').value = c.slope_rating;
+      btnDel.classList.remove('hidden');
+    }
   };
-  if (id) await sb.from('courses').update(data).eq('id', id);
-  else await sb.from('courses').insert(data);
-  alert("Course Saved!");
-  loadCourses();
-}
 
-async function deleteCourse() {
-  const id = document.getElementById('edit-c-id').value;
-  if (confirm("Delete this course?")) {
-    await sb.from('courses').delete().eq('id', id);
+  async function saveCourse() {
+    const id = document.getElementById('edit-c-id').value;
+    const data = {
+      name: document.getElementById('edit-c-name').value,
+      tee: document.getElementById('edit-c-tee').value,
+      course_rating: parseFloat(document.getElementById('edit-c-rating').value),
+      slope_rating: parseInt(document.getElementById('edit-c-slope').value, 10),
+      created_by: user.id
+    };
+    if (id) await sb.from('courses').update(data).eq('id', id);
+    else await sb.from('courses').insert(data);
+    alert('Course Saved!');
     loadCourses();
   }
-}
 
-  // --- GROUPS ---
+  async function deleteCourse() {
+    const id = document.getElementById('edit-c-id').value;
+    if (confirm('Delete this course?')) {
+      await sb.from('courses').delete().eq('id', id);
+      loadCourses();
+    }
+  }
+
+  // GROUPS
   function loadGroupsUI() {
     const status = document.getElementById('group-status');
     if (profile?.group_id && profile.groups) {
-        status.innerHTML = `<strong>Active Group:</strong> ${profile.groups.name}<br>Code: <strong>${profile.groups.group_code}</strong>`;
+      status.innerHTML = `<strong>Active Group:</strong> ${profile.groups.name}<br>Code: <strong>${profile.groups.group_code}</strong>`;
     } else {
-        status.innerText = "No group joined.";
+      status.innerText = 'No group joined.';
     }
   }
 
   async function createGroup() {
     const name = document.getElementById('new-group-name').value;
     const code = document.getElementById('new-group-code').value;
-    const { data, error } = await sb.from('groups').insert({ name, group_code: code, owner_id: user.id }).select().single();
+    const { data, error } = await sb
+      .from('groups')
+      .insert({ name, group_code: code, owner_id: user.id })
+      .select()
+      .single();
     if (data) {
-        await sb.from('profiles').update({ group_id: data.id }).eq('id', user.id);
-        refreshData();
+      await sb.from('profiles').update({ group_id: data.id }).eq('id', user.id);
+      refreshData();
     } else alert(error.message);
   }
 
   async function joinGroup() {
     const code = document.getElementById('join-code').value;
-    const { data: g } = await sb.from('groups').select('id').eq('group_code', code).single();
-    if (g) {
-        await sb.from('profiles').update({ group_id: g.id }).eq('id', user.id);
-        refreshData();
-    } else alert("Code not found.");
+    const { data: g, error } = await sb
+      .from('groups')
+      .select('id')
+      .eq('group_code', code)
+      .single();
+    if (g && !error) {
+      await sb.from('profiles').update({ group_id: g.id }).eq('id', user.id);
+      refreshData();
+    } else alert('Code not found.');
   }
 
-  // --- SCORE ENTRY & HISTORY ---
+  // SCORE ENTRY & HISTORY
   window.autoFillCourse = function () {
-  const selectedId = document.getElementById('r-course-select').value;
-  const c = masterCourses.find(x => String(x.id) === String(selectedId));
-  if (c) {
-    document.getElementById('r-rating').value = c.course_rating ?? '';
-    document.getElementById('r-slope').value = c.slope_rating ?? '';
-  }
-};
-
-
- async function saveRound() {
-  const sel = document.getElementById('r-course-select');
-  const score = parseInt(document.getElementById('r-score').value, 10);
-  const courseRating = parseFloat(document.getElementById('r-rating').value);
-  const slopeRating = parseInt(document.getElementById('r-slope').value, 10);
-
-  // basic differential
-  const diff = ((score - courseRating) * 113) / slopeRating;
-
-  const data = {
-    user_id: user.id,
-    course_name: sel.options[sel.selectedIndex].text,
-    score,
-    course_rating: courseRating,
-    slope_rating: slopeRating,
-    differential: diff.toFixed(1),
-    date_played: document.getElementById('r-date').value
+    const selectedId = document.getElementById('r-course-select').value;
+    const c = masterCourses.find(x => String(x.id) === String(selectedId));
+    if (c) {
+      document.getElementById('r-rating').value = c.course_rating ?? '';
+      document.getElementById('r-slope').value = c.slope_rating ?? '';
+    }
   };
 
-  await sb.from('rounds').insert(data);
-  await recalculateHandicap();
-  refreshData();
-  showTab('history', document.querySelector('.tab-link'));
- }
+  async function saveRound() {
+    const sel = document.getElementById('r-course-select');
+    const score = parseInt(document.getElementById('r-score').value, 10);
+    const courseRating = parseFloat(document.getElementById('r-rating').value);
+    const slopeRating = parseInt(document.getElementById('r-slope').value, 10);
+
+    const diff = ((score - courseRating) * 113) / slopeRating;
+
+    const data = {
+      user_id: user.id,
+      course_name: sel.options[sel.selectedIndex].text,
+      score,
+      course_rating: courseRating,
+      slope_rating: slopeRating,
+      differential: diff.toFixed(1),
+      date_played: document.getElementById('r-date').value
+    };
+
+    await sb.from('rounds').insert(data);
+    await recalculateHandicap();
+    refreshData();
+    showTab('history', document.querySelector('.tab-link'));
+  }
 
   async function recalculateHandicap() {
-  const { data: rounds, error } = await sb
-    .from('rounds')
-    .select('differential, date_played')
-    .eq('user_id', user.id)
-    .order('date_played', { ascending: false });
+    const { data: rounds, error } = await sb
+      .from('rounds')
+      .select('differential, date_played')
+      .eq('user_id', user.id)
+      .order('date_played', { ascending: false });
 
-  if (error || !rounds || !rounds.length) return;
+    if (error || !rounds || !rounds.length) return;
 
-  const diffs = rounds
-    .map(r => parseFloat(r.differential))
-    .filter(d => !isNaN(d));
+    const diffs = rounds
+      .map(r => parseFloat(r.differential))
+      .filter(d => !isNaN(d));
 
-  if (!diffs.length) return;
+    if (!diffs.length) return;
 
-  // very simplified: use lowest N depending on count, then 0.96
-  const n = Math.min(8, Math.floor(diffs.length / 2) || 1); // you could refine this table
-  const lowest = diffs.sort((a, b) => a - b).slice(0, n);
-  const avg = lowest.reduce((sum, d) => sum + d, 0) / lowest.length;
-  const index = Math.floor(avg * 0.96 * 10) / 10; // truncate to 1 decimal
+    const n = Math.min(8, Math.floor(diffs.length / 2) || 1);
+    const lowest = diffs.sort((a, b) => a - b).slice(0, n);
+    const avg = lowest.reduce((sum, d) => sum + d, 0) / lowest.length;
+    const index = Math.floor(avg * 0.96 * 10) / 10;
 
-  await sb
-    .from('profiles')
-    .update({ handicap_index: index })
-    .eq('id', user.id);
-}
-
+    await sb
+      .from('profiles')
+      .update({ handicap_index: index })
+      .eq('id', user.id);
+  }
 
   async function loadHistory() {
-    const { data: rounds } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
-    document.getElementById('recent-list').innerHTML = rounds?.map(r => `
+    const { data: rounds, error } = await sb
+      .from('rounds')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date_played', { ascending: false });
+
+    if (error || !rounds || !rounds.length) {
+      document.getElementById('recent-list').innerHTML = 'No rounds.';
+      return;
+    }
+
+    document.getElementById('recent-list').innerHTML = rounds
+      .map(
+        r => `
       <div class="card" style="border-left: 5px solid var(--primary);">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <div><small>${r.date_played}</small><br><b>${r.course_name}</b></div>
           <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">${r.score}</div>
         </div>
-      </div>`).join('') || 'No rounds.';
+      </div>`
+      )
+      .join('');
   }
 
   function showTab(name, el) {
@@ -377,6 +511,3 @@ async function deleteCourse() {
 </script>
 </body>
 </html>
-
-
-
