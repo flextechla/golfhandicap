@@ -47,13 +47,14 @@
     <div style="font-size: 0.7rem; font-weight: bold;">WHS HANDICAP INDEX</div>
   </div>
 
-  <div class="nav-tabs">
-    <div class="tab-link active" onclick="showTab('history', this)">HISTORY</div>
-    <div class="tab-link" onclick="showTab('add', this)">POST</div>
-    <div class="tab-link" onclick="showTab('leader', this)">RANKINGS</div>
-    <div class="tab-link" onclick="showTab('groups', this)">GROUPS</div>
-    <div class="tab-link" onclick="showTab('settings', this)">SETTINGS</div>
-  </div>
+ <div class="nav-tabs">
+  <div class="tab-link active" onclick="showTab('history', this)">SCORE HISTORY</div>
+  <div class="tab-link" onclick="showTab('add', this)">ADD SCORES</div>
+  <div class="tab-link" onclick="showTab('leader', this)">RANKINGS</div>
+  <div class="tab-link" onclick="showTab('groups', this)">GROUPS</div>
+  <div class="tab-link" onclick="showTab('settings', this)">SETTINGS</div>
+</div>
+
 
   <div class="container">
     <div id="tab-history"><div id="recent-list"></div></div>
@@ -183,28 +184,35 @@
 }
 
 async function loadCourses() {
-    console.log("Loading courses...");
-    const { data, error } = await sb.from('courses').select('*').order('name');
-    
-    if (error) {
-        console.error("Course load error:", error);
-        return;
-    }
+  console.log("Loading courses...");
+  const { data, error } = await sb
+    .from('courses')
+    .select('*')
+    .order('name');
 
-    masterCourses = data || [];
-    console.log("Courses loaded:", masterCourses.length);
+  if (error) {
+    console.error("Course load error:", error);
+    return;
+  }
 
-    const sel = document.getElementById('r-course-select');
-    const mSel = document.getElementById('m-course-select');
-    
-    if (masterCourses.length === 0) {
-        sel.innerHTML = '<option value="">(No courses in database)</option>';
-    } else {
-        const opts = masterCourses.map(c => `<option value="${c.id}">${c.name} (${c.tee})</option>`).join('');
-        sel.innerHTML = '<option value="">-- Select Course --</option>' + opts;
-        mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
-    }
+  masterCourses = data || [];
+  console.log("Courses loaded:", masterCourses.length);
+
+  const sel = document.getElementById('r-course-select');
+  const mSel = document.getElementById('m-course-select');
+
+  if (!masterCourses.length) {
+    sel.innerHTML = '<option value="">(No courses in database)</option>';
+    mSel.innerHTML = '<option value="new">-- Add New Course --</option>';
+  } else {
+    const opts = masterCourses
+      .map(c => `<option value="${c.id}">${c.name} (${c.tee})</option>`)
+      .join('');
+    sel.innerHTML = '<option value="">-- Select Course --</option>' + opts;
+    mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
+  }
 }
+
   // --- LEADERBOARD LOGIC ---
   async function loadLeaderboard() {
     if (!profile?.group_id) { document.getElementById('lb-list').innerText = "Join a group to see rankings."; return; }
@@ -233,60 +241,28 @@ async function loadCourses() {
     document.getElementById(id).classList.remove('hidden');
   }
 
-  async function loadCourses() {
-    const { data } = await sb.from('courses').select('*').order('name');
-    masterCourses = data || [];
-    const sel = document.getElementById('r-course-select');
-    const mSel = document.getElementById('m-course-select');
-    
-    const opts = masterCourses.map(c => `<option value="${c.id}">${c.name} (${c.tee})</option>`).join('');
-    sel.innerHTML = '<option value="">-- Select Course --</option>' + opts;
-    mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
-  }
+   async function saveCourse() {
+  const id = document.getElementById('edit-c-id').value;
+  const data = {
+    name: document.getElementById('edit-c-name').value,
+    tee: document.getElementById('edit-c-tee').value,
+    course_rating: parseFloat(document.getElementById('edit-c-rating').value),
+    slope_rating: parseInt(document.getElementById('edit-c-slope').value),
+    created_by: user.id
+  };
+  if (id) await sb.from('courses').update(data).eq('id', id);
+  else await sb.from('courses').insert(data);
+  alert("Course Saved!");
+  loadCourses();
+}
 
-  window.prepCourseEdit = function() {
-    const id = document.getElementById('m-course-select').value;
-    const btnDel = document.getElementById('btn-c-del');
-    if (id === 'new') {
-        document.getElementById('edit-c-id').value = "";
-        document.getElementById('edit-c-name').value = "";
-        document.getElementById('edit-c-tee').value = "";
-        document.getElementById('edit-c-rating').value = "";
-        document.getElementById('edit-c-slope').value = "";
-        btnDel.classList.add('hidden');
-    } else {
-        const c = masterCourses.find(x => x.id == id);
-        document.getElementById('edit-c-id').value = c.id;
-        document.getElementById('edit-c-name').value = c.name;
-        document.getElementById('edit-c-tee').value = c.tee;
-        document.getElementById('edit-c-rating').value = c.course_rating;
-        document.getElementById('edit-c-slope').value = c.slope_rating;
-        btnDel.classList.remove('hidden');
-    }
-  }
-
-  async function saveCourse() {
-    const id = document.getElementById('edit-c-id').value;
-    const data = {
-        name: document.getElementById('edit-c-name').value,
-        tee: document.getElementById('edit-c-tee').value,
-        course_rating: parseFloat(document.getElementById('edit-c-rating').value),
-        slope_rating: parseInt(document.getElementById('edit-c-slope').value),
-        created_by: user.id
-    };
-    if (id) await sb.from('courses').update(data).eq('id', id);
-    else await sb.from('courses').insert(data);
-    alert("Course Saved!");
+async function deleteCourse() {
+  const id = document.getElementById('edit-c-id').value;
+  if (confirm("Delete this course?")) {
+    await sb.from('courses').delete().eq('id', id);
     loadCourses();
   }
-
-  async function deleteCourse() {
-    const id = document.getElementById('edit-c-id').value;
-    if (confirm("Delete this course?")) {
-        await sb.from('courses').delete().eq('id', id);
-        loadCourses();
-    }
-  }
+}
 
   // --- GROUPS ---
   function loadGroupsUI() {
@@ -318,13 +294,15 @@ async function loadCourses() {
   }
 
   // --- SCORE ENTRY & HISTORY ---
-  window.autoFillCourse = function() {
-    const c = masterCourses.find(x => x.id === document.getElementById('r-course-select').value);
-    if(c) {
-      document.getElementById('r-rating').value = c.course_rating;
-      document.getElementById('r-slope').value = c.slope_rating;
-    }
-  };
+  window.autoFillCourse = function () {
+  const selectedId = document.getElementById('r-course-select').value;
+  const c = masterCourses.find(x => String(x.id) === String(selectedId));
+  if (c) {
+    document.getElementById('r-rating').value = c.course_rating ?? '';
+    document.getElementById('r-slope').value = c.slope_rating ?? '';
+  }
+};
+
 
   async function saveRound() {
     const sel = document.getElementById('r-course-select');
@@ -361,4 +339,5 @@ async function loadCourses() {
 </script>
 </body>
 </html>
+
 
