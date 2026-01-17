@@ -86,17 +86,63 @@
     
     <div id="tab-leader" class="hidden"><div class="card"><h3>Leaderboard</h3><div id="lb-list"></div></div></div>
     
-    <div id="tab-settings" class="hidden">
-        <div class="card">
-            <h3>Account Settings</h3>
-            <p>Admin privileges: <b id="admin-status">No</b></p>
-            <button class="btn btn-danger-outline" onclick="sb.auth.signOut()">Logout</button>
-        </div>
+   <div id="tab-settings" class="hidden">
+    <div class="card">
+        <h3>Account Settings</h3>
+        <p>User: <span id="settings-user-email"></span></p>
+        <button class="btn btn-danger-outline" onclick="sb.auth.signOut()">Logout</button>
     </div>
+
+    <div class="card">
+        <h3>Add New Course to Group</h3>
+        <input type="text" id="new-c-name" class="form-control" placeholder="Course Name (e.g. Copper Mill)">
+        <input type="text" id="new-c-tee" class="form-control" placeholder="Tee Box (e.g. Blue)">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <input type="number" step="0.1" id="new-c-rating" class="form-control" placeholder="Rating">
+          <input type="number" id="new-c-slope" class="form-control" placeholder="Slope">
+        </div>
+        <button class="btn btn-primary" onclick="addNewCourse()">Add Course to List</button>
+        <div id="course-msg" style="font-size: 0.8rem; margin-top: 10px; text-align: center;"></div>
+    </div>
+</div>
   </div>
 </div>
 
 <script>
+  async function addNewCourse() {
+    const name = document.getElementById('new-c-name').value;
+    const tee = document.getElementById('new-c-tee').value;
+    const rating = parseFloat(document.getElementById('new-c-rating').value);
+    const slope = parseInt(document.getElementById('new-c-slope').value);
+    const msg = document.getElementById('course-msg');
+
+    if (!name || !tee || !rating || !slope) {
+        msg.innerText = "❌ Please fill all fields";
+        return;
+    }
+
+    const { error } = await sb.from('courses').insert({
+        name: name,
+        tee: tee,
+        course_rating: rating,
+        slope_rating: slope,
+        created_by: user.id // Links it to your group
+    });
+
+    if (error) {
+        msg.innerText = "❌ Error: " + error.message;
+    } else {
+        msg.innerHTML = "✅ Course added! Refreshing list...";
+        // Clear fields
+        document.getElementById('new-c-name').value = "";
+        document.getElementById('new-c-tee').value = "";
+        document.getElementById('new-c-rating').value = "";
+        document.getElementById('new-c-slope').value = "";
+        loadCourses(); // Refresh the dropdown list
+    }
+}
+  
+  
   const S_URL = 'https://vonbibroncsxrgstetow.supabase.co'; 
   const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
   const sb = supabase.createClient(S_URL, S_KEY);
@@ -274,3 +320,4 @@ async function loadCourses() {
 </script>
 </body>
 </html>
+
