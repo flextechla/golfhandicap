@@ -105,24 +105,34 @@
   let authMode = 'in';
   let masterCourses = [];
 
-  // 2. Auth Listener (Switches Screens)
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (session) {
-      user = session.user;
-      const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
+ // 2. Auth Listener (Switches Screens)
+sb.auth.onAuthStateChange(async (event, session) => {
+  console.log('Auth event:', event, session);
+  
+  if (session) {
+    user = session.user;
+    
+    // Switch views FIRST, before any queries that might fail
+    document.getElementById('view-auth').classList.add('hidden');
+    document.getElementById('view-app').classList.remove('hidden');
+    
+    // Then try to load profile (with error handling)
+    try {
+      const { data, error } = await sb.from('profiles').select('*').eq('id', user.id).single();
+      if (error) console.error('Profile load error:', error);
       profile = data;
-
-      document.getElementById('view-auth').classList.add('hidden');
-      document.getElementById('view-app').classList.remove('hidden');
-      refreshData();
-    } else {
-      user = null;
-      profile = null;
-      document.getElementById('view-auth').classList.remove('hidden');
-      document.getElementById('view-app').classList.add('hidden');
+    } catch (err) {
+      console.error('Profile exception:', err);
     }
-  });
-
+    
+    refreshData();
+  } else {
+    user = null;
+    profile = null;
+    document.getElementById('view-auth').classList.remove('hidden');
+    document.getElementById('view-app').classList.add('hidden');
+  }
+});
   // 3. Auth Functions
   window.toggleAuthMode = function(mode) {
     authMode = mode;
@@ -146,10 +156,11 @@
         if (error) throw error;
         alert("Account created! Now please Sign In.");
         toggleAuthMode('in');
-      } else {
-        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-        if (error) throw error;
-      }
+     } else {
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) throw error;
+  errBox.innerText = ""; // Clear the message on success
+}
     } catch (err) {
       errBox.innerText = err.message;
     }
@@ -272,3 +283,4 @@
 </script>
 </body>
 </html>
+
