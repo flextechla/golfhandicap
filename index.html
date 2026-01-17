@@ -15,19 +15,15 @@
     .tab-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
     .container { max-width: 600px; margin: 0 auto; padding: 15px; }
     .card { background: white; border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    
-    /* Score History Card Styles */
     .round-card { border-left: 6px solid var(--primary); display: flex; flex-direction: column; }
     .round-main { display: flex; justify-content: space-between; align-items: center; }
     .score-val { font-size: 1.8rem; font-weight: 900; color: var(--primary); line-height: 1; }
     .score-label { font-size: 0.6rem; font-weight: bold; color: #999; text-align: right; }
-    
     .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-outline { background: none; border: 1px solid var(--primary); color: var(--primary); }
     .btn-danger-outline { background: none; border: 1px solid var(--danger); color: var(--danger); }
     .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; }
-    
     .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
     .hidden { display: none !important; }
     .error { color: var(--danger); font-size: 0.8rem; margin-bottom: 10px; text-align: center; }
@@ -39,7 +35,6 @@
 <div id="view-auth" class="container" style="margin-top: 5vh;">
   <div class="card" style="text-align: center;">
     <h2 style="color: var(--primary); margin-bottom: 5px;">⛳ Golf Tracker</h2>
-    <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">Louisiana Regional Tracking</p>
     
     <div id="auth-toggle-box" style="margin-bottom: 20px;">
       <button id="tab-signin" class="btn-sm btn-primary" onclick="toggleAuthMode('in')">Sign In</button>
@@ -62,7 +57,7 @@
       <button onclick="sb.auth.signOut()" style="background:rgba(255,255,255,0.2); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight: bold;">Logout</button>
     </div>
     <div class="hcp-display" id="dash-hcp">--</div>
-    <div style="font-size: 0.7rem; font-weight: bold; letter-spacing: 1px;">WHS HANDICAP INDEX</div>
+    <div style="font-size: 0.7rem; font-weight: bold;">WHS HANDICAP INDEX</div>
   </div>
 
   <div class="nav-tabs">
@@ -72,48 +67,41 @@
   </div>
 
   <div class="container">
-    <div id="tab-history">
-      <h3 style="margin-top:0; color: #444;">Your Rounds</h3>
-      <div id="recent-list"></div>
-    </div>
-    
+    <div id="tab-history"><div id="recent-list"></div></div>
     <div id="tab-add" class="hidden">
-      <div class="card">
-        <h3 id="form-title">Post New Round</h3>
-        <input type="hidden" id="edit-round-id">
-        <label style="font-size: 0.8rem; font-weight: bold;">Course</label>
-        <select id="r-course-select" class="form-control" onchange="autoFillCourse()"></select>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div><label style="font-size: 0.8rem; font-weight: bold;">Rating</label><input type="number" step="0.1" id="r-rating" class="form-control"></div>
-          <div><label style="font-size: 0.8rem; font-weight: bold;">Slope</label><input type="number" id="r-slope" class="form-control"></div>
+        <div class="card">
+            <h3 id="form-title">Post New Round</h3>
+            <input type="hidden" id="edit-round-id">
+            <select id="r-course-select" class="form-control" onchange="autoFillCourse()"></select>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <input type="number" step="0.1" id="r-rating" class="form-control" placeholder="Rating">
+              <input type="number" id="r-slope" class="form-control" placeholder="Slope">
+            </div>
+            <input type="number" id="r-score" class="form-control" placeholder="Total Score">
+            <input type="date" id="r-date" class="form-control">
+            <textarea id="r-notes" class="form-control" rows="2" placeholder="Notes..."></textarea>
+            <button id="btn-save" class="btn btn-primary" onclick="saveRound()">Save Round</button>
+            <button id="btn-cancel-edit" class="btn btn-outline hidden" onclick="cancelEdit()">Cancel Edit</button>
         </div>
-        <label style="font-size: 0.8rem; font-weight: bold;">Gross Score</label>
-        <input type="number" id="r-score" class="form-control" placeholder="Total Score">
-        <label style="font-size: 0.8rem; font-weight: bold;">Date Played</label>
-        <input type="date" id="r-date" class="form-control">
-        <label style="font-size: 0.8rem; font-weight: bold;">Notes (Optional)</label>
-        <textarea id="r-notes" class="form-control" rows="2" placeholder="Conditions, playing partners, etc."></textarea>
-        <button id="btn-save" class="btn btn-primary" onclick="saveRound()">Save Round</button>
-        <button id="btn-cancel-edit" class="btn btn-outline hidden" onclick="cancelEdit()">Cancel Edit</button>
-      </div>
     </div>
-
-    <div id="tab-leader" class="hidden">
-      <div class="card">
-        <h3 style="margin-top:0;">Handicap Leaderboard</h3>
-        <div id="lb-list"></div>
-      </div>
-    </div>
+    <div id="tab-leader" class="hidden"><div class="card"><h3>Leaderboard</h3><div id="lb-list"></div></div></div>
   </div>
 </div>
 
 <script>
+  // 2. Wrap everything in a check to see if Supabase loaded
+  if (typeof supabase === 'undefined') {
+    alert("CRITICAL ERROR: Supabase failed to load. Please disable Tracking Prevention in your browser settings and refresh.");
+  }
+
   const S_URL = 'https://vonbibroncsxrgstetow.supabase.co'; 
   const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
   const sb = supabase.createClient(S_URL, S_KEY);
+
   let user = null, profile = null, authMode = 'in', masterCourses = [];
 
-  function toggleAuthMode(mode) {
+  // 3. Defined functions clearly so the HTML can always find them
+  window.toggleAuthMode = function(mode) {
     authMode = mode;
     document.getElementById('confirm-password').classList.toggle('hidden', mode === 'in');
     document.getElementById('btn-auth-submit').innerText = mode === 'in' ? 'Sign In' : 'Register Account';
@@ -121,21 +109,21 @@
     document.getElementById('tab-signup').className = mode === 'up' ? 'btn-sm btn-primary' : 'btn-sm btn-outline';
   }
 
-  async function handleAuth() {
+  window.handleAuth = async function() {
     const email = document.getElementById('email').value;
     const pass = document.getElementById('password').value;
     const conf = document.getElementById('confirm-password').value;
     const errBox = document.getElementById('auth-error');
-    errBox.innerText = "";
+    errBox.innerText = "Checking...";
 
     if (authMode === 'up' && pass !== conf) return errBox.innerText = "Passwords do not match";
 
-    const { error } = (authMode === 'in') 
+    const { data, error } = (authMode === 'in') 
       ? await sb.auth.signInWithPassword({ email, password: pass })
       : await sb.auth.signUp({ email, password: pass });
 
     if (error) errBox.innerText = error.message;
-    else if (authMode === 'up') alert("Account created! You can now sign in.");
+    else if (authMode === 'up') alert("Check your email for confirmation (if enabled) or try signing in!");
   }
 
   sb.auth.onAuthStateChange(async (event, session) => {
@@ -161,63 +149,73 @@
   async function loadDashboard() {
     const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).single();
     document.getElementById('dash-hcp').textContent = p?.handicap_index || '--';
-    document.getElementById('user-display-name').textContent = p?.display_name || 'Golfer';
+    document.getElementById('user-display-name').textContent = p?.display_name || 'Don';
     
     const { data: rounds } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
-    
     document.getElementById('recent-list').innerHTML = rounds?.map(r => `
       <div class="card round-card">
         <div class="round-main">
-          <div>
-            <div style="font-size:0.75rem; color:#888; font-weight:bold;">${r.date_played}</div>
-            <div style="font-weight:800; font-size:1.1rem; color:#333;">${r.course_name}</div>
-          </div>
-          <div style="text-align:right">
-            <div class="score-val">${r.score}</div>
-            <div class="score-label">GROSS</div>
-            <div style="margin-top:8px;">
-              <button class="btn-sm btn-outline" onclick="editRound('${r.id}')">Edit</button>
-              ${profile?.is_super_admin ? `<button class="btn-sm btn-danger-outline" onclick="deleteRound('${r.id}')">Delete</button>` : ''}
-            </div>
+          <div><small>${r.date_played}</small><div style="font-weight:bold">${r.course_name}</div></div>
+          <div style="text-align:right"><div class="score-val">${r.score}</div><div class="score-label">GROSS</div>
+          <button class="btn-sm btn-outline" onclick="editRound('${r.id}')">Edit</button>
+          ${profile?.is_super_admin ? `<button class="btn-sm btn-danger-outline" onclick="deleteRound('${r.id}')">Delete</button>` : ''}
           </div>
         </div>
         ${r.notes ? `<div class="notes-text">${r.notes}</div>` : ''}
-      </div>`).join('') || '<p style="text-align:center">No rounds found.</p>';
+      </div>`).join('') || 'No rounds.';
   }
 
   async function loadLeaderboard() {
     const { data: profiles } = await sb.from('profiles').select('display_name, handicap_index').order('handicap_index', { ascending: true });
     document.getElementById('lb-list').innerHTML = profiles?.map((p, i) => `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee;">
-        <div style="font-weight: bold;"><span style="color:#aaa; margin-right:10px;">#${i+1}</span> ${p.display_name}</div>
-        <div style="background:var(--primary); color:white; padding:4px 10px; border-radius:4px; font-weight:900;">${p.handicap_index || '--'}</div>
-      </div>`).join('') || 'No data.';
+      <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee;">
+        <span>#${i+1} ${p.display_name}</span>
+        <span style="font-weight:bold">${p.handicap_index || '--'}</span>
+      </div>`).join('');
   }
 
-  async function editRound(id) {
-    const { data: r } = await sb.from('rounds').select('*').eq('id', id).single();
-    document.getElementById('edit-round-id').value = r.id;
-    document.getElementById('r-score').value = r.score;
-    document.getElementById('r-rating').value = r.course_rating;
-    document.getElementById('r-slope').value = r.slope_rating;
-    document.getElementById('r-date').value = r.date_played;
-    document.getElementById('r-notes').value = r.notes || "";
-    document.getElementById('form-title').innerText = "Edit Round";
-    document.getElementById('btn-save').innerText = "Update Round";
-    document.getElementById('btn-cancel-edit').classList.remove('hidden');
-    showTab('add', document.querySelectorAll('.tab-link')[1]);
+  window.showTab = function(name, el) {
+    document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
+    document.getElementById('tab-' + name).classList.remove('hidden');
+    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
   }
 
-  async function deleteRound(id) {
-    if (confirm("Delete this score permanently?")) {
-      await sb.from('rounds').delete().eq('id', id);
-      refreshData();
+  async function loadCourses() {
+    const { data } = await sb.from('courses').select('*').order('name');
+    masterCourses = data || [];
+    const sel = document.getElementById('r-course-select');
+    sel.innerHTML = '<option value="">-- Select Course --</option>';
+    masterCourses.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+  }
+
+  window.autoFillCourse = function() {
+    const c = masterCourses.find(x => x.id === document.getElementById('r-course-select').value);
+    if(c) {
+      document.getElementById('r-rating').value = c.course_rating;
+      document.getElementById('r-slope').value = c.slope_rating;
     }
   }
 
-  async function saveRound() {
+  window.saveRound = async function() {
     const id = document.getElementById('edit-round-id').value;
     const roundData = {
       score: parseInt(document.getElementById('r-score').value),
       course_rating: parseFloat(document.getElementById('r-rating').value),
-      slope_rating: parseInt(document
+      slope_rating: parseInt(document.getElementById('r-slope').value),
+      date_played: document.getElementById('r-date').value,
+      notes: document.getElementById('r-notes').value
+    };
+    if (id) { await sb.from('rounds').update(roundData).eq('id', id); cancelEdit(); }
+    else {
+      const sel = document.getElementById('r-course-select');
+      roundData.user_id = user.id;
+      roundData.course_name = sel.options[sel.selectedIndex].text;
+      await sb.from('rounds').insert(roundData);
+    }
+    refreshData();
+    showTab('history', document.querySelectorAll('.tab-link')[0]);
+  }
+</script>
+</body>
+</html>
