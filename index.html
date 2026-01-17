@@ -304,20 +304,58 @@ async function deleteCourse() {
 };
 
 
-  async function saveRound() {
-    const sel = document.getElementById('r-course-select');
-    const data = {
-      user_id: user.id,
-      course_name: sel.options[sel.selectedIndex].text,
-      score: parseInt(document.getElementById('r-score').value),
-      course_rating: parseFloat(document.getElementById('r-rating').value),
-      slope_rating: parseInt(document.getElementById('r-slope').value),
-      date_played: document.getElementById('r-date').value
-    };
-    await sb.from('rounds').insert(data);
-    refreshData();
-    showTab('history', document.querySelector('.tab-link'));
-  }
+ async function saveRound() {
+  const sel = document.getElementById('r-course-select');
+  const score = parseInt(document.getElementById('r-score').value, 10);
+  const courseRating = parseFloat(document.getElementById('r-rating').value);
+  const slopeRating = parseInt(document.getElementById('r-slope').value, 10);
+
+  // basic differential
+  const diff = ((score - courseRating) * 113) / slopeRating;
+
+  const data = {
+    user_id: user.id,
+    course_name: sel.options[sel.selectedIndex].text,
+    score,
+    course_rating: courseRating,
+    slope_rating: slopeRating,
+    differential: diff.toFixed(1),
+    date_played: document.getElementById('r-date').value
+  };
+
+  await sb.from('rounds').insert(data);
+  await recalculateHandicap();
+  refreshData();
+  showTab('history', document.querySelector('.tab-link'));
+ }
+
+  async function recalculateHandicap() {
+  const { data: rounds, error } = await sb
+    .from('rounds')
+    .select('differential, date_played')
+    .eq('user_id', user.id)
+    .order('date_played', { ascending: false });
+
+  if (error || !rounds || !rounds.length) return;
+
+  const diffs = rounds
+    .map(r => parseFloat(r.differential))
+    .filter(d => !isNaN(d));
+
+  if (!diffs.length) return;
+
+  // very simplified: use lowest N depending on count, then 0.96
+  const n = Math.min(8, Math.floor(diffs.length / 2) || 1); // you could refine this table
+  const lowest = diffs.sort((a, b) => a - b).slice(0, n);
+  const avg = lowest.reduce((sum, d) => sum + d, 0) / lowest.length;
+  const index = Math.floor(avg * 0.96 * 10) / 10; // truncate to 1 decimal
+
+  await sb
+    .from('profiles')
+    .update({ handicap_index: index })
+    .eq('id', user.id);
+}
+
 
   async function loadHistory() {
     const { data: rounds } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
@@ -339,5 +377,6 @@ async function deleteCourse() {
 </script>
 </body>
 </html>
+
 
 
