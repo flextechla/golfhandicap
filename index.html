@@ -18,17 +18,16 @@
     .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-outline { background: none; border: 1px solid var(--primary); color: var(--primary); }
-    .btn-danger { background: var(--danger); color: white; }
-    .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; border: 1px solid #ccc; background: white; }
+    .btn-danger-outline { background: none; border: 1px solid var(--danger); color: var(--danger); }
+    .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; border: 1px solid #ccc; }
     .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
     .hidden { display: none !important; }
-    .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:1000; }
-    .legal-box { font-size: 0.8rem; background: #f9f9f9; padding: 10px; border: 1px solid #ddd; height: 150px; overflow-y: scroll; margin-top: 10px; }
+    .legal-text { font-size: 0.75rem; color: #666; background: #f9f9f9; padding: 10px; border: 1px solid #eee; height: 120px; overflow-y: auto; margin: 10px 0; border-radius: 5px; }
   </style>
 </head>
 <body>
 
-<div id="view-auth" class="container" style="margin-top: 10vh;">
+<div id="view-auth" class="container" style="margin-top: 5vh;">
   <div class="card" style="text-align: center;">
     <h2 style="color: var(--primary);">⛳ Golf Tracker</h2>
     <input type="email" id="email" class="form-control" placeholder="Email">
@@ -57,7 +56,7 @@
 
   <div class="container">
     <div id="tab-history"><div id="recent-list"></div></div>
-    
+
     <div id="tab-add" class="hidden">
       <div class="card">
         <h3>Post Score</h3>
@@ -78,21 +77,25 @@
       <div id="group-status" class="card">No group joined.</div>
       <div class="card">
           <h3>Group Actions</h3>
-          <input type="text" id="group-name" class="form-control" placeholder="Group Name">
-          <input type="text" id="group-code" class="form-control" placeholder="Group Code">
+          <input type="text" id="new-group-name" class="form-control" placeholder="New Group Name">
+          <input type="text" id="new-group-code" class="form-control" placeholder="Create Unique Code">
           <button class="btn btn-primary" onclick="createGroup()">Create & Join</button>
-          <button class="btn btn-outline" onclick="joinGroup()">Join with Code</button>
+          <hr>
+          <input type="text" id="join-code" class="form-control" placeholder="Enter Join Code">
+          <button class="btn btn-outline" onclick="joinGroup()">Join Group</button>
       </div>
     </div>
 
     <div id="tab-settings" class="hidden">
-      <button class="btn btn-primary" onclick="toggleSubSection('sec-manage')">Manage Courses</button>
-      <button class="btn btn-primary" onclick="toggleSubSection('sec-help')">Help & Support</button>
-      <button class="btn btn-primary" onclick="toggleSubSection('sec-legal')">Privacy & Terms</button>
+      <button class="btn btn-outline" onclick="toggleSub('set-courses')">Manage Courses</button>
+      <button class="btn btn-outline" onclick="toggleSub('set-help')">Help & Support</button>
+      <button class="btn btn-outline" onclick="toggleSub('set-legal')">Privacy & Terms</button>
 
-      <div id="sec-manage" class="card hidden" style="margin-top: 20px;">
-        <h3>Course Manager</h3>
-        <select id="manage-course-select" class="form-control" onchange="prepCourseEdit()"></select>
+      <div id="set-courses" class="card hidden" style="margin-top: 15px;">
+        <h3>Manage Courses</h3>
+        <select id="m-course-select" class="form-control" onchange="prepCourseEdit()">
+            <option value="new">-- Add New Course --</option>
+        </select>
         <hr>
         <input type="hidden" id="edit-c-id">
         <input type="text" id="edit-c-name" class="form-control" placeholder="Course Name">
@@ -101,23 +104,23 @@
           <input type="number" step="0.1" id="edit-c-rating" class="form-control" placeholder="Rating">
           <input type="number" id="edit-c-slope" class="form-control" placeholder="Slope">
         </div>
-        <button class="btn btn-primary" onclick="saveCourse()">Save Changes / Add New</button>
-        <button class="btn btn-danger" id="btn-c-delete" class="hidden" onclick="deleteCourse()">Delete This Course</button>
+        <button class="btn btn-primary" onclick="saveCourse()">Save Course</button>
+        <button id="btn-c-del" class="btn btn-danger-outline hidden" onclick="deleteCourse()">Delete Course</button>
       </div>
 
-      <div id="sec-help" class="card hidden" style="margin-top: 20px;">
-        <h3>Support</h3>
-        <p>For troubleshooting or feedback, contact us at:</p>
+      <div id="set-help" class="card hidden" style="margin-top: 15px;">
+        <h3>Help & Support</h3>
+        <p>Issues with your handicap or login? Contact us at:</p>
         <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com'">Email support@lazybstudios.com</button>
-        <p style="margin-top:15px; font-size:0.9rem;"><b>Troubleshooting:</b> If scores aren't updating, try logging out and back in.</p>
+        <p style="margin-top: 10px; font-size: 0.85rem;"><b>Troubleshooting:</b> If scores don't appear, try a hard refresh (Ctrl+F5) or Logout/Login.</p>
       </div>
 
-      <div id="sec-legal" class="card hidden" style="margin-top: 20px;">
-        <h3>Legal</h3>
+      <div id="set-legal" class="card hidden" style="margin-top: 15px;">
+        <h3>Privacy & Terms</h3>
         <h4>Privacy Policy</h4>
-        <div class="legal-box">Your data is stored securely via Supabase. We do not sell your personal information. Only group members can see your golf scores.</div>
+        <div class="legal-text">Lazy B Studios values your privacy. Your scores are shared only with members of your joined groups. We do not sell data to third parties.</div>
         <h4>Terms of Agreement</h4>
-        <div class="legal-box">By using this application, you agree to submit accurate scores in accordance with the World Handicap System (WHS).</div>
+        <div class="legal-text">By using this service, you agree to submit truthful scores. This app is for recreational tracking using WHS-inspired logic.</div>
       </div>
     </div>
   </div>
@@ -160,55 +163,53 @@
     loadLeaderboard();
   }
 
-  function toggleSubSection(id) {
-    const sec = document.getElementById(id);
-    const isHidden = sec.classList.contains('hidden');
-    document.getElementById('sec-manage').classList.add('hidden');
-    document.getElementById('sec-help').classList.add('hidden');
-    document.getElementById('sec-legal').classList.add('hidden');
-    if (isHidden) sec.classList.remove('hidden');
+  function toggleSub(id) {
+    document.getElementById('set-courses').classList.add('hidden');
+    document.getElementById('set-help').classList.add('hidden');
+    document.getElementById('set-legal').classList.add('hidden');
+    document.getElementById(id).classList.remove('hidden');
   }
 
   async function loadCourses() {
     const { data } = await sb.from('courses').select('*').order('name');
     masterCourses = data || [];
     const sel = document.getElementById('r-course-select');
-    const mSel = document.getElementById('manage-course-select');
+    const mSel = document.getElementById('m-course-select');
     
-    const options = '<option value="">-- Select Course --</option>' + masterCourses.map(c => `<option value="${c.id}">${c.name} (${c.tee})</option>`).join('');
-    sel.innerHTML = options;
-    mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + masterCourses.map(c => `<option value="${c.id}">${c.name} (${c.tee})</option>`).join('');
+    const opts = masterCourses.map(c => `<option value="${c.id}">${c.name} (${c.tee})</option>`).join('');
+    sel.innerHTML = '<option value="">-- Select Course --</option>' + opts;
+    mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
   }
 
   window.prepCourseEdit = function() {
-    const id = document.getElementById('manage-course-select').value;
-    const delBtn = document.getElementById('btn-c-delete');
+    const id = document.getElementById('m-course-select').value;
+    const btnDel = document.getElementById('btn-c-del');
     if (id === 'new') {
-      document.getElementById('edit-c-id').value = "";
-      document.getElementById('edit-c-name').value = "";
-      document.getElementById('edit-c-tee').value = "";
-      document.getElementById('edit-c-rating').value = "";
-      document.getElementById('edit-c-slope').value = "";
-      delBtn.classList.add('hidden');
+        document.getElementById('edit-c-id').value = "";
+        document.getElementById('edit-c-name').value = "";
+        document.getElementById('edit-c-tee').value = "";
+        document.getElementById('edit-c-rating').value = "";
+        document.getElementById('edit-c-slope').value = "";
+        btnDel.classList.add('hidden');
     } else {
-      const c = masterCourses.find(x => x.id == id);
-      document.getElementById('edit-c-id').value = c.id;
-      document.getElementById('edit-c-name').value = c.name;
-      document.getElementById('edit-c-tee').value = c.tee;
-      document.getElementById('edit-c-rating').value = c.course_rating;
-      document.getElementById('edit-c-slope').value = c.slope_rating;
-      delBtn.classList.remove('hidden');
+        const c = masterCourses.find(x => x.id == id);
+        document.getElementById('edit-c-id').value = c.id;
+        document.getElementById('edit-c-name').value = c.name;
+        document.getElementById('edit-c-tee').value = c.tee;
+        document.getElementById('edit-c-rating').value = c.course_rating;
+        document.getElementById('edit-c-slope').value = c.slope_rating;
+        btnDel.classList.remove('hidden');
     }
   }
 
   async function saveCourse() {
     const id = document.getElementById('edit-c-id').value;
     const data = {
-      name: document.getElementById('edit-c-name').value,
-      tee: document.getElementById('edit-c-tee').value,
-      course_rating: parseFloat(document.getElementById('edit-c-rating').value),
-      slope_rating: parseInt(document.getElementById('edit-c-slope').value),
-      created_by: user.id
+        name: document.getElementById('edit-c-name').value,
+        tee: document.getElementById('edit-c-tee').value,
+        course_rating: parseFloat(document.getElementById('edit-c-rating').value),
+        slope_rating: parseInt(document.getElementById('edit-c-slope').value),
+        created_by: user.id
     };
     if (id) await sb.from('courses').update(data).eq('id', id);
     else await sb.from('courses').insert(data);
@@ -218,37 +219,12 @@
 
   async function deleteCourse() {
     const id = document.getElementById('edit-c-id').value;
-    if (!id || !confirm("Delete this course from the database?")) return;
-    await sb.from('courses').delete().eq('id', id);
-    alert("Course Deleted");
-    loadCourses();
-  }
-
-  // ... (Other functions like saveRound, loadHistory, loadLeaderboard stay the same)
-  
-  window.autoFillCourse = function() {
-    const c = masterCourses.find(x => x.id === document.getElementById('r-course-select').value);
-    if(c) {
-      document.getElementById('r-rating').value = c.course_rating;
-      document.getElementById('r-slope').value = c.slope_rating;
+    if (confirm("Permanently delete this course?")) {
+        await sb.from('courses').delete().eq('id', id);
+        loadCourses();
+        document.getElementById('m-course-select').value = 'new';
+        prepCourseEdit();
     }
-  };
-
-  async function loadHistory() {
-    const { data: rounds } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
-    document.getElementById('recent-list').innerHTML = rounds?.map(r => `
-      <div class="card round-card">
-        <div class="round-main">
-          <div><small>${r.date_played}</small><br><b>${r.course_name}</b></div>
-          <div style="text-align:right"><div class="score-val">${r.score}</div></div>
-        </div>
-      </div>`).join('') || 'No rounds.';
-  }
-
-  async function loadLeaderboard() {
-    if (!profile?.group_id) { document.getElementById('lb-list').innerText = "Join a group to see rankings."; return; }
-    const { data } = await sb.from('profiles').select('display_name, handicap_index').eq('group_id', profile.group_id).order('handicap_index');
-    document.getElementById('lb-list').innerHTML = data.map((p, i) => `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;"><span>#${i+1} ${p.display_name}</span><b>${p.handicap_index || '--'}</b></div>`).join('');
   }
 
   async function saveRound() {
@@ -264,6 +240,32 @@
     await sb.from('rounds').insert(data);
     refreshData();
     showTab('history', document.querySelector('.tab-link'));
+  }
+
+  // Helper functions for UI
+  window.autoFillCourse = function() {
+    const c = masterCourses.find(x => x.id === document.getElementById('r-course-select').value);
+    if(c) {
+      document.getElementById('r-rating').value = c.course_rating;
+      document.getElementById('r-slope').value = c.slope_rating;
+    }
+  };
+
+  async function loadHistory() {
+    const { data: rounds } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
+    document.getElementById('recent-list').innerHTML = rounds?.map(r => `
+      <div class="card" style="border-left: 5px solid var(--primary);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div><small>${r.date_played}</small><br><b>${r.course_name}</b></div>
+          <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">${r.score}</div>
+        </div>
+      </div>`).join('') || 'No rounds.';
+  }
+
+  async function loadLeaderboard() {
+    if (!profile?.group_id) { document.getElementById('lb-list').innerText = "Join a group to see rankings."; return; }
+    const { data } = await sb.from('profiles').select('display_name, handicap_index').eq('group_id', profile.group_id).order('handicap_index');
+    document.getElementById('lb-list').innerHTML = data.map((p, i) => `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee;"><span>#${i+1} ${p.display_name}</span><b>${p.handicap_index || '--'}</b></div>`).join('');
   }
 
   function showTab(name, el) {
