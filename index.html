@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Golf Score Tracker</title>
+  <title>Golf Tracker | Lazy B Studios</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root { --primary: #2e7d32; --dark: #1b5e20; --accent: #ffa000; --bg: #f4f6f8; --danger: #d32f2f; }
@@ -15,10 +15,6 @@
     .tab-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
     .container { max-width: 600px; margin: 0 auto; padding: 15px; }
     .card { background: white; border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .round-card { border-left: 6px solid var(--primary); display: flex; flex-direction: column; }
-    .round-main { display: flex; justify-content: space-between; align-items: center; }
-    .score-val { font-size: 1.8rem; font-weight: 900; color: var(--primary); line-height: 1; }
-    .score-label { font-size: 0.6rem; font-weight: bold; color: #999; text-align: right; }
     .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-outline { background: none; border: 1px solid var(--primary); color: var(--primary); }
@@ -26,24 +22,21 @@
     .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; }
     .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
     .hidden { display: none !important; }
-    .error { color: var(--danger); font-size: 0.8rem; margin-bottom: 10px; text-align: center; }
+    .legal-text { font-size: 0.7rem; color: #777; height: 80px; overflow-y: scroll; border: 1px solid #eee; padding: 8px; background: #fafafa; margin-bottom: 10px; }
     .notes-text { font-size: 0.85rem; color: #555; margin-top: 8px; padding-top: 6px; border-top: 1px solid #eee; font-style: italic; }
   </style>
 </head>
 <body>
 
-<div id="view-auth" class="container" style="margin-top: 5vh;">
-  <div class="card" style="text-align: center;">
-    <h2 style="color: var(--primary); margin-bottom: 5px;">⛳ Golf Tracker</h2>
-    <div id="auth-toggle-box" style="margin-bottom: 20px;">
-      <button id="tab-signin" class="btn-sm btn-primary" onclick="toggleAuthMode('in')">Sign In</button>
-      <button id="tab-signup" class="btn-sm btn-outline" onclick="toggleAuthMode('up')">Create Account</button>
-    </div>
+<div id="view-auth" class="container">
+  <div class="card" style="text-align: center; margin-top: 5vh;">
+    <h2 style="color: var(--primary);">⛳ Golf Tracker</h2>
     <input type="email" id="email" class="form-control" placeholder="Email">
     <input type="password" id="password" class="form-control" placeholder="Password">
-    <input type="password" id="confirm-password" class="form-control hidden" placeholder="Confirm Password">
-    <div id="auth-error" class="error"></div>
-    <button id="btn-auth-submit" class="btn btn-primary" onclick="handleAuth()">Sign In</button>
+    <button class="btn btn-primary" onclick="handleAuth()">Sign In</button>
+    <div style="margin-top:15px; font-size:0.8rem; color:#666;">
+        New users contact <a href="mailto:support@lazybstudios.com">support@lazybstudios.com</a>
+    </div>
   </div>
 </div>
 
@@ -51,66 +44,86 @@
   <div class="header">
     <div style="display: flex; justify-content: space-between; align-items: center;">
       <span id="user-display-name" style="font-weight: bold;">Loading...</span>
-      <button onclick="sb.auth.signOut()" style="background:rgba(255,255,255,0.2); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight: bold;">Logout</button>
+      <button onclick="sb.auth.signOut()" class="btn-sm">Logout</button>
     </div>
     <div class="hcp-display" id="dash-hcp">--</div>
     <div style="font-size: 0.7rem; font-weight: bold;">WHS HANDICAP INDEX</div>
   </div>
 
   <div class="nav-tabs">
-    <div class="tab-link active" onclick="showTab('history', this)">SCORE HISTORY</div>
-    <div class="tab-link" onclick="showTab('add', this)">ADD SCORE</div>
+    <div class="tab-link active" onclick="showTab('history', this)">HISTORY</div>
+    <div class="tab-link" onclick="showTab('add', this)">POST</div>
     <div class="tab-link" onclick="showTab('leader', this)">RANKINGS</div>
-    <div class="tab-link" onclick="showTab('settings', this)">SETTINGS</div>
+    <div class="tab-link" onclick="showTab('groups', this)">GROUPS</div>
+    <div class="tab-link" onclick="showTab('help', this)">HELP</div>
   </div>
 
   <div class="container">
     <div id="tab-history"><div id="recent-list"></div></div>
-    
-    <div id="tab-add" class="hidden">
-        <div class="card">
-            <h3 id="form-title">Post New Round</h3>
-            <input type="hidden" id="edit-round-id">
-            <label style="font-size: 0.8rem; font-weight: bold;">Course & Tee</label>
-            <select id="r-course-select" class="form-control" onchange="autoFillCourse()"></select>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <div><label style="font-size: 0.8rem;">Rating</label><input type="number" step="0.1" id="r-rating" class="form-control"></div>
-              <div><label style="font-size: 0.8rem;">Slope</label><input type="number" id="r-slope" class="form-control"></div>
-            </div>
-            <label style="font-size: 0.8rem; font-weight: bold;">Gross Score</label>
-            <input type="number" id="r-score" class="form-control" placeholder="Enter Score">
-            <input type="date" id="r-date" class="form-control">
-            <textarea id="r-notes" class="form-control" rows="2" placeholder="Notes (Optional)..."></textarea>
-            <button id="btn-save" class="btn btn-primary" onclick="saveRound()">Save Round</button>
-            <button id="btn-cancel-edit" class="btn btn-outline hidden" onclick="cancelEdit()">Cancel Edit</button>
-        </div>
-    </div>
-    
-    <div id="tab-leader" class="hidden"><div class="card"><h3>Leaderboard</h3><div id="lb-list"></div></div></div>
-    
-    <div id="tab-settings" class="hidden">
-        <div class="card">
-            <h3>Account</h3>
-            <p style="font-size: 0.9rem;">Email: <b id="settings-email">--</b></p>
-            <button class="btn btn-danger-outline" onclick="sb.auth.signOut()">Logout</button>
-        </div>
 
-        <div class="card">
-            <h3>Manage Courses</h3>
-            <p style="font-size: 0.8rem; color: #666;">Add a course to your dropdown list.</p>
-            <input type="text" id="new-c-name" class="form-control" placeholder="Course Name">
-            <input type="text" id="new-c-tee" class="form-control" placeholder="Tee Color (e.g. White)">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <input type="number" step="0.1" id="new-c-rating" class="form-control" placeholder="Rating">
-              <input type="number" id="new-c-slope" class="form-control" placeholder="Slope">
-            </div>
-            <button class="btn btn-primary" onclick="addNewCourse()">Add Course</button>
-            <div id="course-msg" style="margin-top:10px; font-size:0.8rem; text-align:center;"></div>
-            
-            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-            <h4>Your Custom Courses</h4>
-            <div id="manage-course-list"></div>
+    <div id="tab-add" class="hidden">
+      <div class="card">
+        <h3>Post Score</h3>
+        <select id="r-course-select" class="form-control" onchange="autoFillCourse()"></select>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <input type="number" step="0.1" id="r-rating" class="form-control" placeholder="Rating">
+          <input type="number" id="r-slope" class="form-control" placeholder="Slope">
         </div>
+        <input type="number" id="r-score" class="form-control" placeholder="Gross Score">
+        <input type="date" id="r-date" class="form-control">
+        <textarea id="r-notes" class="form-control" rows="2" placeholder="Notes..."></textarea>
+        <button class="btn btn-primary" onclick="saveRound()">Save Round</button>
+      </div>
+    </div>
+
+    <div id="tab-leader" class="hidden"><div class="card"><h3>Group Leaderboard</h3><div id="lb-list"></div></div></div>
+
+    <div id="tab-groups" class="hidden">
+      <div class="card">
+        <h3>My Group</h3>
+        <div id="group-status" style="margin-bottom:10px;">No group joined.</div>
+        <button id="btn-leave-group" class="btn-sm btn-danger-outline hidden" onclick="leaveGroup()">Leave Group</button>
+      </div>
+      
+      <div class="card" id="join-section">
+        <h3>Join a Group</h3>
+        <input type="text" id="join-code" class="form-control" placeholder="Enter Group Code">
+        <button class="btn btn-outline" onclick="joinGroup()">Join Group</button>
+      </div>
+
+      <div class="card">
+        <h3>Create a Group</h3>
+        <input type="text" id="new-group-name" class="form-control" placeholder="Group Name">
+        <input type="text" id="new-group-code" class="form-control" placeholder="Create Unique Code">
+        <button class="btn btn-primary" onclick="createGroup()">Create & Join</button>
+      </div>
+    </div>
+
+    <div id="tab-help" class="hidden">
+      <div class="card">
+        <h3>Manage Courses</h3>
+        <div id="manage-course-list"></div>
+        <hr>
+        <h4>Add Course</h4>
+        <input type="text" id="c-name" class="form-control" placeholder="Name">
+        <input type="text" id="c-tee" class="form-control" placeholder="Tee Box">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <input type="number" step="0.1" id="c-rating" class="form-control" placeholder="Rating">
+          <input type="number" id="c-slope" class="form-control" placeholder="Slope">
+        </div>
+        <button class="btn btn-primary" onclick="saveCourse()">Add to My List</button>
+      </div>
+
+      <div class="card">
+        <h3>Support</h3>
+        <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com'">Email Support</button>
+        
+        <h4 style="margin-top:20px;">Privacy Policy</h4>
+        <div class="legal-text">Lazy B Studios respects your data. Scores and profiles are only visible to group members...</div>
+        
+        <h4>Terms of Agreement</h4>
+        <div class="legal-text">By using this app, you agree to submit honest scores. Abuse of the handicap system...</div>
+      </div>
     </div>
   </div>
 </div>
@@ -120,9 +133,8 @@
   const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
   const sb = supabase.createClient(S_URL, S_KEY);
 
-  let user = null, profile = null, authMode = 'in', masterCourses = [];
+  let user = null, profile = null, masterCourses = [];
 
-  // --- Auth Logic ---
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session) {
       user = session.user;
@@ -130,80 +142,123 @@
       document.getElementById('view-app').classList.remove('hidden');
       refreshData();
     } else {
-      user = null; profile = null;
       document.getElementById('view-auth').classList.remove('hidden');
       document.getElementById('view-app').classList.add('hidden');
     }
   });
 
-  window.toggleAuthMode = function(mode) {
-    authMode = mode;
-    document.getElementById('confirm-password').classList.toggle('hidden', mode === 'in');
-    document.getElementById('btn-auth-submit').innerText = mode === 'in' ? 'Sign In' : 'Register Account';
-    document.getElementById('tab-signin').className = mode === 'in' ? 'btn-sm btn-primary' : 'btn-sm btn-outline';
-    document.getElementById('tab-signup').className = mode === 'up' ? 'btn-sm btn-primary' : 'btn-sm btn-outline';
-  };
-
-  window.handleAuth = async function() {
+  async function handleAuth() {
     const email = document.getElementById('email').value;
-    const pass = document.getElementById('password').value;
-    const errBox = document.getElementById('auth-error');
-    errBox.innerText = "Connecting...";
-    try {
-      if (authMode === 'up') {
-        const conf = document.getElementById('confirm-password').value;
-        if (pass !== conf) throw new Error("Passwords do not match");
-        const { error } = await sb.auth.signUp({ email, password: pass });
-        if (error) throw error;
-        alert("Account created! You can now Sign In.");
-        toggleAuthMode('in');
-      } else {
-        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-        if (error) throw error;
-      }
-    } catch (err) { errBox.innerText = err.message; }
-  };
+    const password = document.getElementById('password').value;
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) alert("Login failed: " + error.message);
+  }
 
-  // --- Data Logic ---
   async function refreshData() {
     if (!user) return;
-    const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).single();
-    profile = p;
-    document.getElementById('user-display-name').textContent = p?.display_name || 'Golfer';
-    document.getElementById('dash-hcp').textContent = p?.handicap_index || '--';
-    document.getElementById('settings-email').innerText = user.email;
+    const { data } = await sb.from('profiles').select('*, groups(*)').eq('id', user.id).single();
+    profile = data;
 
+    document.getElementById('user-display-name').textContent = profile?.display_name || 'Golfer';
+    document.getElementById('dash-hcp').textContent = profile?.handicap_index || '--';
+    
     loadHistory();
     loadCourses();
     loadLeaderboard();
+    loadGroupsUI();
     loadManageCourseList();
   }
 
+  // --- GROUP LOGIC ---
+ function loadGroupsUI() {
+    const status = document.getElementById('group-status');
+    const joinSection = document.getElementById('join-section');
+    const leaveBtn = document.getElementById('btn-leave-group');
+
+    if (profile?.group_id && profile.groups) {
+        // Determine if current user is the owner
+        const isOwner = profile.groups.owner_id === user.id;
+        
+        status.innerHTML = `
+            <div class="card" style="border: 1px solid var(--primary);">
+                <small style="color:var(--primary); font-weight:bold;">ACTIVE GROUP</small>
+                <h2 id="display-group-name" style="margin:5px 0;">${profile.groups.name}</h2>
+                <p>Code: <strong style="letter-spacing:1px;">${profile.groups.group_code}</strong></p>
+                ${isOwner ? `<button class="btn-sm btn-outline" onclick="editGroupName()">Edit Name</button>` : ''}
+            </div>
+        `;
+        joinSection.classList.add('hidden');
+        leaveBtn.classList.remove('hidden');
+    } else {
+        status.innerHTML = "<p>You are not in a group yet. Join one or create your own below.</p>";
+        joinSection.classList.remove('hidden');
+        leaveBtn.classList.add('hidden');
+    }
+}
+
+async function editGroupName() {
+    const newName = prompt("Enter new Group Name:", profile.groups.name);
+    if (!newName || newName === profile.groups.name) return;
+
+    const { error } = await sb.from('groups')
+        .update({ name: newName })
+        .eq('id', profile.group_id);
+
+    if (error) alert(error.message);
+    else refreshData(); // Refresh to show new name
+}
+  async function createGroup() {
+    const name = document.getElementById('new-group-name').value;
+    const code = document.getElementById('new-group-code').value;
+    if(!name || !code) return alert("Enter name and code");
+
+    const { data, error } = await sb.from('groups').insert({ name, group_code: code, owner_id: user.id }).select().single();
+    if (error) return alert(error.message);
+    
+    await sb.from('profiles').update({ group_id: data.id }).eq('id', user.id);
+    refreshData();
+  }
+
+  async function joinGroup() {
+    const code = document.getElementById('join-code').value;
+    const { data: group, error } = await sb.from('groups').select('id').eq('group_code', code).single();
+    
+    if (group) {
+        await sb.from('profiles').update({ group_id: group.id }).eq('id', user.id);
+        refreshData();
+    } else alert("Group code not found.");
+  }
+
+  async function leaveGroup() {
+    if(confirm("Leave this group?")) {
+        await sb.from('profiles').update({ group_id: null }).eq('id', user.id);
+        refreshData();
+    }
+  }
+
+  // --- DATA LOADING ---
   async function loadHistory() {
     const { data: rounds } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
     document.getElementById('recent-list').innerHTML = rounds?.map(r => `
       <div class="card round-card">
         <div class="round-main">
-          <div><small>${r.date_played}</small><div style="font-weight:bold">${r.course_name}</div></div>
-          <div style="text-align:right">
-            <div class="score-val">${r.score}</div>
-            <div class="score-label">GROSS</div>
-            <div style="margin-top:5px;">
-               <button class="btn-sm btn-outline" onclick="editRound('${r.id}')">Edit</button>
-               ${profile?.is_super_admin ? `<button class="btn-sm btn-danger-outline" style="border-color: #ffcccc; color: #cc0000;" onclick="deleteRound('${r.id}')">Delete</button>` : ''}
-            </div>
-          </div>
+          <div><small>${r.date_played}</small><br><b>${r.course_name}</b></div>
+          <div style="text-align:right"><div class="score-val">${r.score}</div></div>
         </div>
         ${r.notes ? `<div class="notes-text">${r.notes}</div>` : ''}
-      </div>`).join('') || '<p style="text-align:center">No scores yet.</p>';
+      </div>`).join('') || 'No rounds.';
   }
 
   async function loadLeaderboard() {
-    const { data: profiles } = await sb.from('profiles').select('display_name, handicap_index').order('handicap_index', { ascending: true });
-    document.getElementById('lb-list').innerHTML = profiles?.map((p, i) => `
-      <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee;">
-        <span><b style="color:#aaa">#${i+1}</b> ${p.display_name}</span>
-        <span style="font-weight:bold; color:var(--primary);">${p.handicap_index || '--'}</span>
+    if (!profile?.group_id) {
+        document.getElementById('lb-list').innerText = "Join a group to see rankings.";
+        return;
+    }
+    const { data } = await sb.from('profiles').select('display_name, handicap_index').eq('group_id', profile.group_id).order('handicap_index');
+    document.getElementById('lb-list').innerHTML = data.map((p, i) => `
+      <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;">
+        <span>#${i+1} ${p.display_name}</span>
+        <b>${p.handicap_index || '--'}</b>
       </div>`).join('');
   }
 
@@ -211,50 +266,35 @@
     const { data } = await sb.from('courses').select('*').or(`created_by.is.null,created_by.eq.${user.id}`).order('name');
     masterCourses = data || [];
     const sel = document.getElementById('r-course-select');
-    sel.innerHTML = '<option value="">-- Select Course & Tee --</option>';
+    sel.innerHTML = '<option value="">-- Select Course --</option>';
     masterCourses.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.name} (${c.tee})</option>`);
   }
 
   async function loadManageCourseList() {
-    const { data: myCourses } = await sb.from('courses').select('*').eq('created_by', user.id).order('name');
-    const container = document.getElementById('manage-course-list');
-    if (!myCourses || myCourses.length === 0) {
-        container.innerHTML = '<p style="font-size:0.8rem; color:#888;">No custom courses added.</p>';
-        return;
-    }
-    container.innerHTML = myCourses.map(c => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
-            <div style="font-size:0.85rem;"><b>${c.name}</b> (${c.tee})<br><small>Rating: ${c.course_rating} / Slope: ${c.slope_rating}</small></div>
-            <button class="btn-sm btn-danger-outline" onclick="deleteCourse('${c.id}')">Delete</button>
+    const { data } = await sb.from('courses').select('*').eq('created_by', user.id);
+    document.getElementById('manage-course-list').innerHTML = data?.map(c => `
+        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+            <small>${c.name} (${c.tee})</small>
+            <button class="btn-sm" style="color:red" onclick="deleteCourse('${c.id}')">Del</button>
         </div>
-    `).join('');
+    `).join('') || '<small>No custom courses.</small>';
   }
 
-  // --- Actions ---
-  window.addNewCourse = async function() {
-    const name = document.getElementById('new-c-name').value;
-    const tee = document.getElementById('new-c-tee').value;
-    const rating = parseFloat(document.getElementById('new-c-rating').value);
-    const slope = parseInt(document.getElementById('new-c-slope').value);
-    const msg = document.getElementById('course-msg');
+  async function saveCourse() {
+    const data = {
+      name: document.getElementById('c-name').value,
+      tee: document.getElementById('c-tee').value,
+      course_rating: parseFloat(document.getElementById('c-rating').value),
+      slope_rating: parseInt(document.getElementById('c-slope').value),
+      created_by: user.id
+    };
+    await sb.from('courses').insert(data);
+    refreshData();
+  }
 
-    if (!name || !tee || !rating || !slope) { msg.innerText = "❌ All fields required"; return; }
-    const { error } = await sb.from('courses').insert({ name, tee, course_rating: rating, slope_rating: slope, created_by: user.id });
-    if (error) msg.innerText = "❌ Error: " + error.message;
-    else {
-        msg.innerText = "✅ Course added!";
-        document.getElementById('new-c-name').value = ""; document.getElementById('new-c-tee').value = "";
-        document.getElementById('new-c-rating').value = ""; document.getElementById('new-c-slope').value = "";
-        refreshData();
-    }
-  };
-
-  window.deleteCourse = async function(id) {
-    if (confirm("Remove this course from your list?")) {
-        await sb.from('courses').delete().eq('id', id);
-        refreshData();
-    }
-  };
+  async function deleteCourse(id) {
+    if(confirm("Delete course?")) { await sb.from('courses').delete().eq('id', id); refreshData(); }
+  }
 
   window.autoFillCourse = function() {
     const c = masterCourses.find(x => x.id === document.getElementById('r-course-select').value);
@@ -264,58 +304,28 @@
     }
   };
 
-  window.saveRound = async function() {
-    const id = document.getElementById('edit-round-id').value;
-    const roundData = {
+  async function saveRound() {
+    const sel = document.getElementById('r-course-select');
+    const data = {
+      user_id: user.id,
+      course_name: sel.options[sel.selectedIndex].text,
       score: parseInt(document.getElementById('r-score').value),
       course_rating: parseFloat(document.getElementById('r-rating').value),
       slope_rating: parseInt(document.getElementById('r-slope').value),
       date_played: document.getElementById('r-date').value,
       notes: document.getElementById('r-notes').value
     };
-    if (id) { await sb.from('rounds').update(roundData).eq('id', id); cancelEdit(); }
-    else {
-      const sel = document.getElementById('r-course-select');
-      roundData.user_id = user.id;
-      roundData.course_name = sel.options[sel.selectedIndex].text;
-      await sb.from('rounds').insert(roundData);
-    }
+    await sb.from('rounds').insert(data);
     refreshData();
-    showTab('history', document.querySelectorAll('.tab-link')[0]);
-  };
+    showTab('history', document.querySelector('.tab-link'));
+  }
 
-  window.editRound = async function(id) {
-    const { data: r } = await sb.from('rounds').select('*').eq('id', id).single();
-    document.getElementById('edit-round-id').value = r.id;
-    document.getElementById('r-score').value = r.score;
-    document.getElementById('r-rating').value = r.course_rating;
-    document.getElementById('r-slope').value = r.slope_rating;
-    document.getElementById('r-date').value = r.date_played;
-    document.getElementById('r-notes').value = r.notes || "";
-    document.getElementById('form-title').innerText = "Edit Round";
-    document.getElementById('btn-save').innerText = "Update Round";
-    document.getElementById('btn-cancel-edit').classList.remove('hidden');
-    showTab('add', document.querySelectorAll('.tab-link')[1]);
-  };
-
-  window.deleteRound = async function(id) {
-    if (confirm("Delete this score?")) { await sb.from('rounds').delete().eq('id', id); refreshData(); }
-  };
-
-  window.cancelEdit = function() {
-    document.getElementById('edit-round-id').value = "";
-    document.getElementById('form-title').innerText = "Post New Round";
-    document.getElementById('btn-save').innerText = "Save Round";
-    document.getElementById('btn-cancel-edit').classList.add('hidden');
-    document.getElementById('r-score').value = ""; document.getElementById('r-notes').value = "";
-  };
-
-  window.showTab = function(name, el) {
+  function showTab(name, el) {
     document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
     document.getElementById('tab-' + name).classList.remove('hidden');
     document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
-  };
+  }
 </script>
 </body>
 </html>
