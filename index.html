@@ -15,14 +15,14 @@
     .tab-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
     .container { max-width: 600px; margin: 0 auto; padding: 15px; }
     .card { background: white; border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; transition: opacity 0.2s; }
-    .btn:active { opacity: 0.7; }
+    .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-outline { background: none; border: 1px solid var(--primary); color: var(--primary); }
     .btn-danger-outline { background: none; border: 1px solid var(--danger); color: var(--danger); }
     .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; border: 1px solid #ccc; background: white; }
     .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
     .hidden { display: none !important; }
+    .lb-row { display: grid; grid-template-columns: 30px 1fr 60px 50px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
     .legal-text { font-size: 0.75rem; color: #666; background: #f9f9f9; padding: 10px; border: 1px solid #eee; height: 120px; overflow-y: auto; margin: 10px 0; border-radius: 5px; }
   </style>
 </head>
@@ -72,7 +72,15 @@
       </div>
     </div>
 
-    <div id="tab-leader" class="hidden"><div class="card"><h3>Leaderboard</h3><div id="lb-list"></div></div></div>
+    <div id="tab-leader" class="hidden">
+      <div class="card">
+        <h3>Group Leaderboard</h3>
+        <div style="display: grid; grid-template-columns: 30px 1fr 60px 50px; font-size: 0.65rem; font-weight: bold; color: #999; margin-bottom: 5px;">
+            <span>#</span><span>NAME</span><span>INDEX</span><span>ROUNDS</span>
+        </div>
+        <div id="lb-list"></div>
+      </div>
+    </div>
 
     <div id="tab-groups" class="hidden">
       <div id="group-status" class="card">No group joined.</div>
@@ -113,7 +121,7 @@
       </div>
 
       <div id="set-legal" class="card hidden" style="margin-top: 15px;">
-        <h3>Legal</h3>
+        <h3>Privacy & Terms</h3>
         <h4>Privacy Policy</h4>
         <div class="legal-text">Lazy B Studios values your privacy. Scores shared only with group members.</div>
         <h4>Terms of Agreement</h4>
@@ -151,18 +159,37 @@
 
   async function refreshData() {
     if (!user) return;
-    const { data, error } = await sb.from('profiles').select('*, groups(*)').eq('id', user.id).single();
-    if (data) {
-        profile = data;
-        document.getElementById('user-display-name').textContent = profile.display_name || 'Don';
-        document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
-    }
+    const { data } = await sb.from('profiles').select('*, groups(*)').eq('id', user.id).single();
+    profile = data;
+    if(profile?.display_name) document.getElementById('user-display-name').textContent = profile.display_name;
+    document.getElementById('dash-hcp').textContent = profile?.handicap_index || '--';
     loadHistory();
     loadCourses();
     loadLeaderboard();
     loadGroupsUI();
   }
 
+  // --- LEADERBOARD LOGIC ---
+  async function loadLeaderboard() {
+    if (!profile?.group_id) { document.getElementById('lb-list').innerText = "Join a group to see rankings."; return; }
+    
+    // Fetch users and their round counts
+    const { data: golfers } = await sb.from('profiles')
+        .select(`display_name, handicap_index, rounds(count)`)
+        .eq('group_id', profile.group_id)
+        .order('handicap_index', { ascending: true });
+
+    document.getElementById('lb-list').innerHTML = golfers.map((p, i) => `
+      <div class="lb-row">
+        <span style="color:#aaa; font-weight:bold;">${i+1}</span>
+        <span style="font-weight:bold;">${p.display_name}</span>
+        <span style="color:var(--primary); font-weight:900;">${p.handicap_index || '--'}</span>
+        <span style="font-size:0.7rem; color:#888; text-align:center;">${p.rounds[0].count}</span>
+      </div>
+    `).join('');
+  }
+
+  // --- SETTINGS UI ---
   function toggleSub(id) {
     document.getElementById('set-courses').classList.add('hidden');
     document.getElementById('set-help').classList.add('hidden');
@@ -222,15 +249,14 @@
     if (confirm("Delete this course?")) {
         await sb.from('courses').delete().eq('id', id);
         loadCourses();
-        document.getElementById('m-course-select').value = 'new';
-        prepCourseEdit();
     }
   }
 
+  // --- GROUPS ---
   function loadGroupsUI() {
     const status = document.getElementById('group-status');
     if (profile?.group_id && profile.groups) {
-        status.innerHTML = `<strong>Active Group:</strong> ${profile.groups.name}<br><strong>Code:</strong> ${profile.groups.group_code}`;
+        status.innerHTML = `<strong>Active Group:</strong> ${profile.groups.name}<br>Code: <strong>${profile.groups.group_code}</strong>`;
     } else {
         status.innerText = "No group joined.";
     }
@@ -255,6 +281,7 @@
     } else alert("Code not found.");
   }
 
+  // --- SCORE ENTRY & HISTORY ---
   window.autoFillCourse = function() {
     const c = masterCourses.find(x => x.id === document.getElementById('r-course-select').value);
     if(c) {
@@ -262,23 +289,6 @@
       document.getElementById('r-slope').value = c.slope_rating;
     }
   };
-
-  async function loadHistory() {
-    const { data: rounds } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
-    document.getElementById('recent-list').innerHTML = rounds?.map(r => `
-      <div class="card" style="border-left: 5px solid var(--primary);">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div><small>${r.date_played}</small><br><b>${r.course_name}</b></div>
-          <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">${r.score}</div>
-        </div>
-      </div>`).join('') || 'No rounds.';
-  }
-
-  async function loadLeaderboard() {
-    if (!profile?.group_id) { document.getElementById('lb-list').innerText = "Join a group."; return; }
-    const { data } = await sb.from('profiles').select('display_name, handicap_index').eq('group_id', profile.group_id).order('handicap_index');
-    document.getElementById('lb-list').innerHTML = data.map((p, i) => `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee;"><span>#${i+1} ${p.display_name}</span><b>${p.handicap_index || '--'}</b></div>`).join('');
-  }
 
   async function saveRound() {
     const sel = document.getElementById('r-course-select');
@@ -293,6 +303,17 @@
     await sb.from('rounds').insert(data);
     refreshData();
     showTab('history', document.querySelector('.tab-link'));
+  }
+
+  async function loadHistory() {
+    const { data: rounds } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
+    document.getElementById('recent-list').innerHTML = rounds?.map(r => `
+      <div class="card" style="border-left: 5px solid var(--primary);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div><small>${r.date_played}</small><br><b>${r.course_name}</b></div>
+          <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">${r.score}</div>
+        </div>
+      </div>`).join('') || 'No rounds.';
   }
 
   function showTab(name, el) {
