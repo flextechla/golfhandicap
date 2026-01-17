@@ -68,6 +68,7 @@
 
   <div class="container">
     <div id="tab-history"><div id="recent-list"></div></div>
+    
     <div id="tab-add" class="hidden">
         <div class="card">
             <h3 id="form-title">Post New Round</h3>
@@ -84,81 +85,13 @@
             <button id="btn-cancel-edit" class="btn btn-outline hidden" onclick="cancelEdit()">Cancel Edit</button>
         </div>
     </div>
+    
     <div id="tab-leader" class="hidden"><div class="card"><h3>Leaderboard</h3><div id="lb-list"></div></div></div>
   </div>
 </div>
 
 <script>
-<script>
-  // 1. Initialize Supabase
-  const S_URL = 'https://vonbibroncsxrgstetow.supabase.co'; 
-  const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
-  const sb = supabase.createClient(S_URL, S_KEY);
-
-  let user = null;
-  let profile = null;
-  let authMode = 'in';
-
-  // 2. THE MISSING LISTENER (Paste this carefully)
-  sb.auth.onAuthStateChange(async (event, session) => {
-    console.log("Auth Event:", event);
-    
-    if (session) {
-      user = session.user;
-      console.log("Login detected for:", user.id);
-
-      // Fetch the user's name/admin status
-      const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
-      profile = data;
-
-      // SWITCH THE SCREEN
-      document.getElementById('view-auth').classList.add('hidden');
-      document.getElementById('view-app').classList.remove('hidden');
-      
-      refreshData();
-    } else {
-      // SHOW LOGIN SCREEN
-      document.getElementById('view-auth').classList.remove('hidden');
-      document.getElementById('view-app').classList.add('hidden');
-    }
-  });
-
-  // 3. AUTHENTICATION FUNCTIONS
-  window.toggleAuthMode = function(mode) {
-    authMode = mode;
-    document.getElementById('confirm-password').classList.toggle('hidden', mode === 'in');
-    document.getElementById('btn-auth-submit').innerText = mode === 'in' ? 'Sign In' : 'Register Account';
-  };
-
-  window.handleAuth = async function() {
-    const email = document.getElementById('email').value;
-    const pass = document.getElementById('password').value;
-    const errBox = document.getElementById('auth-error');
-    errBox.innerText = "Checking...";
-
-    if (authMode === 'up') {
-      const conf = document.getElementById('confirm-password').value;
-      if (pass !== conf) return errBox.innerText = "Passwords do not match";
-      const { error } = await sb.auth.signUp({ email, password: pass });
-      if (error) errBox.innerText = error.message;
-      else alert("Account created! Now please Sign In.");
-    } else {
-      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-      if (error) errBox.innerText = error.message;
-    }
-  };
-
-  // 4. DATA LOADING FUNCTIONS
-  async function refreshData() {
-    loadDashboard();
-    loadCourses();
-    loadLeaderboard();
-  }
-
-  // ... (Your loadDashboard, loadCourses, and loadLeaderboard functions go here)
-</script>
-  
-  // 2. Wrap everything in a check to see if Supabase loaded
+  // 1. Initialization Check
   if (typeof supabase === 'undefined') {
     alert("CRITICAL ERROR: Supabase failed to load. Please disable Tracking Prevention in your browser settings and refresh.");
   }
@@ -167,45 +100,64 @@
   const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
   const sb = supabase.createClient(S_URL, S_KEY);
 
-  let user = null, profile = null, authMode = 'in', masterCourses = [];
+  let user = null;
+  let profile = null;
+  let authMode = 'in';
+  let masterCourses = [];
 
-  // 3. Defined functions clearly so the HTML can always find them
+  // 2. Auth Listener (Switches Screens)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session) {
+      user = session.user;
+      const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
+      profile = data;
+
+      document.getElementById('view-auth').classList.add('hidden');
+      document.getElementById('view-app').classList.remove('hidden');
+      refreshData();
+    } else {
+      user = null;
+      profile = null;
+      document.getElementById('view-auth').classList.remove('hidden');
+      document.getElementById('view-app').classList.add('hidden');
+    }
+  });
+
+  // 3. Auth Functions
   window.toggleAuthMode = function(mode) {
     authMode = mode;
     document.getElementById('confirm-password').classList.toggle('hidden', mode === 'in');
     document.getElementById('btn-auth-submit').innerText = mode === 'in' ? 'Sign In' : 'Register Account';
     document.getElementById('tab-signin').className = mode === 'in' ? 'btn-sm btn-primary' : 'btn-sm btn-outline';
     document.getElementById('tab-signup').className = mode === 'up' ? 'btn-sm btn-primary' : 'btn-sm btn-outline';
-  }
+  };
 
- window.handleAuth = async function() {
+  window.handleAuth = async function() {
     const email = document.getElementById('email').value;
     const pass = document.getElementById('password').value;
     const errBox = document.getElementById('auth-error');
-    
     errBox.innerText = "Checking connection...";
-    console.log("Attempting to contact Supabase...");
 
     try {
-        // This line test if the 'sb' object even exists
-        if (!sb) {
-            throw new Error("Supabase client not initialized. Check your Internet or Browser Shield.");
-        }
-
-        const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-        
-        if (error) {
-            errBox.innerText = error.message;
-        } else {
-            console.log("Login success!");
-        }
+      if (authMode === 'up') {
+        const conf = document.getElementById('confirm-password').value;
+        if (pass !== conf) throw new Error("Passwords do not match");
+        const { error } = await sb.auth.signUp({ email, password: pass });
+        if (error) throw error;
+        alert("Account created! Now please Sign In.");
+        toggleAuthMode('in');
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error;
+      }
     } catch (err) {
-        console.error("Caught Error:", err);
-        alert("Browser Blocked Request: " + err.message);
-        errBox.innerText = "Blocked by Browser";
+      errBox.innerText = err.message;
     }
-}
+  };
+
+  // 4. Data Loading
   async function refreshData() {
+    if (!user) return;
     loadDashboard();
     loadCourses();
     loadLeaderboard();
@@ -222,8 +174,10 @@
         <div class="round-main">
           <div><small>${r.date_played}</small><div style="font-weight:bold">${r.course_name}</div></div>
           <div style="text-align:right"><div class="score-val">${r.score}</div><div class="score-label">GROSS</div>
-          <button class="btn-sm btn-outline" onclick="editRound('${r.id}')">Edit</button>
-          ${profile?.is_super_admin ? `<button class="btn-sm btn-danger-outline" onclick="deleteRound('${r.id}')">Delete</button>` : ''}
+          <div style="margin-top:5px;">
+             <button class="btn-sm btn-outline" onclick="editRound('${r.id}')">Edit</button>
+             ${profile?.is_super_admin ? `<button class="btn-sm btn-danger-outline" onclick="deleteRound('${r.id}')">Delete</button>` : ''}
+          </div>
           </div>
         </div>
         ${r.notes ? `<div class="notes-text">${r.notes}</div>` : ''}
@@ -239,13 +193,6 @@
       </div>`).join('');
   }
 
-  window.showTab = function(name, el) {
-    document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
-    document.getElementById('tab-' + name).classList.remove('hidden');
-    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-  }
-
   async function loadCourses() {
     const { data } = await sb.from('courses').select('*').order('name');
     masterCourses = data || [];
@@ -254,13 +201,42 @@
     masterCourses.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.name}</option>`);
   }
 
+  // 5. App Logic
+  window.showTab = function(name, el) {
+    document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
+    document.getElementById('tab-' + name).classList.remove('hidden');
+    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  };
+
   window.autoFillCourse = function() {
     const c = masterCourses.find(x => x.id === document.getElementById('r-course-select').value);
     if(c) {
       document.getElementById('r-rating').value = c.course_rating;
       document.getElementById('r-slope').value = c.slope_rating;
     }
-  }
+  };
+
+  window.editRound = async function(id) {
+    const { data: r } = await sb.from('rounds').select('*').eq('id', id).single();
+    document.getElementById('edit-round-id').value = r.id;
+    document.getElementById('r-score').value = r.score;
+    document.getElementById('r-rating').value = r.course_rating;
+    document.getElementById('r-slope').value = r.slope_rating;
+    document.getElementById('r-date').value = r.date_played;
+    document.getElementById('r-notes').value = r.notes || "";
+    document.getElementById('form-title').innerText = "Edit Round";
+    document.getElementById('btn-save').innerText = "Update Round";
+    document.getElementById('btn-cancel-edit').classList.remove('hidden');
+    showTab('add', document.querySelectorAll('.tab-link')[1]);
+  };
+
+  window.deleteRound = async function(id) {
+    if (confirm("Delete this score permanently?")) {
+      await sb.from('rounds').delete().eq('id', id);
+      refreshData();
+    }
+  };
 
   window.saveRound = async function() {
     const id = document.getElementById('edit-round-id').value;
@@ -271,8 +247,11 @@
       date_played: document.getElementById('r-date').value,
       notes: document.getElementById('r-notes').value
     };
-    if (id) { await sb.from('rounds').update(roundData).eq('id', id); cancelEdit(); }
-    else {
+
+    if (id) { 
+      await sb.from('rounds').update(roundData).eq('id', id); 
+      cancelEdit(); 
+    } else {
       const sel = document.getElementById('r-course-select');
       roundData.user_id = user.id;
       roundData.course_name = sel.options[sel.selectedIndex].text;
@@ -280,10 +259,16 @@
     }
     refreshData();
     showTab('history', document.querySelectorAll('.tab-link')[0]);
-  }
+  };
+
+  window.cancelEdit = function() {
+    document.getElementById('edit-round-id').value = "";
+    document.getElementById('form-title').innerText = "Post New Round";
+    document.getElementById('btn-save').innerText = "Save Round";
+    document.getElementById('btn-cancel-edit').classList.add('hidden');
+    document.getElementById('r-score').value = "";
+    document.getElementById('r-notes').value = "";
+  };
 </script>
 </body>
 </html>
-
-
-
