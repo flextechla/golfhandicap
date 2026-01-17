@@ -159,16 +159,52 @@
 
   async function refreshData() {
     if (!user) return;
-    const { data } = await sb.from('profiles').select('*, groups(*)').eq('id', user.id).single();
-    profile = data;
-    if(profile?.display_name) document.getElementById('user-display-name').textContent = profile.display_name;
-    document.getElementById('dash-hcp').textContent = profile?.handicap_index || '--';
+    
+    console.log("Fetching profile for user:", user.id);
+    
+    // 1. Fetch Profile
+    const { data: pData, error: pError } = await sb.from('profiles').select('*, groups(*)').eq('id', user.id).single();
+    
+    if (pError) {
+        console.error("Profile fetch error:", pError);
+        // Fallback: If no profile found, use 'Don'
+        document.getElementById('user-display-name').textContent = "Don";
+    } else {
+        profile = pData;
+        document.getElementById('user-display-name').textContent = profile.display_name || "Don";
+        document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
+    }
+
+    // 2. Load other data
     loadHistory();
-    loadCourses();
+    loadCourses(); 
     loadLeaderboard();
     loadGroupsUI();
-  }
+}
 
+async function loadCourses() {
+    console.log("Loading courses...");
+    const { data, error } = await sb.from('courses').select('*').order('name');
+    
+    if (error) {
+        console.error("Course load error:", error);
+        return;
+    }
+
+    masterCourses = data || [];
+    console.log("Courses loaded:", masterCourses.length);
+
+    const sel = document.getElementById('r-course-select');
+    const mSel = document.getElementById('m-course-select');
+    
+    if (masterCourses.length === 0) {
+        sel.innerHTML = '<option value="">(No courses in database)</option>';
+    } else {
+        const opts = masterCourses.map(c => `<option value="${c.id}">${c.name} (${c.tee})</option>`).join('');
+        sel.innerHTML = '<option value="">-- Select Course --</option>' + opts;
+        mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
+    }
+}
   // --- LEADERBOARD LOGIC ---
   async function loadLeaderboard() {
     if (!profile?.group_id) { document.getElementById('lb-list').innerText = "Join a group to see rankings."; return; }
@@ -325,3 +361,4 @@
 </script>
 </body>
 </html>
+
