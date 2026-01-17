@@ -109,42 +109,33 @@
     document.getElementById('tab-signup').className = mode === 'up' ? 'btn-sm btn-primary' : 'btn-sm btn-outline';
   }
 
-  window.handleAuth = async function() {
+ window.handleAuth = async function() {
     const email = document.getElementById('email').value;
     const pass = document.getElementById('password').value;
-    const conf = document.getElementById('confirm-password').value;
     const errBox = document.getElementById('auth-error');
     
-    if (!email || !pass) return errBox.innerText = "Please enter email and password.";
-    
     errBox.innerText = "Checking connection...";
-
-    // Set a timeout to catch browser blocks
-    const timer = setTimeout(() => {
-        if (errBox.innerText === "Checking connection...") {
-            alert("Connection Timeout: Your browser is likely blocking Supabase. Please disable Tracking Prevention/Shields and try again.");
-            errBox.innerText = "Connection Blocked by Browser";
-        }
-    }, 5000);
+    console.log("Attempting to contact Supabase...");
 
     try {
-        if (authMode === 'up') {
-            if (pass !== conf) return errBox.innerText = "Passwords do not match";
-            const { error } = await sb.auth.signUp({ email, password: pass });
-            if (error) throw error;
-            alert("Account created! Please sign in now.");
-            toggleAuthMode('in');
-        } else {
-            const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-            if (error) throw error;
+        // This line test if the 'sb' object even exists
+        if (!sb) {
+            throw new Error("Supabase client not initialized. Check your Internet or Browser Shield.");
         }
-        clearTimeout(timer);
-    } catch (error) {
-        clearTimeout(timer);
-        errBox.innerText = error.message;
+
+        const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+        
+        if (error) {
+            errBox.innerText = error.message;
+        } else {
+            console.log("Login success!");
+        }
+    } catch (err) {
+        console.error("Caught Error:", err);
+        alert("Browser Blocked Request: " + err.message);
+        errBox.innerText = "Blocked by Browser";
     }
 }
-
   async function refreshData() {
     loadDashboard();
     loadCourses();
@@ -224,4 +215,5 @@
 </script>
 </body>
 </html>
+
 
