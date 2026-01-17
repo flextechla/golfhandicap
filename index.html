@@ -22,7 +22,7 @@
     .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-outline { background: none; border: 1px solid var(--primary); color: var(--primary); }
-    .btn-danger-outline { background: none; border: 1px solid var(--danger); color: var(--danger); }
+    .btn-danger-outline { background: none; border: 1px solid var(--danger); color: var(--danger); font-size: 0.8rem; }
     .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; }
     .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
     .hidden { display: none !important; }
@@ -61,7 +61,7 @@
     <div class="tab-link active" onclick="showTab('history', this)">SCORE HISTORY</div>
     <div class="tab-link" onclick="showTab('add', this)">ADD SCORE</div>
     <div class="tab-link" onclick="showTab('leader', this)">RANKINGS</div>
-    <div id="nav-settings" class="tab-link hidden" onclick="showTab('settings', this)">SETTINGS</div>
+    <div class="tab-link" onclick="showTab('settings', this)">SETTINGS</div>
   </div>
 
   <div class="container">
@@ -71,14 +71,16 @@
         <div class="card">
             <h3 id="form-title">Post New Round</h3>
             <input type="hidden" id="edit-round-id">
+            <label style="font-size: 0.8rem; font-weight: bold;">Course & Tee</label>
             <select id="r-course-select" class="form-control" onchange="autoFillCourse()"></select>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <input type="number" step="0.1" id="r-rating" class="form-control" placeholder="Rating">
-              <input type="number" id="r-slope" class="form-control" placeholder="Slope">
+              <div><label style="font-size: 0.8rem;">Rating</label><input type="number" step="0.1" id="r-rating" class="form-control"></div>
+              <div><label style="font-size: 0.8rem;">Slope</label><input type="number" id="r-slope" class="form-control"></div>
             </div>
-            <input type="number" id="r-score" class="form-control" placeholder="Total Score">
+            <label style="font-size: 0.8rem; font-weight: bold;">Gross Score</label>
+            <input type="number" id="r-score" class="form-control" placeholder="Enter Score">
             <input type="date" id="r-date" class="form-control">
-            <textarea id="r-notes" class="form-control" rows="2" placeholder="Notes..."></textarea>
+            <textarea id="r-notes" class="form-control" rows="2" placeholder="Notes (Optional)..."></textarea>
             <button id="btn-save" class="btn btn-primary" onclick="saveRound()">Save Round</button>
             <button id="btn-cancel-edit" class="btn btn-outline hidden" onclick="cancelEdit()">Cancel Edit</button>
         </div>
@@ -86,70 +88,41 @@
     
     <div id="tab-leader" class="hidden"><div class="card"><h3>Leaderboard</h3><div id="lb-list"></div></div></div>
     
-   <div id="tab-settings" class="hidden">
-    <div class="card">
-        <h3>Account Settings</h3>
-        <p>User: <span id="settings-user-email"></span></p>
-        <button class="btn btn-danger-outline" onclick="sb.auth.signOut()">Logout</button>
-    </div>
-
-    <div class="card">
-        <h3>Add New Course to Group</h3>
-        <input type="text" id="new-c-name" class="form-control" placeholder="Course Name (e.g. Copper Mill)">
-        <input type="text" id="new-c-tee" class="form-control" placeholder="Tee Box (e.g. Blue)">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <input type="number" step="0.1" id="new-c-rating" class="form-control" placeholder="Rating">
-          <input type="number" id="new-c-slope" class="form-control" placeholder="Slope">
+    <div id="tab-settings" class="hidden">
+        <div class="card">
+            <h3>Account</h3>
+            <p style="font-size: 0.9rem;">Email: <b id="settings-email">--</b></p>
+            <button class="btn btn-danger-outline" onclick="sb.auth.signOut()">Logout</button>
         </div>
-        <button class="btn btn-primary" onclick="addNewCourse()">Add Course to List</button>
-        <div id="course-msg" style="font-size: 0.8rem; margin-top: 10px; text-align: center;"></div>
+
+        <div class="card">
+            <h3>Manage Courses</h3>
+            <p style="font-size: 0.8rem; color: #666;">Add a course to your dropdown list.</p>
+            <input type="text" id="new-c-name" class="form-control" placeholder="Course Name">
+            <input type="text" id="new-c-tee" class="form-control" placeholder="Tee Color (e.g. White)">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <input type="number" step="0.1" id="new-c-rating" class="form-control" placeholder="Rating">
+              <input type="number" id="new-c-slope" class="form-control" placeholder="Slope">
+            </div>
+            <button class="btn btn-primary" onclick="addNewCourse()">Add Course</button>
+            <div id="course-msg" style="margin-top:10px; font-size:0.8rem; text-align:center;"></div>
+            
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+            <h4>Your Custom Courses</h4>
+            <div id="manage-course-list"></div>
+        </div>
     </div>
-</div>
   </div>
 </div>
 
 <script>
-  async function addNewCourse() {
-    const name = document.getElementById('new-c-name').value;
-    const tee = document.getElementById('new-c-tee').value;
-    const rating = parseFloat(document.getElementById('new-c-rating').value);
-    const slope = parseInt(document.getElementById('new-c-slope').value);
-    const msg = document.getElementById('course-msg');
-
-    if (!name || !tee || !rating || !slope) {
-        msg.innerText = "❌ Please fill all fields";
-        return;
-    }
-
-    const { error } = await sb.from('courses').insert({
-        name: name,
-        tee: tee,
-        course_rating: rating,
-        slope_rating: slope,
-        created_by: user.id // Links it to your group
-    });
-
-    if (error) {
-        msg.innerText = "❌ Error: " + error.message;
-    } else {
-        msg.innerHTML = "✅ Course added! Refreshing list...";
-        // Clear fields
-        document.getElementById('new-c-name').value = "";
-        document.getElementById('new-c-tee').value = "";
-        document.getElementById('new-c-rating').value = "";
-        document.getElementById('new-c-slope').value = "";
-        loadCourses(); // Refresh the dropdown list
-    }
-}
-  
-  
   const S_URL = 'https://vonbibroncsxrgstetow.supabase.co'; 
   const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
   const sb = supabase.createClient(S_URL, S_KEY);
 
   let user = null, profile = null, authMode = 'in', masterCourses = [];
 
-  // Listen for login/logout events
+  // --- Auth Logic ---
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session) {
       user = session.user;
@@ -163,23 +136,47 @@
     }
   });
 
+  window.toggleAuthMode = function(mode) {
+    authMode = mode;
+    document.getElementById('confirm-password').classList.toggle('hidden', mode === 'in');
+    document.getElementById('btn-auth-submit').innerText = mode === 'in' ? 'Sign In' : 'Register Account';
+    document.getElementById('tab-signin').className = mode === 'in' ? 'btn-sm btn-primary' : 'btn-sm btn-outline';
+    document.getElementById('tab-signup').className = mode === 'up' ? 'btn-sm btn-primary' : 'btn-sm btn-outline';
+  };
+
+  window.handleAuth = async function() {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
+    const errBox = document.getElementById('auth-error');
+    errBox.innerText = "Connecting...";
+    try {
+      if (authMode === 'up') {
+        const conf = document.getElementById('confirm-password').value;
+        if (pass !== conf) throw new Error("Passwords do not match");
+        const { error } = await sb.auth.signUp({ email, password: pass });
+        if (error) throw error;
+        alert("Account created! You can now Sign In.");
+        toggleAuthMode('in');
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error;
+      }
+    } catch (err) { errBox.innerText = err.message; }
+  };
+
+  // --- Data Logic ---
   async function refreshData() {
     if (!user) return;
-    
-    // Fetch profile (Don, Jamie, etc.)
     const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).single();
     profile = p;
-
-    if (p) {
-      document.getElementById('user-display-name').textContent = p.display_name || 'Golfer';
-      document.getElementById('dash-hcp').textContent = p.handicap_index || '--';
-      document.getElementById('admin-status').textContent = p.is_super_admin ? 'Yes (Super Admin)' : 'No';
-      if (p.is_super_admin) document.getElementById('nav-settings').classList.remove('hidden');
-    }
+    document.getElementById('user-display-name').textContent = p?.display_name || 'Golfer';
+    document.getElementById('dash-hcp').textContent = p?.handicap_index || '--';
+    document.getElementById('settings-email').innerText = user.email;
 
     loadHistory();
     loadCourses();
     loadLeaderboard();
+    loadManageCourseList();
   }
 
   async function loadHistory() {
@@ -193,77 +190,98 @@
             <div class="score-label">GROSS</div>
             <div style="margin-top:5px;">
                <button class="btn-sm btn-outline" onclick="editRound('${r.id}')">Edit</button>
-               ${profile?.is_super_admin ? `<button class="btn-sm btn-danger-outline" onclick="deleteRound('${r.id}')">Delete</button>` : ''}
+               ${profile?.is_super_admin ? `<button class="btn-sm btn-danger-outline" style="border-color: #ffcccc; color: #cc0000;" onclick="deleteRound('${r.id}')">Delete</button>` : ''}
             </div>
           </div>
         </div>
         ${r.notes ? `<div class="notes-text">${r.notes}</div>` : ''}
-      </div>`).join('') || '<p style="text-align:center">No rounds found.</p>';
+      </div>`).join('') || '<p style="text-align:center">No scores yet.</p>';
   }
 
   async function loadLeaderboard() {
     const { data: profiles } = await sb.from('profiles').select('display_name, handicap_index').order('handicap_index', { ascending: true });
     document.getElementById('lb-list').innerHTML = profiles?.map((p, i) => `
-      <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee;">
+      <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee;">
         <span><b style="color:#aaa">#${i+1}</b> ${p.display_name}</span>
         <span style="font-weight:bold; color:var(--primary);">${p.handicap_index || '--'}</span>
       </div>`).join('');
   }
 
-async function loadCourses() {
-    const { data } = await sb.from('courses').select('*').order('name');
+  async function loadCourses() {
+    const { data } = await sb.from('courses').select('*').or(`created_by.is.null,created_by.eq.${user.id}`).order('name');
     masterCourses = data || [];
     const sel = document.getElementById('r-course-select');
-    
-    // We updated this to show Course Name + Tee Box in the list
     sel.innerHTML = '<option value="">-- Select Course & Tee --</option>';
-    masterCourses.forEach(c => {
-      sel.innerHTML += `<option value="${c.id}">${c.name} (${c.tee})</option>`;
-    });
+    masterCourses.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.name} (${c.tee})</option>`);
   }
 
-  window.toggleAuthMode = function(mode) {
-    authMode = mode;
-    document.getElementById('confirm-password').classList.toggle('hidden', mode === 'in');
-    document.getElementById('btn-auth-submit').innerText = mode === 'in' ? 'Sign In' : 'Register Account';
-    document.getElementById('tab-signin').className = mode === 'in' ? 'btn-sm btn-primary' : 'btn-sm btn-outline';
-    document.getElementById('tab-signup').className = mode === 'up' ? 'btn-sm btn-primary' : 'btn-sm btn-outline';
+  async function loadManageCourseList() {
+    const { data: myCourses } = await sb.from('courses').select('*').eq('created_by', user.id).order('name');
+    const container = document.getElementById('manage-course-list');
+    if (!myCourses || myCourses.length === 0) {
+        container.innerHTML = '<p style="font-size:0.8rem; color:#888;">No custom courses added.</p>';
+        return;
+    }
+    container.innerHTML = myCourses.map(c => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
+            <div style="font-size:0.85rem;"><b>${c.name}</b> (${c.tee})<br><small>Rating: ${c.course_rating} / Slope: ${c.slope_rating}</small></div>
+            <button class="btn-sm btn-danger-outline" onclick="deleteCourse('${c.id}')">Delete</button>
+        </div>
+    `).join('');
+  }
+
+  // --- Actions ---
+  window.addNewCourse = async function() {
+    const name = document.getElementById('new-c-name').value;
+    const tee = document.getElementById('new-c-tee').value;
+    const rating = parseFloat(document.getElementById('new-c-rating').value);
+    const slope = parseInt(document.getElementById('new-c-slope').value);
+    const msg = document.getElementById('course-msg');
+
+    if (!name || !tee || !rating || !slope) { msg.innerText = "❌ All fields required"; return; }
+    const { error } = await sb.from('courses').insert({ name, tee, course_rating: rating, slope_rating: slope, created_by: user.id });
+    if (error) msg.innerText = "❌ Error: " + error.message;
+    else {
+        msg.innerText = "✅ Course added!";
+        document.getElementById('new-c-name').value = ""; document.getElementById('new-c-tee').value = "";
+        document.getElementById('new-c-rating').value = ""; document.getElementById('new-c-slope').value = "";
+        refreshData();
+    }
   };
 
-  window.handleAuth = async function() {
-    const email = document.getElementById('email').value;
-    const pass = document.getElementById('password').value;
-    const errBox = document.getElementById('auth-error');
-    errBox.innerText = "Processing...";
-    try {
-      if (authMode === 'up') {
-        const conf = document.getElementById('confirm-password').value;
-        if (pass !== conf) throw new Error("Passwords do not match");
-        const { error } = await sb.auth.signUp({ email, password: pass });
-        if (error) throw error;
-        alert("Account created! Please Sign In.");
-        toggleAuthMode('in');
-      } else {
-        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-        if (error) throw error;
-      }
-    } catch (err) { errBox.innerText = err.message; }
-  };
-
-  window.showTab = function(name, el) {
-    document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
-    document.getElementById('tab-' + name).classList.remove('hidden');
-    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
+  window.deleteCourse = async function(id) {
+    if (confirm("Remove this course from your list?")) {
+        await sb.from('courses').delete().eq('id', id);
+        refreshData();
+    }
   };
 
   window.autoFillCourse = function() {
     const c = masterCourses.find(x => x.id === document.getElementById('r-course-select').value);
     if(c) {
-      // This fills the boxes automatically when you pick a course
       document.getElementById('r-rating').value = c.course_rating;
       document.getElementById('r-slope').value = c.slope_rating;
     }
+  };
+
+  window.saveRound = async function() {
+    const id = document.getElementById('edit-round-id').value;
+    const roundData = {
+      score: parseInt(document.getElementById('r-score').value),
+      course_rating: parseFloat(document.getElementById('r-rating').value),
+      slope_rating: parseInt(document.getElementById('r-slope').value),
+      date_played: document.getElementById('r-date').value,
+      notes: document.getElementById('r-notes').value
+    };
+    if (id) { await sb.from('rounds').update(roundData).eq('id', id); cancelEdit(); }
+    else {
+      const sel = document.getElementById('r-course-select');
+      roundData.user_id = user.id;
+      roundData.course_name = sel.options[sel.selectedIndex].text;
+      await sb.from('rounds').insert(roundData);
+    }
+    refreshData();
+    showTab('history', document.querySelectorAll('.tab-link')[0]);
   };
 
   window.editRound = async function(id) {
@@ -281,32 +299,7 @@ async function loadCourses() {
   };
 
   window.deleteRound = async function(id) {
-    if (confirm("Delete this score permanently?")) {
-      await sb.from('rounds').delete().eq('id', id);
-      refreshData();
-    }
-  };
-
-  window.saveRound = async function() {
-    const id = document.getElementById('edit-round-id').value;
-    const roundData = {
-      score: parseInt(document.getElementById('r-score').value),
-      course_rating: parseFloat(document.getElementById('r-rating').value),
-      slope_rating: parseInt(document.getElementById('r-slope').value),
-      date_played: document.getElementById('r-date').value,
-      notes: document.getElementById('r-notes').value
-    };
-    if (id) { 
-      await sb.from('rounds').update(roundData).eq('id', id); 
-      cancelEdit(); 
-    } else {
-      const sel = document.getElementById('r-course-select');
-      roundData.user_id = user.id;
-      roundData.course_name = sel.options[sel.selectedIndex].text;
-      await sb.from('rounds').insert(roundData);
-    }
-    refreshData();
-    showTab('history', document.querySelectorAll('.tab-link')[0]);
+    if (confirm("Delete this score?")) { await sb.from('rounds').delete().eq('id', id); refreshData(); }
   };
 
   window.cancelEdit = function() {
@@ -314,10 +307,15 @@ async function loadCourses() {
     document.getElementById('form-title').innerText = "Post New Round";
     document.getElementById('btn-save').innerText = "Save Round";
     document.getElementById('btn-cancel-edit').classList.add('hidden');
-    document.getElementById('r-score').value = ""; 
-    document.getElementById('r-notes').value = "";
+    document.getElementById('r-score').value = ""; document.getElementById('r-notes').value = "";
+  };
+
+  window.showTab = function(name, el) {
+    document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
+    document.getElementById('tab-' + name).classList.remove('hidden');
+    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
   };
 </script>
 </body>
 </html>
-
