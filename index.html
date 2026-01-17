@@ -164,12 +164,16 @@
       </div>`).join('');
   }
 
-  async function loadCourses() {
+async function loadCourses() {
     const { data } = await sb.from('courses').select('*').order('name');
     masterCourses = data || [];
     const sel = document.getElementById('r-course-select');
-    sel.innerHTML = '<option value="">-- Select Course --</option>';
-    masterCourses.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+    
+    // We updated this to show Course Name + Tee Box in the list
+    sel.innerHTML = '<option value="">-- Select Course & Tee --</option>';
+    masterCourses.forEach(c => {
+      sel.innerHTML += `<option value="${c.id}">${c.name} (${c.tee})</option>`;
+    });
   }
 
   window.toggleAuthMode = function(mode) {
@@ -210,6 +214,7 @@
   window.autoFillCourse = function() {
     const c = masterCourses.find(x => x.id === document.getElementById('r-course-select').value);
     if(c) {
+      // This fills the boxes automatically when you pick a course
       document.getElementById('r-rating').value = c.course_rating;
       document.getElementById('r-slope').value = c.slope_rating;
     }
@@ -245,8 +250,10 @@
       date_played: document.getElementById('r-date').value,
       notes: document.getElementById('r-notes').value
     };
-    if (id) { await sb.from('rounds').update(roundData).eq('id', id); cancelEdit(); }
-    else {
+    if (id) { 
+      await sb.from('rounds').update(roundData).eq('id', id); 
+      cancelEdit(); 
+    } else {
       const sel = document.getElementById('r-course-select');
       roundData.user_id = user.id;
       roundData.course_name = sel.options[sel.selectedIndex].text;
@@ -261,7 +268,8 @@
     document.getElementById('form-title').innerText = "Post New Round";
     document.getElementById('btn-save').innerText = "Save Round";
     document.getElementById('btn-cancel-edit').classList.add('hidden');
-    document.getElementById('r-score').value = ""; document.getElementById('r-notes').value = "";
+    document.getElementById('r-score').value = ""; 
+    document.getElementById('r-notes').value = "";
   };
 </script>
 </body>
