@@ -114,31 +114,36 @@
     const pass = document.getElementById('password').value;
     const conf = document.getElementById('confirm-password').value;
     const errBox = document.getElementById('auth-error');
-    errBox.innerText = "Checking...";
+    
+    if (!email || !pass) return errBox.innerText = "Please enter email and password.";
+    
+    errBox.innerText = "Checking connection...";
 
-    if (authMode === 'up' && pass !== conf) return errBox.innerText = "Passwords do not match";
+    // Set a timeout to catch browser blocks
+    const timer = setTimeout(() => {
+        if (errBox.innerText === "Checking connection...") {
+            alert("Connection Timeout: Your browser is likely blocking Supabase. Please disable Tracking Prevention/Shields and try again.");
+            errBox.innerText = "Connection Blocked by Browser";
+        }
+    }, 5000);
 
-    const { data, error } = (authMode === 'in') 
-      ? await sb.auth.signInWithPassword({ email, password: pass })
-      : await sb.auth.signUp({ email, password: pass });
-
-    if (error) errBox.innerText = error.message;
-    else if (authMode === 'up') alert("Check your email for confirmation (if enabled) or try signing in!");
-  }
-
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (session) {
-      user = session.user;
-      const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
-      profile = data;
-      document.getElementById('view-auth').classList.add('hidden');
-      document.getElementById('view-app').classList.remove('hidden');
-      refreshData();
-    } else {
-      document.getElementById('view-auth').classList.remove('hidden');
-      document.getElementById('view-app').classList.add('hidden');
+    try {
+        if (authMode === 'up') {
+            if (pass !== conf) return errBox.innerText = "Passwords do not match";
+            const { error } = await sb.auth.signUp({ email, password: pass });
+            if (error) throw error;
+            alert("Account created! Please sign in now.");
+            toggleAuthMode('in');
+        } else {
+            const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+            if (error) throw error;
+        }
+        clearTimeout(timer);
+    } catch (error) {
+        clearTimeout(timer);
+        errBox.innerText = error.message;
     }
-  });
+}
 
   async function refreshData() {
     loadDashboard();
@@ -219,3 +224,4 @@
 </script>
 </body>
 </html>
+
