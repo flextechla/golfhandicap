@@ -15,11 +15,12 @@
     .tab-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
     .container { max-width: 600px; margin: 0 auto; padding: 15px; }
     .card { background: white; border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+    .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; transition: opacity 0.2s; }
+    .btn:active { opacity: 0.7; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-outline { background: none; border: 1px solid var(--primary); color: var(--primary); }
     .btn-danger-outline { background: none; border: 1px solid var(--danger); color: var(--danger); }
-    .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; border: 1px solid #ccc; }
+    .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; border: 1px solid #ccc; background: white; }
     .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
     .hidden { display: none !important; }
     .legal-text { font-size: 0.75rem; color: #666; background: #f9f9f9; padding: 10px; border: 1px solid #eee; height: 120px; overflow-y: auto; margin: 10px 0; border-radius: 5px; }
@@ -114,9 +115,9 @@
       <div id="set-legal" class="card hidden" style="margin-top: 15px;">
         <h3>Legal</h3>
         <h4>Privacy Policy</h4>
-        <div class="legal-text">Scores shared only with group members...</div>
+        <div class="legal-text">Lazy B Studios values your privacy. Scores shared only with group members.</div>
         <h4>Terms of Agreement</h4>
-        <div class="legal-text">Agree to submit honest scores...</div>
+        <div class="legal-text">Agreement to submit honest scores for handicap calculation.</div>
       </div>
     </div>
   </div>
@@ -150,10 +151,12 @@
 
   async function refreshData() {
     if (!user) return;
-    const { data } = await sb.from('profiles').select('*, groups(*)').eq('id', user.id).single();
-    profile = data;
-    if(profile?.display_name) document.getElementById('user-display-name').textContent = profile.display_name;
-    document.getElementById('dash-hcp').textContent = profile?.handicap_index || '--';
+    const { data, error } = await sb.from('profiles').select('*, groups(*)').eq('id', user.id).single();
+    if (data) {
+        profile = data;
+        document.getElementById('user-display-name').textContent = profile.display_name || 'Don';
+        document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
+    }
     loadHistory();
     loadCourses();
     loadLeaderboard();
@@ -168,7 +171,6 @@
   }
 
   async function loadCourses() {
-    // Fetches all courses regardless of creator to ensure list isn't empty
     const { data } = await sb.from('courses').select('*').order('name');
     masterCourses = data || [];
     const sel = document.getElementById('r-course-select');
@@ -220,10 +222,11 @@
     if (confirm("Delete this course?")) {
         await sb.from('courses').delete().eq('id', id);
         loadCourses();
+        document.getElementById('m-course-select').value = 'new';
+        prepCourseEdit();
     }
   }
 
-  // Group Management UI
   function loadGroupsUI() {
     const status = document.getElementById('group-status');
     if (profile?.group_id && profile.groups) {
@@ -252,7 +255,6 @@
     } else alert("Code not found.");
   }
 
-  // --- STANDARD HELPERS ---
   window.autoFillCourse = function() {
     const c = masterCourses.find(x => x.id === document.getElementById('r-course-select').value);
     if(c) {
@@ -263,13 +265,19 @@
 
   async function loadHistory() {
     const { data: rounds } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
-    document.getElementById('recent-list').innerHTML = rounds?.map(r => `<div class="card"><b>${r.course_name}</b><br>${r.score}</div>`).join('') || 'No rounds.';
+    document.getElementById('recent-list').innerHTML = rounds?.map(r => `
+      <div class="card" style="border-left: 5px solid var(--primary);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div><small>${r.date_played}</small><br><b>${r.course_name}</b></div>
+          <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">${r.score}</div>
+        </div>
+      </div>`).join('') || 'No rounds.';
   }
 
   async function loadLeaderboard() {
     if (!profile?.group_id) { document.getElementById('lb-list').innerText = "Join a group."; return; }
     const { data } = await sb.from('profiles').select('display_name, handicap_index').eq('group_id', profile.group_id).order('handicap_index');
-    document.getElementById('lb-list').innerHTML = data.map((p, i) => `<div>#${i+1} ${p.display_name}: ${p.handicap_index}</div>`).join('');
+    document.getElementById('lb-list').innerHTML = data.map((p, i) => `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee;"><span>#${i+1} ${p.display_name}</span><b>${p.handicap_index || '--'}</b></div>`).join('');
   }
 
   async function saveRound() {
