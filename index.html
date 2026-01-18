@@ -343,14 +343,29 @@
       document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
     }
 
-    const { data: memberships, error: mError } = await sb
-      .from('group_members')
-      .select('group_id, groups(id, name, group_code)')
-      .eq('user_id', user.id);
+   const { data: memberships, error: mError } = await sb
+  .from('group_members')
+  .select('group_id')
+  .eq('user_id', user.id);
 
-    if (mError) {
-      console.error('Membership fetch error:', mError);
-    }
+if (mError) {
+  console.error('Membership fetch error:', mError);
+}
+
+let groups = [];
+if (memberships && memberships.length) {
+  const ids = memberships.map(m => m.group_id);
+  const { data: groupRows, error: gError } = await sb
+    .from('groups')
+    .select('id, name, group_code')
+    .in('id', ids);
+
+  if (gError) {
+    console.error('Groups fetch error:', gError);
+  } else {
+    groups = groupRows || [];
+  }
+}
 
     const groups = (memberships || []).map(m => m.groups).filter(Boolean);
 
@@ -798,4 +813,5 @@
 
 </body>
 </html>
+
 
