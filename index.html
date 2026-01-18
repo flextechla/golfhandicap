@@ -37,10 +37,13 @@
       <button class="btn-sm" onclick="setAuthMode('signup')">Create Account</button>
     </div>
 
-    
-    <input type="text" id="display-name" class="form-control" placeholder="Display Name (for leaderboard)">
     <input type="email" id="email" class="form-control" placeholder="Email">
-      <div style="position:relative;">
+
+    <div id="display-name-wrapper">
+      <input type="text" id="display-name" class="form-control" placeholder="Display Name (for leaderboard)">
+    </div>
+
+    <div style="position:relative;">
       <input type="password" id="password" class="form-control" placeholder="Password" style="margin-bottom:0;">
       <button type="button"
               onclick="togglePassword('password', this)"
@@ -221,20 +224,26 @@
   function setAuthMode(mode) {
     authMode = mode;
     const confirmWrapper = document.getElementById('password-confirm-wrapper');
+    const displayWrapper = document.getElementById('display-name-wrapper');
     const btn = document.getElementById('auth-btn-label');
 
     if (mode === 'signup') {
+      if (displayWrapper) displayWrapper.style.display = 'block';
       confirmWrapper.style.display = 'block';
       btn.textContent = 'Create Account';
     } else {
+      if (displayWrapper) displayWrapper.style.display = 'none';
       confirmWrapper.style.display = 'none';
       btn.textContent = 'Sign In';
     }
   }
 
-  sb.auth.onAuthStateChange(async (event, session) => {
-    console.log('Auth event:', event, session);
+  // Hide display-name on initial load
+  document.addEventListener('DOMContentLoaded', () => {
+    setAuthMode('signin');
+  });
 
+  sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
       const newPassword = prompt('Enter a new password:');
       if (newPassword) {
@@ -343,31 +352,31 @@
       document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
     }
 
-   const { data: memberships, error: mError } = await sb
-  .from('group_members')
-  .select('group_id')
-  .eq('user_id', user.id);
+    // Step 1: get membership group_ids
+    const { data: memberships, error: mError } = await sb
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', user.id);
 
-if (mError) {
-  console.error('Membership fetch error:', mError);
-}
+    if (mError) {
+      console.error('Membership fetch error:', mError);
+    }
 
-let groups = [];
-if (memberships && memberships.length) {
-  const ids = memberships.map(m => m.group_id);
-  const { data: groupRows, error: gError } = await sb
-    .from('groups')
-    .select('id, name, group_code')
-    .in('id', ids);
+    // Step 2: load groups by those ids
+    let groups = [];
+    if (memberships && memberships.length) {
+      const ids = memberships.map(m => m.group_id);
+      const { data: groupRows, error: gError } = await sb
+        .from('groups')
+        .select('id, name, group_code')
+        .in('id', ids);
 
-  if (gError) {
-    console.error('Groups fetch error:', gError);
-  } else {
-    groups = groupRows || [];
-  }
-}
-
-    const groups = (memberships || []).map(m => m.groups).filter(Boolean);
+      if (gError) {
+        console.error('Groups fetch error:', gError);
+      } else {
+        groups = groupRows || [];
+      }
+    }
 
     activeGroup = null;
 
@@ -387,7 +396,7 @@ if (memberships && memberships.length) {
     updateGroupStatus(groups);
     loadHistory();
     loadCourses();
-    loadLeaderboard(groups);
+    loadLeaderboard();
   }
 
   function updateGroupStatus(groups) {
@@ -446,15 +455,8 @@ if (memberships && memberships.length) {
       .eq('id', user.id);
     profile.current_group_id = g.id;
 
-    const { data: memberships } = await sb
-      .from('group_members')
-      .select('group_id, groups(id, name, group_code)')
-      .eq('user_id', user.id);
-    const groups = (memberships || []).map(m => m.groups).filter(Boolean);
-
     updateHeaderName();
-    updateGroupStatus(groups);
-    loadLeaderboard(groups);
+    refreshData();
   };
 
   window.clearActiveGroup = async function () {
@@ -465,15 +467,8 @@ if (memberships && memberships.length) {
       .eq('id', user.id);
     profile.current_group_id = null;
 
-    const { data: memberships } = await sb
-      .from('group_members')
-      .select('group_id, groups(id, name, group_code)')
-      .eq('user_id', user.id);
-    const groups = (memberships || []).map(m => m.groups).filter(Boolean);
-
     updateHeaderName();
-    updateGroupStatus(groups);
-    loadLeaderboard(groups);
+    refreshData();
   };
 
   async function loadCourses() {
@@ -813,5 +808,3 @@ if (memberships && memberships.length) {
 
 </body>
 </html>
-
-
