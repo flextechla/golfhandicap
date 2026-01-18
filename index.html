@@ -102,16 +102,17 @@
 
     <div id="tab-groups" class="hidden">
       <div id="group-status" class="card">No group joined.</div>
-      <div class="card">
-        <h3>Group Actions</h3>
-        <input type="text" id="new-group-name" class="form-control" placeholder="New Group Name">
-        <input type="text" id="new-group-code" class="form-control" placeholder="Create Unique Code">
-        <button class="btn btn-primary" onclick="createGroup()">Create & Join</button>
-        <hr>
-        <input type="text" id="join-code" class="form-control" placeholder="Enter Join Code">
-        <button class="btn btn-outline" onclick="joinGroup()">Join Group</button>
-      </div>
-    </div>
+        <div class="card">
+    <h3>Group Actions</h3>
+    <input type="text" id="new-group-name" class="form-control" placeholder="New Group Name">
+    <input type="text" id="new-group-code" class="form-control" placeholder="Create Unique Code">
+    <button class="btn btn-primary" onclick="createGroup()">Create & Join</button>
+    <hr>
+    <input type="text" id="join-code" class="form-control" placeholder="Enter Join Code">
+    <button class="btn btn-outline" onclick="joinGroup()">Join Group</button>
+    <hr>
+    <button class="btn btn-danger-outline" onclick="deleteCurrentGroup()">Delete Active Group (owner only)</button>
+  </div>
 
     <div id="tab-settings" class="hidden">
       <button class="btn btn-outline" onclick="toggleSub('set-courses')">Manage Courses</button>
@@ -149,14 +150,17 @@
   </div>
 </div>
 
+
 <script>
- const S_URL = 'https://lxxlrujrxtphozisppsq.supabase.co';
-const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4eGxydWpyeHRwaG96aXNwcHNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwNTg3MTIsImV4cCI6MjA4MjYzNDcxMn0.cwLpWtOP7LJm1B9zczskVMU2vPL6shSJFyTb0Ox2vh8';
+  const S_URL = 'https://lxxlrujrxtphozisppsq.supabase.co';
+  const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4eGxydWpyeHRwaG96aXNwcHNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwNTg3MTIsImV4cCI6MjA4MjYzNDcxMn0.cwLpWtOP7LJm1B9zczskVMU2vPL6shSJFyTb0Ox2vh8';
 
   const sb = supabase.createClient(S_URL, S_KEY);
 
   let user = null, profile = null, masterCourses = [];
   let authMode = 'signin';
+  let activeGroup = null; // { id, name, group_code } or null
+
 
   function setAuthMode(mode) {
     authMode = mode;
@@ -173,13 +177,14 @@ const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
   }
 
   sb.auth.onAuthStateChange(async (event, session) => {
+    console.log('Auth event:', event, session);
+
     if (event === 'PASSWORD_RECOVERY') {
-      // basic inline reset flow; you can swap this for a dedicated page later
       const newPassword = prompt('Enter a new password:');
       if (newPassword) {
         const { error } = await sb.auth.updateUser({ password: newPassword });
         if (error) alert(error.message);
-        else alert('Password updated successfully.');
+        else alert('Password updated successfully. Please sign in with your new password.');
       }
       return;
     }
@@ -213,15 +218,20 @@ const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
         return;
       }
 
-      const { error } = await sb.auth.signUp({ email, password });
+      const { data, error } = await sb.auth.signUp({ email, password });
       if (error) {
         alert(error.message);
       } else {
-        alert('Account created. Check your email for confirmation if required.');
+        alert('Account created. You can now sign in.');
+        setAuthMode('signin');
       }
     } else {
-      const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) alert(error.message);
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) {
+        alert(error.message);
+      } else {
+        console.log('Signed in:', data);
+      }
     }
   }
 
@@ -232,8 +242,11 @@ const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
       return;
     }
 
+    // IMPORTANT: replace this with the actual URL where this HTML is served
+    const redirectUrl = 'http://localhost:3000'; // or your deployed origin
+
     const { error } = await sb.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin // optionally add /update-password.html
+      redirectTo: redirectUrl
     });
     if (error) {
       alert(error.message);
@@ -242,31 +255,141 @@ const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
     }
   }
 
-  async function refreshData() {
-    if (!user) return;
+ async function refreshData() {
+  if (!user) return;
 
-    console.log('Fetching profile for user:', user.id);
+  console.log('Fetching profile for user:', user.id);
 
-    const { data: pData, error: pError } = await sb
-      .from('profiles')
-      .select('*, groups(*)')
-      .eq('id', user.id)
-      .single();
+  const { data: pData, error: pError } = await sb
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
 
-    if (pError) {
-      console.error('Profile fetch error:', pError);
-      document.getElementById('user-display-name').textContent = 'Don';
-    } else {
-      profile = pData;
-      document.getElementById('user-display-name').textContent = profile.display_name || 'Don';
-      document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
-    }
-
-    loadHistory();
-    loadCourses();
-    loadLeaderboard();
-    loadGroupsUI();
+  if (pError) {
+    console.error('Profile fetch error:', pError);
+    profile = null;
+    document.getElementById('user-display-name').textContent = 'Don';
+    document.getElementById('dash-hcp').textContent = '--';
+  } else {
+    profile = pData;
+    document.getElementById('user-display-name').textContent = profile.display_name || 'Don';
+    document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
   }
+
+  // Load all groups this user belongs to
+  const { data: memberships, error: mError } = await sb
+    .from('group_members')
+    .select('group_id, groups(id, name, group_code)')
+    .eq('user_id', user.id);
+
+  if (mError) {
+    console.error('Membership fetch error:', mError);
+  }
+
+  const groups = (memberships || []).map(m => m.groups).filter(Boolean);
+
+  // Decide activeGroup:
+  // 1) if profile.current_group_id matches one of the groups, use that
+  // 2) else if exactly one group, use it
+  // 3) else leave null for "solo" until user chooses
+  activeGroup = null;
+
+  if (profile?.current_group_id) {
+    activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
+  }
+  if (!activeGroup && groups.length === 1) {
+    activeGroup = groups[0];
+    await sb
+      .from('profiles')
+      .update({ current_group_id: activeGroup.id })
+      .eq('id', user.id);
+    profile.current_group_id = activeGroup.id;
+  }
+
+  // Update group status UI
+  updateGroupStatus(groups);
+
+  loadHistory();
+  loadCourses();
+  loadLeaderboard(groups);
+}
+  function updateGroupStatus(groups) {
+  const status = document.getElementById('group-status');
+
+  if (!activeGroup) {
+    if (!groups || !groups.length) {
+      status.innerHTML = 'No group joined. You can play as a solo user or create/join a group below.';
+    } else {
+      const options = groups
+        .map(g => `<option value="${g.id}">${g.name}</option>`)
+        .join('');
+      status.innerHTML = `
+        <strong>Active Group:</strong> None selected<br>
+        <div style="margin-top:8px;">
+          <label style="font-size:0.8rem;">Choose group:</label>
+          <select id="active-group-select" class="form-control" onchange="setActiveGroupFromSelect()">
+            <option value="">-- Select Group --</option>
+            ${options}
+          </select>
+        </div>
+      `;
+    }
+  } else {
+    status.innerHTML = `
+      <strong>Active Group:</strong> ${activeGroup.name}<br>
+      Code: <strong>${activeGroup.group_code}</strong><br>
+      <div style="margin-top:8px;">
+        <button class="btn-sm" onclick="clearActiveGroup()">Play solo</button>
+      </div>
+    `;
+  }
+}
+
+window.setActiveGroupFromSelect = async function () {
+  const sel = document.getElementById('active-group-select');
+  const gid = sel.value || null;
+  if (!gid) return;
+
+  const { data: g, error } = await sb
+    .from('groups')
+    .select('id, name, group_code')
+    .eq('id', gid)
+    .single();
+  if (error || !g) return;
+
+  activeGroup = g;
+  await sb
+    .from('profiles')
+    .update({ current_group_id: g.id })
+    .eq('id', user.id);
+  profile.current_group_id = g.id;
+
+  // reload memberships to update UI
+  const { data: memberships } = await sb
+    .from('group_members')
+    .select('group_id, groups(id, name, group_code)')
+    .eq('user_id', user.id);
+  const groups = (memberships || []).map(m => m.groups).filter(Boolean);
+  updateGroupStatus(groups);
+};
+
+window.clearActiveGroup = async function () {
+  activeGroup = null;
+  await sb
+    .from('profiles')
+    .update({ current_group_id: null })
+    .eq('id', user.id);
+  profile.current_group_id = null;
+
+  const { data: memberships } = await sb
+    .from('group_members')
+    .select('group_id, groups(id, name, group_code)')
+    .eq('user_id', user.id);
+  const groups = (memberships || []).map(m => m.groups).filter(Boolean);
+  updateGroupStatus(groups);
+};
+
 
   async function loadCourses() {
     console.log('Loading courses...');
@@ -298,37 +421,59 @@ const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
     }
   }
 
-  // LEADERBOARD
-  async function loadLeaderboard() {
-    if (!profile?.group_id) {
-      document.getElementById('lb-list').innerText = 'Join a group to see rankings.';
-      return;
-    }
+async function loadLeaderboard(groupsFromRefresh) {
+  const groups = groupsFromRefresh || [];
 
-    const { data: golfers, error } = await sb
-      .from('profiles')
-      .select('display_name, handicap_index, rounds(count)')
-      .eq('group_id', profile.group_id)
-      .order('handicap_index', { ascending: true });
-
-    if (error || !golfers) {
-      document.getElementById('lb-list').innerText = 'Unable to load leaderboard.';
-      return;
-    }
-
-    document.getElementById('lb-list').innerHTML = golfers
-      .map((p, i) => `
-        <div class="lb-row">
-          <span style="color:#aaa; font-weight:bold;">${i + 1}</span>
-          <span style="font-weight:bold;">${p.display_name}</span>
-          <span style="color:var(--primary); font-weight:900;">${p.handicap_index || '--'}</span>
-          <span style="font-size:0.7rem; color:#888; text-align:center;">${p.rounds?.[0]?.count ?? 0}</span>
-        </div>
-      `)
-      .join('');
+  if (!activeGroup) {
+    document.getElementById('lb-list').innerText = 'Select a group in the Groups tab to see rankings, or play solo.';
+    return;
   }
 
-  // SETTINGS UI
+  // get all members of the active group with profile + rounds count
+  const { data: members, error } = await sb
+    .from('group_members')
+    .select(`
+      user_id,
+      profiles!inner (
+        display_name,
+        handicap_index,
+        rounds(count)
+      )
+    `)
+    .eq('group_id', activeGroup.id);
+
+  if (error || !members) {
+    console.error('Leaderboard error:', error);
+    document.getElementById('lb-list').innerText = 'Unable to load leaderboard.';
+    return;
+  }
+
+  const golfers = members
+    .map(m => m.profiles)
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a.handicap_index == null) return 1;
+      if (b.handicap_index == null) return -1;
+      return a.handicap_index - b.handicap_index;
+    });
+
+  if (!golfers.length) {
+    document.getElementById('lb-list').innerText = 'No players with scores yet in this group.';
+    return;
+  }
+
+  document.getElementById('lb-list').innerHTML = golfers
+    .map((p, i) => `
+      <div class="lb-row">
+        <span style="color:#aaa; font-weight:bold;">${i + 1}</span>
+        <span style="font-weight:bold;">${p.display_name}</span>
+        <span style="color:var(--primary); font-weight:900;">${p.handicap_index ?? '--'}</span>
+        <span style="font-size:0.7rem; color:#888; text-align:center;">${p.rounds?.[0]?.count ?? 0}</span>
+      </div>
+    `)
+    .join('');
+}
+
   function toggleSub(id) {
     document.getElementById('set-courses').classList.add('hidden');
     document.getElementById('set-help').classList.add('hidden');
@@ -381,7 +526,6 @@ const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
     }
   }
 
-  // GROUPS
   function loadGroupsUI() {
     const status = document.getElementById('group-status');
     if (profile?.group_id && profile.groups) {
@@ -391,42 +535,127 @@ const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
     }
   }
 
-  async function createGroup() {
-    const name = document.getElementById('new-group-name').value;
-    const code = document.getElementById('new-group-code').value;
-    const { data, error } = await sb
-      .from('groups')
-      .insert({ name, group_code: code, owner_id: user.id })
-      .select()
-      .single();
-    if (data) {
-      await sb.from('profiles').update({ group_id: data.id }).eq('id', user.id);
-      refreshData();
-    } else alert(error.message);
+ async function createGroup() {
+  const name = document.getElementById('new-group-name').value.trim();
+  const code = document.getElementById('new-group-code').value.trim();
+  if (!name || !code) {
+    alert('Enter a group name and unique code.');
+    return;
   }
 
-  async function joinGroup() {
-    const code = document.getElementById('join-code').value;
-    const { data: g, error } = await sb
-      .from('groups')
-      .select('id')
-      .eq('group_code', code)
-      .single();
-    if (g && !error) {
-      await sb.from('profiles').update({ group_id: g.id }).eq('id', user.id);
-      refreshData();
-    } else alert('Code not found.');
+  const { data: group, error } = await sb
+    .from('groups')
+    .insert({ name, group_code: code, owner_id: user.id })
+    .select()
+    .single();
+
+  if (error || !group) {
+    alert(error?.message || 'Unable to create group.');
+    return;
   }
 
-  // SCORE ENTRY & HISTORY
-  window.autoFillCourse = function () {
-    const selectedId = document.getElementById('r-course-select').value;
-    const c = masterCourses.find(x => String(x.id) === String(selectedId));
-    if (c) {
-      document.getElementById('r-rating').value = c.course_rating ?? '';
-      document.getElementById('r-slope').value = c.slope_rating ?? '';
-    }
-  };
+  // add membership
+  await sb
+    .from('group_members')
+    .insert({ group_id: group.id, user_id: user.id });
+
+  // set as current active group
+  await sb
+    .from('profiles')
+    .update({ current_group_id: group.id })
+    .eq('id', user.id);
+
+  profile.current_group_id = group.id;
+  activeGroup = group;
+
+  alert('Group created and joined.');
+  refreshData();
+}
+
+async function joinGroup() {
+  const code = document.getElementById('join-code').value.trim();
+  if (!code) {
+    alert('Enter a join code.');
+    return;
+  }
+
+  const { data: group, error } = await sb
+    .from('groups')
+    .select('id, name, group_code')
+    .eq('group_code', code)
+    .single();
+
+  if (error || !group) {
+    alert('Code not found.');
+   .return;
+  }
+
+  // add membership (ignore error if already member)
+  await sb
+    .from('group_members')
+    .insert({ group_id: group.id, user_id: user.id })
+    .select()
+    .single()
+    .catch(() => {});
+
+  // set as current active group
+  await sb
+    .from('profiles')
+    .update({ current_group_id: group.id })
+    .eq('id', user.id);
+
+  profile.current_group_id = group.id;
+  activeGroup = group;
+
+  alert(`Joined group ${group.name}.`);
+  refreshData();
+}
+async function deleteCurrentGroup() {
+  if (!activeGroup) {
+    alert('No active group selected.');
+    return;
+  }
+
+  const { data: group, error } = await sb
+    .from('groups')
+    .select('id, owner_id, name')
+    .eq('id', activeGroup.id)
+    .single();
+
+  if (error || !group) {
+    alert('Unable to load group.');
+    return;
+  }
+
+  if (group.owner_id !== user.id) {
+    alert('Only the group creator can delete this group.');
+    return;
+  }
+
+  if (!confirm(`Delete group "${group.name}" for all members? This cannot be undone.`)) {
+    return;
+  }
+
+  const { error: delError } = await sb
+    .from('groups')
+    .delete()
+    .eq('id', group.id);
+
+  if (delError) {
+    alert('Unable to delete group.');
+    return;
+  }
+
+  activeGroup = null;
+  await sb
+    .from('profiles')
+    .update({ current_group_id: null })
+    .eq('id', user.id);
+  profile.current_group_id = null;
+
+  alert('Group deleted.');
+  refreshData();
+}
 
   async function saveRound() {
     const sel = document.getElementById('r-course-select');
@@ -510,8 +739,10 @@ const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
     el.classList.add('active');
   }
 </script>
+
 </body>
 </html>
+
 
 
 
