@@ -335,6 +335,15 @@
       .eq('id', user.id);
     profile.current_group_id = activeGroup.id;
   }
+    // >>> NEW BLOCK to update header <<<
+  const nameEl = document.getElementById('user-display-name');
+  if (nameEl) {
+    if (activeGroup) {
+      nameEl.textContent = `${profile?.display_name || 'Don'} · ${activeGroup.name}`;
+    } else {
+      nameEl.textContent = profile?.display_name || 'Don';
+    }
+  }
 
   // Update group status UI
   updateGroupStatus(groups);
@@ -343,18 +352,22 @@
   loadCourses();
   loadLeaderboard(groups);
 }
-  function updateGroupStatus(groups) {
+function updateGroupStatus(groups) {
   const status = document.getElementById('group-status');
 
   if (!activeGroup) {
     if (!groups || !groups.length) {
-      status.innerHTML = 'No group joined. You can play as a solo user or create/join a group below.';
+      status.innerHTML = `
+        <strong>No active group.</strong><br>
+        You are currently playing solo. Create a new group or join one below.
+      `;
     } else {
       const options = groups
         .map(g => `<option value="${g.id}">${g.name}</option>`)
         .join('');
       status.innerHTML = `
-        <strong>Active Group:</strong> None selected<br>
+        <strong>No active group selected.</strong><br>
+        Choose a group to view rankings and set as active.<br>
         <div style="margin-top:8px;">
           <label style="font-size:0.8rem;">Choose group:</label>
           <select id="active-group-select" class="form-control" onchange="setActiveGroupFromSelect()">
@@ -369,7 +382,8 @@
       <strong>Active Group:</strong> ${activeGroup.name}<br>
       Code: <strong>${activeGroup.group_code}</strong><br>
       <div style="margin-top:8px;">
-        <button class="btn-sm" onclick="clearActiveGroup()">Play solo</button>
+        <span style="font-size:0.8rem; color:#555;">Use this code to invite friends.</span><br>
+        <button class="btn-sm" onclick="clearActiveGroup()" style="margin-top:6px;">Play solo</button>
       </div>
     `;
   }
@@ -764,6 +778,7 @@ async function deleteCurrentGroup() {
 
 </body>
 </html>
+
 
 
 
