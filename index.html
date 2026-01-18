@@ -505,7 +505,7 @@
   try {
     // Load profile with longer timeout
     const profilePromise = sb.from('profiles').select('*').eq('id', user.id).single();
-    const { data: pData, error: pError } = await withTimeout(profilePromise, 15000); // Changed from 5000 to 15000
+    const { data: pData, error: pError } = await withTimeout(profilePromise, 15000);
 
     if (pError) {
       console.error('Profile error:', pError);
@@ -518,14 +518,15 @@
 
     // Load memberships with longer timeout
     const memberPromise = sb.from('group_members').select('group_id').eq('user_id', user.id);
-    const { data: memberships } = await withTimeout(memberPromise, 15000).catch(() => ({ data: null })); // Changed from 5000 to 15000
+    const memberResult = await withTimeout(memberPromise, 15000).catch(() => null);
+    const memberships = memberResult ? memberResult.data : null;
 
     let groups = [];
     if (memberships && memberships.length) {
       const ids = memberships.map(m => m.group_id);
       const groupPromise = sb.from('groups').select('id, name, group_code').in('id', ids);
-      const { data: groupRows } = await withTimeout(groupPromise, 15000).catch(() => ({ data: [] })); // Changed from 5000 to 15000
-      groups = groupRows || [];
+      const groupResult = await withTimeout(groupPromise, 15000).catch(() => null);
+      groups = groupResult && groupResult.data ? groupResult.data : [];
     }
 
     // Determine active group
@@ -545,14 +546,12 @@
     
     // Load data in parallel with longer timeout
     await Promise.allSettled([
-      withTimeout(window.loadHistory(), 15000), // Changed from 5000 to 15000
-      withTimeout(window.loadCourses(), 15000), // Changed from 5000 to 15000
-      withTimeout(window.loadLeaderboard(), 15000) // Changed from 5000 to 15000
+      withTimeout(window.loadHistory(), 15000),
+      withTimeout(window.loadCourses(), 15000),
+      withTimeout(window.loadLeaderboard(), 15000)
     ]);
   } catch (e) {
     console.error('Refresh data error:', e);
-    // REMOVED the alert that was causing the browser warning
-    // Just log the error instead
   }
 };
 
@@ -1026,6 +1025,7 @@ window.loadLeaderboard = async function() {
 
 </body>
 </html>
+
 
 
 
