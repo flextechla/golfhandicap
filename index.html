@@ -6,701 +6,240 @@
   <title>Golf Tracker | Lazy B Studios</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root { 
-      --primary: #2e7d32; 
-      --dark: #1b5e20; 
-      --accent: #ffa000; 
-      --bg: #f4f6f8; 
-      --danger: #d32f2f;
-      --card-bg: #ffffff;
-      --text: #333;
-      --text-muted: #666;
-    }
-    
+    :root { --primary: #2e7d32; --dark: #1b5e20; --accent: #ffa000; --bg: #f4f6f8; --danger: #d32f2f; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: #333; min-height: 100vh; }
     
-    body { 
-      font-family: system-ui, -apple-system, sans-serif; 
-      background: var(--bg); 
-      color: var(--text);
-      min-height: 100vh;
-    }
+    .header { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-bottom: 4px solid var(--accent); }
+    .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .header-user { display: flex; flex-direction: column; gap: 4px; }
+    .header-name { font-weight: 700; font-size: 1.1rem; }
+    .header-group { font-size: 0.8rem; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px; }
+    .hcp-display { font-size: 3.5rem; font-weight: 900; text-align: center; line-height: 1; }
+    .hcp-label { font-size: 0.7rem; font-weight: 700; text-align: center; opacity: 0.9; margin-top: 5px; }
     
-    /* Header */
-    .header { 
-      background: linear-gradient(135deg, var(--primary), var(--dark)); 
-      color: white; 
-      padding: 20px; 
-      border-bottom: 4px solid var(--accent);
-    }
+    .logout-btn { background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
     
-    .header-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-    
-    .header-user {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    
-    .header-name {
-      font-weight: 700;
-      font-size: 1.1rem;
-    }
-    
-    .header-group {
-      font-size: 0.8rem;
-      opacity: 0.9;
-      background: rgba(255,255,255,0.2);
-      padding: 3px 8px;
-      border-radius: 4px;
-      display: inline-block;
-    }
-    
-    .header-group.no-group {
-      background: rgba(255,255,255,0.1);
-      font-style: italic;
-    }
-    
-    .hcp-display { 
-      font-size: 3.5rem; 
-      font-weight: 900; 
-      text-align: center;
-      line-height: 1;
-    }
-    
-    .hcp-label {
-      font-size: 0.7rem; 
-      font-weight: 700;
-      text-align: center;
-      opacity: 0.9;
-      margin-top: 5px;
-    }
-    
-    .logout-btn {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-    
-    .logout-btn:hover {
-      background: rgba(255,255,255,0.3);
-    }
-    
-    /* Navigation */
-    .nav-tabs { 
-      display: flex; 
-      background: white; 
-      position: sticky; 
-      top: 0; 
-      z-index: 100; 
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      overflow-x: auto;
-    }
-    
-    .tab-link { 
-      flex: 1; 
-      padding: 14px 8px; 
-      text-align: center; 
-      font-size: 0.7rem; 
-      font-weight: 700; 
-      cursor: pointer; 
-      color: var(--text-muted); 
-      border-bottom: 3px solid transparent;
-      white-space: nowrap;
-      transition: all 0.2s;
-      background: none;
-      border-left: none;
-      border-right: none;
-      border-top: none;
-    }
-    
+    .nav-tabs { display: flex; background: white; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-x: auto; }
+    .tab-link { flex: 1; padding: 14px 8px; text-align: center; font-size: 0.7rem; font-weight: 700; cursor: pointer; color: #666; border: none; border-bottom: 3px solid transparent; background: none; white-space: nowrap; }
     .tab-link:hover { background: #f5f5f5; }
-    .tab-link.active { 
-      color: var(--primary); 
-      border-bottom-color: var(--primary);
-      background: rgba(46, 125, 50, 0.05);
-    }
+    .tab-link.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(46,125,50,0.05); }
     
-    /* Container & Cards */
-    .container { 
-      max-width: 600px; 
-      margin: 0 auto; 
-      padding: 15px;
-    }
+    .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+    .card { background: white; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
+    .card-title { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 1rem; }
     
-    .card { 
-      background: var(--card-bg); 
-      border-radius: 12px; 
-      padding: 1.25rem; 
-      margin-bottom: 1rem; 
-      border: 1px solid #e0e0e0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-    }
+    .btn { width: 100%; padding: 12px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 1rem; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); }
+    .btn-danger { background: white; border: 2px solid var(--danger); color: var(--danger); }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; width: auto; }
     
-    .card-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .form-control { width: 100%; padding: 12px; margin-bottom: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; }
+    .form-control:focus { outline: none; border-color: var(--primary); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-label { display: block; font-size: 0.85rem; font-weight: 600; color: #666; margin-bottom: 6px; }
     
-    /* Buttons */
-    .btn { 
-      width: 100%; 
-      padding: 12px 16px; 
-      border-radius: 8px; 
-      border: none; 
-      font-weight: 600; 
-      cursor: pointer; 
-      font-size: 1rem;
-      transition: all 0.2s;
-    }
+    .round-card { border-left: 5px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+    .round-score { font-size: 2rem; font-weight: 900; color: var(--primary); }
+    .round-diff { font-size: 0.75rem; color: #666; }
     
-    .btn-primary { 
-      background: var(--primary); 
-      color: white;
-    }
-    .btn-primary:hover { background: var(--dark); }
-    
-    .btn-outline { 
-      background: white; 
-      border: 2px solid var(--primary); 
-      color: var(--primary);
-    }
-    .btn-outline:hover { background: rgba(46, 125, 50, 0.05); }
-    
-    .btn-danger { 
-      background: white;
-      border: 2px solid var(--danger); 
-      color: var(--danger);
-    }
-    .btn-danger:hover { background: rgba(211, 47, 47, 0.05); }
-    
-    .btn-sm { 
-      padding: 6px 12px; 
-      font-size: 0.8rem; 
-      width: auto;
-      border-radius: 6px;
-    }
-    
-    /* Forms */
-    .form-control { 
-      width: 100%; 
-      padding: 12px; 
-      margin-bottom: 12px; 
-      border: 2px solid #e0e0e0; 
-      border-radius: 8px; 
-      font-size: 16px;
-      transition: border-color 0.2s;
-    }
-    
-    .form-control:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-    
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    
-    .form-label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-    }
-    
-    /* Round Cards */
-    .round-card {
-      border-left: 5px solid var(--primary);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .round-info small {
-      color: var(--text-muted);
-      font-size: 0.8rem;
-    }
-    
-    .round-course {
-      font-weight: 600;
-      margin-top: 4px;
-    }
-    
-    .round-score {
-      font-size: 2rem;
-      font-weight: 900;
-      color: var(--primary);
-      text-align: right;
-    }
-    
-    .round-diff {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-    
-    /* Leaderboard */
-    .lb-header {
-      display: grid;
-      grid-template-columns: 35px 1fr 70px 60px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      padding: 8px 0;
-      border-bottom: 2px solid #e0e0e0;
-      text-transform: uppercase;
-    }
-    
-    .lb-row {
-      display: grid;
-      grid-template-columns: 35px 1fr 70px 60px;
-      padding: 12px 0;
-      border-bottom: 1px solid #f0f0f0;
-      align-items: center;
-    }
-    
-    .lb-rank { font-weight: 700; color: var(--text-muted); }
-    .lb-rank.gold { color: #FFD700; }
-    .lb-rank.silver { color: #C0C0C0; }
-    .lb-rank.bronze { color: #CD7F32; }
-    .lb-name { font-weight: 600; }
+    .lb-header { display: grid; grid-template-columns: 35px 1fr 70px 60px; font-size: 0.7rem; font-weight: 700; color: #666; padding: 8px 0; border-bottom: 2px solid #e0e0e0; }
+    .lb-row { display: grid; grid-template-columns: 35px 1fr 70px 60px; padding: 12px 0; border-bottom: 1px solid #f0f0f0; align-items: center; }
+    .lb-rank { font-weight: 700; color: #666; }
     .lb-index { font-weight: 900; color: var(--primary); }
-    .lb-rounds { font-size: 0.8rem; color: var(--text-muted); text-align: center; }
     
-    /* Group Selector */
-    .group-selector {
-      background: rgba(46, 125, 50, 0.1);
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-    }
+    .group-selector { background: rgba(46,125,50,0.1); padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+    .group-selector label { font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 8px; }
+    .group-selector select { width: 100%; padding: 10px; border: 2px solid var(--primary); border-radius: 6px; font-size: 1rem; }
     
-    .group-selector label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      display: block;
-      margin-bottom: 8px;
-    }
-    
-    .group-selector select {
-      width: 100%;
-      padding: 10px;
-      border: 2px solid var(--primary);
-      border-radius: 6px;
-      font-size: 1rem;
-      background: white;
-    }
-    
-    /* Auth Screen */
-    .auth-container {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    
+    .auth-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
     .auth-card { width: 100%; max-width: 400px; }
-    
     .auth-logo { text-align: center; margin-bottom: 25px; }
     .auth-logo h1 { font-size: 2rem; color: var(--primary); }
-    
     .auth-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
     .auth-toggle .btn { flex: 1; }
-    .auth-toggle .btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .auth-toggle .btn.active { background: var(--primary); color: white; }
     
-    .password-wrapper { position: relative; }
-    .password-toggle {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: var(--primary);
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-    
-    /* Legal Text */
-    .legal-section { margin-bottom: 20px; }
-    .legal-section h4 { color: var(--primary); margin-bottom: 10px; font-size: 1rem; }
-    
-    .legal-text {
-      font-size: 0.85rem;
-      line-height: 1.6;
-      color: var(--text-muted);
-      background: #f9f9f9;
-      padding: 15px;
-      border-radius: 8px;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    
-    .legal-text h5 { color: var(--text); margin: 15px 0 8px 0; font-size: 0.9rem; }
-    .legal-text h5:first-child { margin-top: 0; }
-    .legal-text ul { margin: 8px 0; padding-left: 20px; }
-    .legal-text li { margin-bottom: 5px; }
-    
-    /* Help Section */
-    .help-item { padding: 15px; border-bottom: 1px solid #f0f0f0; }
-    .help-item:last-child { border-bottom: none; }
-    .help-item h4 { color: var(--primary); font-size: 0.95rem; margin-bottom: 8px; }
-    .help-item p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
-    
-    /* Empty State */
-    .empty-state { text-align: center; padding: 30px; color: var(--text-muted); }
+    .empty-state { text-align: center; padding: 30px; color: #666; }
     .empty-state-icon { font-size: 3rem; margin-bottom: 10px; }
     
-    /* Utilities */
+    .settings-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 15px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-size: 1rem; }
+    .settings-btn:hover { background: #f5f5f5; }
+    
     .hidden { display: none !important; }
     .mt-1 { margin-top: 10px; }
     .mt-2 { margin-top: 20px; }
-    .mb-1 { margin-bottom: 10px; }
-    .mb-2 { margin-bottom: 20px; }
-    .text-center { text-align: center; }
-    .text-muted { color: var(--text-muted); }
-    
     hr { border: none; border-top: 1px solid #e0e0e0; margin: 20px 0; }
     
-    /* Settings Buttons */
-    .settings-btn {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      width: 100%;
-      padding: 15px;
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-bottom: 10px;
-      font-size: 1rem;
-      color: var(--text);
-      transition: all 0.2s;
-    }
-    
-    .settings-btn:hover { background: #f5f5f5; border-color: var(--primary); }
-    .settings-btn span { font-size: 1.2rem; }
-    
-    /* Debug panel */
-    .debug-panel {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #1e1e1e;
-      color: #00ff00;
-      font-family: monospace;
-      font-size: 11px;
-      padding: 8px;
-      max-height: 150px;
-      overflow-y: auto;
-      z-index: 9999;
-      display: none;
-    }
-    
-    .debug-panel.show { display: block; }
+    .legal-text { font-size: 0.85rem; line-height: 1.6; color: #666; background: #f9f9f9; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto; }
+    .help-item { padding: 15px; border-bottom: 1px solid #f0f0f0; }
+    .help-item h4 { color: var(--primary); font-size: 0.95rem; margin-bottom: 8px; }
+    .help-item p { font-size: 0.85rem; color: #666; line-height: 1.5; }
   </style>
 </head>
 <body>
-
-<!-- DEBUG PANEL - Triple tap header to show -->
-<div id="debug-panel" class="debug-panel"></div>
 
 <!-- AUTH SCREEN -->
 <div id="view-auth" class="auth-container">
   <div class="card auth-card">
     <div class="auth-logo">
       <h1>⛳ Golf Tracker</h1>
-      <p class="text-muted">by Lazy B Studios</p>
+      <p style="color: #666;">by Lazy B Studios</p>
     </div>
     
     <div class="auth-toggle">
-      <button id="btn-mode-signin" class="btn btn-outline active" onclick="setAuthMode('signin')">Sign In</button>
-      <button id="btn-mode-signup" class="btn btn-outline" onclick="setAuthMode('signup')">Create Account</button>
+      <button id="btn-signin" class="btn btn-outline active" onclick="App.setAuthMode('signin')">Sign In</button>
+      <button id="btn-signup" class="btn btn-outline" onclick="App.setAuthMode('signup')">Create Account</button>
     </div>
     
     <div id="signup-fields" class="hidden">
       <label class="form-label">Display Name</label>
-      <input type="text" id="auth-name" class="form-control" placeholder="Your name for leaderboard">
+      <input type="text" id="auth-name" class="form-control" placeholder="Your name">
     </div>
     
     <label class="form-label">Email</label>
     <input type="email" id="auth-email" class="form-control" placeholder="you@example.com">
     
     <label class="form-label">Password</label>
-    <div class="password-wrapper">
-      <input type="password" id="auth-password" class="form-control" placeholder="••••••••" style="margin-bottom: 0;">
-      <button type="button" class="password-toggle" onclick="togglePasswordVisibility('auth-password', this)">Show</button>
-    </div>
+    <input type="password" id="auth-password" class="form-control" placeholder="••••••••">
     
-    <div id="confirm-password-field" class="hidden" style="margin-top: 12px;">
+    <div id="confirm-field" class="hidden">
       <label class="form-label">Confirm Password</label>
-      <div class="password-wrapper">
-        <input type="password" id="auth-password-confirm" class="form-control" placeholder="••••••••" style="margin-bottom: 0;">
-        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('auth-password-confirm', this)">Show</button>
-      </div>
+      <input type="password" id="auth-confirm" class="form-control" placeholder="••••••••">
     </div>
     
-    <button id="auth-submit-btn" class="btn btn-primary mt-2" onclick="handleAuth()">Sign In</button>
-    <button class="btn btn-outline mt-1" onclick="handleForgotPassword()">Forgot Password?</button>
+    <button id="auth-btn" class="btn btn-primary mt-2" onclick="App.handleAuth()">Sign In</button>
+    <button class="btn btn-outline mt-1" onclick="App.forgotPassword()">Forgot Password?</button>
   </div>
 </div>
 
 <!-- MAIN APP -->
 <div id="view-app" class="hidden">
-  
-  <!-- Header -->
-  <div class="header" id="app-header">
+  <div class="header">
     <div class="header-top">
       <div class="header-user">
-        <span class="header-name" id="header-name">Loading...</span>
-        <span class="header-group no-group" id="header-group">Loading...</span>
+        <span class="header-name" id="header-name">Golfer</span>
+        <span class="header-group" id="header-group">No groups</span>
       </div>
-      <button class="logout-btn" id="logout-btn">Logout</button>
+      <button class="logout-btn" onclick="App.logout()">Logout</button>
     </div>
-    <div class="hcp-display" id="header-handicap">--</div>
+    <div class="hcp-display" id="header-hcp">--</div>
     <div class="hcp-label">WHS HANDICAP INDEX</div>
   </div>
   
-  <!-- Navigation Tabs -->
   <div class="nav-tabs">
-    <button class="tab-link active" data-tab="history" id="tab-btn-history">📋 HISTORY</button>
-    <button class="tab-link" data-tab="add" id="tab-btn-add">➕ ADD SCORE</button>
-    <button class="tab-link" data-tab="leader" id="tab-btn-leader">🏆 RANKINGS</button>
-    <button class="tab-link" data-tab="groups" id="tab-btn-groups">👥 GROUPS</button>
-    <button class="tab-link" data-tab="settings" id="tab-btn-settings">⚙️ SETTINGS</button>
+    <button class="tab-link active" onclick="App.showTab('history', this)">📋 HISTORY</button>
+    <button class="tab-link" onclick="App.showTab('add', this)">➕ ADD</button>
+    <button class="tab-link" onclick="App.showTab('leader', this)">🏆 RANKS</button>
+    <button class="tab-link" onclick="App.showTab('groups', this)">👥 GROUPS</button>
+    <button class="tab-link" onclick="App.showTab('settings', this)">⚙️ MORE</button>
   </div>
   
   <div class="container">
     
-    <!-- TAB: SCORE HISTORY -->
+    <!-- HISTORY TAB -->
     <div id="tab-history" class="tab-content">
       <div class="card">
         <div class="card-title">📋 Your Rounds</div>
-        <div id="rounds-list">
-          <div class="empty-state">
-            <div class="empty-state-icon">⏳</div>
-            <p>Loading rounds...</p>
-          </div>
-        </div>
+        <div id="rounds-list"><div class="empty-state"><div class="empty-state-icon">🏌️</div><p>No rounds yet</p></div></div>
       </div>
     </div>
     
-    <!-- TAB: ADD SCORE -->
+    <!-- ADD TAB -->
     <div id="tab-add" class="tab-content hidden">
       <div class="card">
         <div class="card-title">➕ Post New Round</div>
-        
         <label class="form-label">Course</label>
-        <select id="round-course" class="form-control">
-          <option value="">-- Select Course --</option>
-        </select>
-        
+        <select id="round-course" class="form-control" onchange="App.fillCourse()"><option value="">-- Select --</option></select>
         <div class="form-row">
-          <div>
-            <label class="form-label">Course Rating</label>
-            <input type="number" step="0.1" id="round-rating" class="form-control" placeholder="72.3">
-          </div>
-          <div>
-            <label class="form-label">Slope Rating</label>
-            <input type="number" id="round-slope" class="form-control" placeholder="125">
-          </div>
+          <div><label class="form-label">Rating</label><input type="number" step="0.1" id="round-rating" class="form-control" placeholder="72.3"></div>
+          <div><label class="form-label">Slope</label><input type="number" id="round-slope" class="form-control" placeholder="125"></div>
         </div>
-        
-        <label class="form-label">Your Score</label>
+        <label class="form-label">Score</label>
         <input type="number" id="round-score" class="form-control" placeholder="85">
-        
-        <label class="form-label">Date Played</label>
+        <label class="form-label">Date</label>
         <input type="date" id="round-date" class="form-control">
-        
-        <label class="form-label">Notes (optional)</label>
-        <textarea id="round-notes" class="form-control" rows="2" placeholder="Weather, highlights, etc."></textarea>
-        
-        <button class="btn btn-primary mt-1" id="save-round-btn">Save Round</button>
+        <label class="form-label">Notes</label>
+        <textarea id="round-notes" class="form-control" rows="2" placeholder="Optional"></textarea>
+        <button class="btn btn-primary mt-1" onclick="App.saveRound()">Save Round</button>
       </div>
     </div>
     
-    <!-- TAB: LEADERBOARD -->
+    <!-- LEADERBOARD TAB -->
     <div id="tab-leader" class="tab-content hidden">
       <div class="group-selector">
-        <label>Select Group to View Rankings:</label>
-        <select id="leaderboard-group-select">
-          <option value="">-- Select a Group --</option>
-        </select>
+        <label>Select Group:</label>
+        <select id="lb-group" onchange="App.loadLeaderboard()"><option value="">-- Select --</option></select>
       </div>
-      
       <div class="card">
-        <div class="card-title">🏆 Group Leaderboard</div>
-        <div id="leaderboard-content">
-          <div class="empty-state">
-            <div class="empty-state-icon">👥</div>
-            <p>Select a group above to see rankings</p>
-          </div>
-        </div>
+        <div class="card-title">🏆 Leaderboard</div>
+        <div id="lb-content"><div class="empty-state"><div class="empty-state-icon">👥</div><p>Select a group</p></div></div>
       </div>
     </div>
     
-    <!-- TAB: GROUPS -->
+    <!-- GROUPS TAB -->
     <div id="tab-groups" class="tab-content hidden">
-      <div class="card" id="group-status-card">
+      <div class="card">
         <div class="card-title">👥 Your Groups</div>
-        <div id="my-groups-list">
-          <div class="empty-state">
-            <div class="empty-state-icon">⏳</div>
-            <p>Loading groups...</p>
-          </div>
-        </div>
+        <div id="groups-list"><div class="empty-state"><div class="empty-state-icon">👥</div><p>No groups yet</p></div></div>
       </div>
-      
       <div class="card">
-        <div class="card-title">✨ Create New Group</div>
-        <label class="form-label">Group Name</label>
-        <input type="text" id="new-group-name" class="form-control" placeholder="e.g., Sunday Foursome">
+        <div class="card-title">✨ Create Group</div>
+        <label class="form-label">Name</label>
+        <input type="text" id="new-group-name" class="form-control" placeholder="Sunday Foursome">
+        <label class="form-label">Code</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="new-group-code" class="form-control" readonly style="flex:1;margin:0;">
+          <button class="btn btn-outline btn-sm" onclick="App.genCode()">Generate</button>
+        </div>
+        <button class="btn btn-primary mt-2" onclick="App.createGroup()">Create</button>
+      </div>
+      <div class="card">
+        <div class="card-title">🔗 Join Group</div>
         <label class="form-label">Invite Code</label>
-        <div style="display: flex; gap: 8px;">
-          <input type="text" id="new-group-code" class="form-control" placeholder="Click Generate" readonly style="flex: 1; margin-bottom: 0;">
-          <button class="btn btn-outline btn-sm" id="generate-code-btn" style="white-space: nowrap;">Generate</button>
-        </div>
-        <button class="btn btn-primary mt-2" id="create-group-btn">Create Group</button>
-      </div>
-      
-      <div class="card">
-        <div class="card-title">🔗 Join Existing Group</div>
-        <label class="form-label">Enter Invite Code</label>
-        <input type="text" id="join-group-code" class="form-control" placeholder="e.g., ABC123" style="text-transform: uppercase;">
-        <button class="btn btn-outline" id="join-group-btn">Join Group</button>
+        <input type="text" id="join-code" class="form-control" placeholder="ABC123" style="text-transform:uppercase;">
+        <button class="btn btn-outline" onclick="App.joinGroup()">Join</button>
       </div>
     </div>
     
-    <!-- TAB: SETTINGS -->
+    <!-- SETTINGS TAB -->
     <div id="tab-settings" class="tab-content hidden">
-      <button class="settings-btn" id="settings-courses-btn"><span>⛳</span> Manage Courses</button>
-      <button class="settings-btn" id="settings-help-btn"><span>❓</span> Help & Support</button>
-      <button class="settings-btn" id="settings-privacy-btn"><span>🔒</span> Privacy Policy</button>
-      <button class="settings-btn" id="settings-terms-btn"><span>📜</span> Terms of Service</button>
+      <button class="settings-btn" onclick="App.showPanel('courses')">⛳ Manage Courses</button>
+      <button class="settings-btn" onclick="App.showPanel('help')">❓ Help & Support</button>
+      <button class="settings-btn" onclick="App.showPanel('privacy')">🔒 Privacy Policy</button>
+      <button class="settings-btn" onclick="App.showPanel('terms')">📜 Terms of Service</button>
       
-      <!-- Course Manager Panel -->
       <div id="panel-courses" class="card hidden mt-2">
         <div class="card-title">⛳ Course Manager</div>
-        <label class="form-label">Select Course to Edit (or add new)</label>
-        <select id="manage-course-select" class="form-control">
-          <option value="new">-- Add New Course --</option>
-        </select>
+        <select id="manage-course" class="form-control" onchange="App.loadCourseEdit()"><option value="new">-- Add New --</option></select>
         <hr>
         <input type="hidden" id="edit-course-id">
-        <label class="form-label">Course Name</label>
-        <input type="text" id="edit-course-name" class="form-control" placeholder="Pine Valley Golf Club">
-        <label class="form-label">Tee Box</label>
-        <input type="text" id="edit-course-tee" class="form-control" placeholder="Blue, White, etc.">
+        <label class="form-label">Name</label><input type="text" id="edit-course-name" class="form-control">
+        <label class="form-label">Tee</label><input type="text" id="edit-course-tee" class="form-control">
         <div class="form-row">
-          <div>
-            <label class="form-label">Course Rating</label>
-            <input type="number" step="0.1" id="edit-course-rating" class="form-control" placeholder="72.5">
-          </div>
-          <div>
-            <label class="form-label">Slope Rating</label>
-            <input type="number" id="edit-course-slope" class="form-control" placeholder="135">
-          </div>
+          <div><label class="form-label">Rating</label><input type="number" step="0.1" id="edit-course-rating" class="form-control"></div>
+          <div><label class="form-label">Slope</label><input type="number" id="edit-course-slope" class="form-control"></div>
         </div>
-        <button class="btn btn-primary" id="save-course-btn">Save Course</button>
-        <button id="delete-course-btn" class="btn btn-danger mt-1 hidden">Delete Course</button>
+        <button class="btn btn-primary" onclick="App.saveCourse()">Save</button>
+        <button id="del-course-btn" class="btn btn-danger mt-1 hidden" onclick="App.deleteCourse()">Delete</button>
       </div>
       
-      <!-- Help Panel -->
       <div id="panel-help" class="card hidden mt-2">
-        <div class="card-title">❓ Help & Support</div>
-        <div class="help-item">
-          <h4>How is my handicap calculated?</h4>
-          <p>Your Handicap Index is calculated using the World Handicap System (WHS) formula. It takes the best 8 of your last 20 score differentials, averages them, and multiplies by 0.96. Score differential = (Score - Course Rating) × 113 / Slope Rating.</p>
-        </div>
-        <div class="help-item">
-          <h4>How do groups work?</h4>
-          <p>Groups let you compete with friends on a private leaderboard. Create a group to get an invite code, then share that code with friends.</p>
-        </div>
-        <div class="help-item">
-          <h4>How do I add a course?</h4>
-          <p>Go to Settings → Manage Courses. Add any course with its rating and slope from the scorecard.</p>
-        </div>
-        <div class="help-item">
-          <h4>Why isn't my handicap showing?</h4>
-          <p>You need at least 3 rounds with valid course rating and slope to calculate a handicap index.</p>
-        </div>
-        <div class="help-item">
-          <h4>Need more help?</h4>
-          <p>Contact us at <strong>support@lazybstudios.com</strong></p>
-        </div>
-        <button class="btn btn-primary mt-1" onclick="window.location.href='mailto:support@lazybstudios.com'">Email Support</button>
+        <div class="card-title">❓ Help</div>
+        <div class="help-item"><h4>Handicap Calculation</h4><p>Uses WHS formula: best differentials × 0.96</p></div>
+        <div class="help-item"><h4>Groups</h4><p>Create or join groups to compete with friends</p></div>
+        <div class="help-item"><h4>Support</h4><p>Email: support@lazybstudios.com</p></div>
       </div>
       
-      <!-- Privacy Policy Panel -->
       <div id="panel-privacy" class="card hidden mt-2">
-        <div class="card-title">🔒 Privacy Policy</div>
-        <div class="legal-text">
-          <h5>Last Updated: January 2026</h5>
-          <p>Lazy B Studios ("we," "our," or "us") operates the Golf Tracker application. This Privacy Policy explains how we collect, use, disclose, and safeguard your information.</p>
-          <h5>Information We Collect</h5>
-          <ul>
-            <li><strong>Account Information:</strong> Email address, display name, and password.</li>
-            <li><strong>Golf Data:</strong> Scores, courses played, dates, and notes.</li>
-            <li><strong>Group Information:</strong> Group memberships for leaderboard functionality.</li>
-          </ul>
-          <h5>How We Use Your Information</h5>
-          <ul>
-            <li>Provide, maintain, and improve our services</li>
-            <li>Calculate your handicap index</li>
-            <li>Display leaderboards within your groups</li>
-            <li>Send technical notices and support messages</li>
-          </ul>
-          <h5>Information Sharing</h5>
-          <p>We do not sell your personal information. Your golf scores are only visible to you and members of groups you have joined.</p>
-          <h5>Contact Us</h5>
-          <p>Email: support@lazybstudios.com</p>
-        </div>
+        <div class="card-title">🔒 Privacy</div>
+        <div class="legal-text">We collect email, name, and golf scores. Data shared only with your group members. We never sell your data. Contact support@lazybstudios.com for requests.</div>
       </div>
       
-      <!-- Terms Panel -->
       <div id="panel-terms" class="card hidden mt-2">
-        <div class="card-title">📜 Terms of Service</div>
-        <div class="legal-text">
-          <h5>Last Updated: January 2026</h5>
-          <p>By using Golf Tracker, you agree to these Terms of Service.</p>
-          <h5>1. Description of Service</h5>
-          <p>Golf Tracker allows users to record golf scores, calculate handicap index, and compete with friends on leaderboards.</p>
-          <h5>2. User Accounts</h5>
-          <p>You are responsible for maintaining the confidentiality of your password and all activities under your account.</p>
-          <h5>3. User Conduct</h5>
-          <ul>
-            <li>Submit only accurate and truthful scores</li>
-            <li>Do not attempt to manipulate handicap calculations</li>
-            <li>Do not harass or abuse other users</li>
-          </ul>
-          <h5>4. Score Integrity</h5>
-          <p>Handicaps calculated by Golf Tracker are for recreational purposes only and may not be accepted for official sanctioned events.</p>
-          <h5>5. Disclaimer</h5>
-          <p>Golf Tracker is provided "as is" without warranties of any kind.</p>
-          <h5>Contact</h5>
-          <p>Email: support@lazybstudios.com</p>
-        </div>
+        <div class="card-title">📜 Terms</div>
+        <div class="legal-text">By using Golf Tracker you agree to submit honest scores. Handicaps are for recreational use. Service provided "as is".</div>
       </div>
     </div>
     
@@ -708,701 +247,347 @@
 </div>
 
 <script>
-// ======================
-// SUPABASE SETUP
-// ======================
-const SUPABASE_URL = 'https://vonbibroncsxrgstetow.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
+// Create global App object FIRST
+window.App = {};
 
-let sb;
-try {
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  debugLog('Supabase client initialized');
-} catch (e) {
-  debugLog('ERROR: Failed to initialize Supabase: ' + e.message);
-  alert('Failed to connect to database. Please refresh the page.');
-}
+// Supabase
+var SUPABASE_URL = 'https://vonbibroncsxrgstetow.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ======================
-// APP STATE
-// ======================
-let currentUser = null;
-let currentProfile = null;
-let myGroups = [];
-let allCourses = [];
-let authMode = 'signin';
+// State
+var user = null;
+var profile = null;
+var groups = [];
+var courses = [];
+var authMode = 'signin';
 
-// ======================
-// DEBUG LOGGING
-// ======================
-function debugLog(msg) {
-  console.log('[Golf]', msg);
-  const panel = document.getElementById('debug-panel');
-  if (panel) {
-    const time = new Date().toLocaleTimeString();
-    panel.innerHTML += `[${time}] ${msg}<br>`;
-    panel.scrollTop = panel.scrollHeight;
-  }
-}
+// ========== AUTH ==========
+App.setAuthMode = function(mode) {
+  authMode = mode;
+  document.getElementById('btn-signin').className = mode === 'signin' ? 'btn btn-outline active' : 'btn btn-outline';
+  document.getElementById('btn-signup').className = mode === 'signup' ? 'btn btn-outline active' : 'btn btn-outline';
+  document.getElementById('signup-fields').className = mode === 'signup' ? '' : 'hidden';
+  document.getElementById('confirm-field').className = mode === 'signup' ? '' : 'hidden';
+  document.getElementById('auth-btn').textContent = mode === 'signup' ? 'Create Account' : 'Sign In';
+};
 
-// Triple-tap header to show debug panel
-let tapCount = 0;
-let tapTimer = null;
-document.addEventListener('DOMContentLoaded', function() {
-  const header = document.getElementById('app-header');
-  if (header) {
-    header.addEventListener('click', function() {
-      tapCount++;
-      clearTimeout(tapTimer);
-      tapTimer = setTimeout(() => { tapCount = 0; }, 500);
-      if (tapCount >= 3) {
-        document.getElementById('debug-panel').classList.toggle('show');
-        tapCount = 0;
+App.handleAuth = async function() {
+  var email = document.getElementById('auth-email').value.trim();
+  var password = document.getElementById('auth-password').value;
+  
+  if (!email || !password) { alert('Enter email and password'); return; }
+  
+  try {
+    if (authMode === 'signup') {
+      var confirm = document.getElementById('auth-confirm').value;
+      var name = document.getElementById('auth-name').value.trim();
+      if (password !== confirm) { alert('Passwords do not match'); return; }
+      
+      var result = await sb.auth.signUp({ email: email, password: password });
+      if (result.error) throw result.error;
+      
+      if (result.data.user) {
+        await sb.from('profiles').upsert({ id: result.data.user.id, display_name: name || email.split('@')[0] });
       }
-    });
+      alert('Account created! Sign in now.');
+      App.setAuthMode('signin');
+    } else {
+      var result = await sb.auth.signInWithPassword({ email: email, password: password });
+      if (result.error) throw result.error;
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
   }
-});
+};
 
-// ======================
-// INITIALIZATION
-// ======================
-document.addEventListener('DOMContentLoaded', function() {
-  debugLog('DOM loaded, setting up event listeners');
-  
-  // Logout button
-  const logoutBtn = document.getElementById('logout-btn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', handleLogout);
-    debugLog('Logout button listener attached');
+App.logout = async function() {
+  console.log('Logout clicked');
+  try {
+    await sb.auth.signOut();
+    user = null;
+    profile = null;
+    groups = [];
+    // Force UI switch
+    document.getElementById('view-auth').className = 'auth-container';
+    document.getElementById('view-app').className = 'hidden';
+  } catch (e) {
+    alert('Error: ' + e.message);
   }
-  
-  // Tab buttons
-  document.querySelectorAll('.tab-link').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const tab = this.getAttribute('data-tab');
-      showTab(tab, this);
-    });
-  });
-  
-  // Save round button
-  const saveRoundBtn = document.getElementById('save-round-btn');
-  if (saveRoundBtn) {
-    saveRoundBtn.addEventListener('click', saveRound);
-  }
-  
-  // Course select change
-  const roundCourse = document.getElementById('round-course');
-  if (roundCourse) {
-    roundCourse.addEventListener('change', fillCourseDetails);
-  }
-  
-  // Generate code button
-  const genCodeBtn = document.getElementById('generate-code-btn');
-  if (genCodeBtn) {
-    genCodeBtn.addEventListener('click', generateCode);
-  }
-  
-  // Create group button
-  const createGroupBtn = document.getElementById('create-group-btn');
-  if (createGroupBtn) {
-    createGroupBtn.addEventListener('click', createGroup);
-  }
-  
-  // Join group button
-  const joinGroupBtn = document.getElementById('join-group-btn');
-  if (joinGroupBtn) {
-    joinGroupBtn.addEventListener('click', joinGroup);
-  }
-  
-  // Leaderboard group select
-  const lbSelect = document.getElementById('leaderboard-group-select');
-  if (lbSelect) {
-    lbSelect.addEventListener('change', loadLeaderboard);
-  }
-  
-  // Settings buttons
-  document.getElementById('settings-courses-btn')?.addEventListener('click', () => showSettingsPanel('courses'));
-  document.getElementById('settings-help-btn')?.addEventListener('click', () => showSettingsPanel('help'));
-  document.getElementById('settings-privacy-btn')?.addEventListener('click', () => showSettingsPanel('privacy'));
-  document.getElementById('settings-terms-btn')?.addEventListener('click', () => showSettingsPanel('terms'));
-  
-  // Course manager
-  const manageCourseSelect = document.getElementById('manage-course-select');
-  if (manageCourseSelect) {
-    manageCourseSelect.addEventListener('change', loadCourseForEdit);
-  }
-  
-  const saveCourseBtn = document.getElementById('save-course-btn');
-  if (saveCourseBtn) {
-    saveCourseBtn.addEventListener('click', saveCourse);
-  }
-  
-  const deleteCourseBtn = document.getElementById('delete-course-btn');
-  if (deleteCourseBtn) {
-    deleteCourseBtn.addEventListener('click', deleteCourse);
-  }
-  
-  // Set default date
-  const dateInput = document.getElementById('round-date');
-  if (dateInput) {
-    dateInput.value = new Date().toISOString().split('T')[0];
-  }
-  
-  debugLog('All event listeners attached');
-});
+};
 
-// ======================
-// AUTH STATE LISTENER
-// ======================
-sb.auth.onAuthStateChange(async (event, session) => {
-  debugLog('Auth state changed: ' + event);
+App.forgotPassword = async function() {
+  var email = document.getElementById('auth-email').value.trim();
+  if (!email) { alert('Enter your email first'); return; }
+  var result = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+  if (result.error) alert('Error: ' + result.error.message);
+  else alert('Check your email!');
+};
+
+// ========== AUTH STATE ==========
+sb.auth.onAuthStateChange(async function(event, session) {
+  console.log('Auth event:', event);
   
   if (event === 'PASSWORD_RECOVERY') {
-    const newPassword = prompt('Enter your new password:');
-    if (newPassword) {
-      const { error } = await sb.auth.updateUser({ password: newPassword });
-      if (error) {
-        alert('Error updating password: ' + error.message);
-      } else {
-        alert('Password updated successfully!');
-      }
+    var newPass = prompt('Enter new password:');
+    if (newPass) {
+      var r = await sb.auth.updateUser({ password: newPass });
+      alert(r.error ? r.error.message : 'Password updated!');
     }
     return;
   }
   
   if (session && session.user) {
-    currentUser = session.user;
-    debugLog('User logged in: ' + currentUser.id);
+    user = session.user;
+    console.log('User:', user.id);
     
-    // Switch views
-    document.getElementById('view-auth').classList.add('hidden');
-    document.getElementById('view-app').classList.remove('hidden');
+    // Switch views FIRST
+    document.getElementById('view-auth').className = 'auth-container hidden';
+    document.getElementById('view-app').className = '';
     
-    // Load all data
-    await loadAllData();
+    // Load data
+    await App.loadAll();
   } else {
-    debugLog('No session, showing auth screen');
-    currentUser = null;
-    currentProfile = null;
-    document.getElementById('view-auth').classList.remove('hidden');
-    document.getElementById('view-app').classList.add('hidden');
+    console.log('No session');
+    user = null;
+    profile = null;
+    document.getElementById('view-auth').className = 'auth-container';
+    document.getElementById('view-app').className = 'hidden';
   }
 });
 
-// ======================
-// AUTH FUNCTIONS
-// ======================
-function setAuthMode(mode) {
-  authMode = mode;
+// ========== DATA LOADING ==========
+App.loadAll = async function() {
+  console.log('Loading all data...');
+  try {
+    await App.loadProfile();
+  } catch(e) { console.log('Profile error:', e); }
   
-  const signinBtn = document.getElementById('btn-mode-signin');
-  const signupBtn = document.getElementById('btn-mode-signup');
-  const signupFields = document.getElementById('signup-fields');
-  const confirmField = document.getElementById('confirm-password-field');
-  const submitBtn = document.getElementById('auth-submit-btn');
+  try {
+    await App.loadGroups();
+  } catch(e) { console.log('Groups error:', e); }
   
-  if (mode === 'signup') {
-    signinBtn.classList.remove('active');
-    signupBtn.classList.add('active');
-    signupFields.classList.remove('hidden');
-    confirmField.classList.remove('hidden');
-    submitBtn.textContent = 'Create Account';
-  } else {
-    signinBtn.classList.add('active');
-    signupBtn.classList.remove('active');
-    signupFields.classList.add('hidden');
-    confirmField.classList.add('hidden');
-    submitBtn.textContent = 'Sign In';
-  }
-}
+  try {
+    await App.loadCourses();
+  } catch(e) { console.log('Courses error:', e); }
+  
+  try {
+    await App.loadRounds();
+  } catch(e) { console.log('Rounds error:', e); }
+  
+  App.updateHeader();
+  document.getElementById('round-date').value = new Date().toISOString().split('T')[0];
+  console.log('Done loading');
+};
 
-function togglePasswordVisibility(inputId, btn) {
-  const input = document.getElementById(inputId);
-  if (input.type === 'password') {
-    input.type = 'text';
-    btn.textContent = 'Hide';
+App.loadProfile = async function() {
+  var r = await sb.from('profiles').select('*').eq('id', user.id).single();
+  if (r.error) {
+    console.log('Profile error:', r.error.message);
+    profile = { display_name: user.email ? user.email.split('@')[0] : 'Golfer' };
   } else {
-    input.type = 'password';
-    btn.textContent = 'Show';
+    profile = r.data;
+    console.log('Profile loaded:', profile);
   }
-}
+};
 
-async function handleAuth() {
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  
-  if (!email || !password) {
-    alert('Please enter email and password');
+App.loadGroups = async function() {
+  var r1 = await sb.from('group_members').select('group_id').eq('user_id', user.id);
+  if (r1.error || !r1.data || r1.data.length === 0) {
+    console.log('No memberships');
+    groups = [];
+    App.updateGroupsUI();
     return;
   }
   
-  debugLog('Attempting auth: ' + authMode);
+  var ids = r1.data.map(function(m) { return m.group_id; });
+  var r2 = await sb.from('groups').select('id, name, group_code, owner_id').in('id', ids);
   
-  try {
-    if (authMode === 'signup') {
-      const confirmPassword = document.getElementById('auth-password-confirm').value;
-      const displayName = document.getElementById('auth-name').value.trim();
-      
-      if (password !== confirmPassword) {
-        alert('Passwords do not match');
-        return;
-      }
-      
-      const { data, error } = await sb.auth.signUp({ email, password });
-      
-      if (error) throw error;
-      
-      debugLog('Signup successful');
-      
-      if (data.user) {
-        await sb.from('profiles').upsert({
-          id: data.user.id,
-          display_name: displayName || email.split('@')[0]
-        }, { onConflict: 'id' });
-      }
-      
-      alert('Account created! You can now sign in.');
-      setAuthMode('signin');
-      
-    } else {
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      debugLog('Login successful');
-    }
-  } catch (error) {
-    debugLog('Auth error: ' + error.message);
-    alert('Error: ' + error.message);
+  if (r2.error) {
+    console.log('Groups error:', r2.error.message);
+    groups = [];
+  } else {
+    groups = r2.data || [];
+    console.log('Groups loaded:', groups);
   }
-}
+  App.updateGroupsUI();
+};
 
-async function handleForgotPassword() {
-  const email = document.getElementById('auth-email').value.trim();
+App.loadCourses = async function() {
+  var r = await sb.from('courses').select('*').order('name');
+  if (r.error) {
+    console.log('Courses error:', r.error.message);
+    courses = [];
+  } else {
+    courses = r.data || [];
+    console.log('Courses loaded:', courses.length);
+  }
   
-  if (!email) {
-    alert('Please enter your email address first');
+  // Populate selects
+  var html = '<option value="">-- Select --</option>';
+  var html2 = '<option value="new">-- Add New --</option>';
+  for (var i = 0; i < courses.length; i++) {
+    var c = courses[i];
+    var txt = c.name + (c.tee ? ' (' + c.tee + ')' : '');
+    html += '<option value="' + c.id + '">' + txt + '</option>';
+    html2 += '<option value="' + c.id + '">' + txt + '</option>';
+  }
+  document.getElementById('round-course').innerHTML = html;
+  document.getElementById('manage-course').innerHTML = html2;
+};
+
+App.loadRounds = async function() {
+  var r = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', { ascending: false });
+  
+  if (r.error) {
+    console.log('Rounds error:', r.error.message);
     return;
   }
   
-  const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + window.location.pathname
-  });
+  var data = r.data || [];
+  console.log('Rounds loaded:', data.length);
   
-  if (error) {
-    alert('Error: ' + error.message);
-  } else {
-    alert('Password reset email sent!');
-  }
-}
-
-async function handleLogout() {
-  debugLog('Logout clicked');
-  try {
-    const { error } = await sb.auth.signOut();
-    if (error) {
-      debugLog('Logout error: ' + error.message);
-      alert('Error signing out: ' + error.message);
-    } else {
-      debugLog('Logout successful');
-      currentUser = null;
-      currentProfile = null;
-      myGroups = [];
-    }
-  } catch (e) {
-    debugLog('Logout exception: ' + e.message);
-    alert('Error: ' + e.message);
-  }
-}
-
-// ======================
-// DATA LOADING
-// ======================
-async function loadAllData() {
-  debugLog('Loading all data...');
-  
-  try {
-    await loadProfile();
-    await loadGroups();
-    await loadCourses();
-    await loadRounds();
-    updateHeader();
-    debugLog('All data loaded successfully');
-  } catch (e) {
-    debugLog('Error loading data: ' + e.message);
-  }
-}
-
-async function loadProfile() {
-  debugLog('Loading profile for user: ' + currentUser.id);
-  
-  try {
-    const { data, error } = await sb
-      .from('profiles')
-      .select('*')
-      .eq('id', currentUser.id)
-      .single();
-    
-    if (error) {
-      debugLog('Profile load error: ' + error.message);
-      return;
-    }
-    
-    currentProfile = data;
-    debugLog('Profile loaded: ' + JSON.stringify(data));
-  } catch (e) {
-    debugLog('Profile exception: ' + e.message);
-  }
-}
-
-async function loadGroups() {
-  debugLog('Loading groups...');
-  
-  try {
-    // Get memberships
-    const { data: memberships, error: memError } = await sb
-      .from('group_members')
-      .select('group_id')
-      .eq('user_id', currentUser.id);
-    
-    if (memError) {
-      debugLog('Memberships error: ' + memError.message);
-      myGroups = [];
-      updateGroupsUI();
-      return;
-    }
-    
-    debugLog('Memberships: ' + JSON.stringify(memberships));
-    
-    if (!memberships || memberships.length === 0) {
-      debugLog('No group memberships found');
-      myGroups = [];
-      updateGroupsUI();
-      return;
-    }
-    
-    // Get group details
-    const groupIds = memberships.map(m => m.group_id);
-    const { data: groups, error: groupError } = await sb
-      .from('groups')
-      .select('id, name, group_code, owner_id')
-      .in('id', groupIds);
-    
-    if (groupError) {
-      debugLog('Groups error: ' + groupError.message);
-      myGroups = [];
-      updateGroupsUI();
-      return;
-    }
-    
-    myGroups = groups || [];
-    debugLog('Groups loaded: ' + JSON.stringify(myGroups));
-    updateGroupsUI();
-    
-  } catch (e) {
-    debugLog('Groups exception: ' + e.message);
-    myGroups = [];
-    updateGroupsUI();
-  }
-}
-
-async function loadCourses() {
-  debugLog('Loading courses...');
-  
-  try {
-    const { data, error } = await sb
-      .from('courses')
-      .select('*')
-      .order('name');
-    
-    if (error) {
-      debugLog('Courses error: ' + error.message);
-      allCourses = [];
-      return;
-    }
-    
-    allCourses = data || [];
-    debugLog('Courses loaded: ' + allCourses.length);
-    
-    // Populate dropdowns
-    const roundSelect = document.getElementById('round-course');
-    const manageSelect = document.getElementById('manage-course-select');
-    
-    if (roundSelect) {
-      roundSelect.innerHTML = '<option value="">-- Select Course --</option>';
-      allCourses.forEach(c => {
-        roundSelect.innerHTML += `<option value="${c.id}">${c.name}${c.tee ? ' (' + c.tee + ')' : ''}</option>`;
-      });
-    }
-    
-    if (manageSelect) {
-      manageSelect.innerHTML = '<option value="new">-- Add New Course --</option>';
-      allCourses.forEach(c => {
-        manageSelect.innerHTML += `<option value="${c.id}">${c.name}${c.tee ? ' (' + c.tee + ')' : ''}</option>`;
-      });
-    }
-    
-  } catch (e) {
-    debugLog('Courses exception: ' + e.message);
-    allCourses = [];
-  }
-}
-
-async function loadRounds() {
-  debugLog('Loading rounds...');
-  
-  try {
-    const { data, error } = await sb
-      .from('rounds')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .order('date_played', { ascending: false });
-    
-    if (error) {
-      debugLog('Rounds error: ' + error.message);
-      return;
-    }
-    
-    debugLog('Rounds loaded: ' + (data ? data.length : 0));
-    
-    const container = document.getElementById('rounds-list');
-    
-    if (!data || data.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">🏌️</div>
-          <p>No rounds yet. Add your first score!</p>
-        </div>
-      `;
-      return;
-    }
-    
-    container.innerHTML = data.map(r => `
-      <div class="card round-card">
-        <div class="round-info">
-          <small>${formatDate(r.date_played)}</small>
-          <div class="round-course">${r.course_name || 'Unknown Course'}</div>
-        </div>
-        <div>
-          <div class="round-score">${r.score}</div>
-          <div class="round-diff">Diff: ${r.differential || '--'}</div>
-        </div>
-      </div>
-    `).join('');
-    
-  } catch (e) {
-    debugLog('Rounds exception: ' + e.message);
-  }
-}
-
-// ======================
-// UI UPDATES
-// ======================
-function updateHeader() {
-  debugLog('Updating header...');
-  
-  // Name
-  const nameEl = document.getElementById('header-name');
-  const displayName = currentProfile?.display_name || currentProfile?.full_name || 'Golfer';
-  nameEl.textContent = displayName;
-  debugLog('Header name set to: ' + displayName);
-  
-  // Handicap
-  const hcpEl = document.getElementById('header-handicap');
-  const handicap = currentProfile?.handicap_index;
-  hcpEl.textContent = handicap !== null && handicap !== undefined ? handicap : '--';
-  debugLog('Header handicap set to: ' + (handicap ?? '--'));
-  
-  // Group
-  const groupEl = document.getElementById('header-group');
-  if (myGroups.length === 0) {
-    groupEl.textContent = 'No groups joined';
-    groupEl.className = 'header-group no-group';
-  } else if (myGroups.length === 1) {
-    groupEl.textContent = myGroups[0].name;
-    groupEl.className = 'header-group';
-  } else {
-    groupEl.textContent = myGroups.length + ' groups';
-    groupEl.className = 'header-group';
-  }
-}
-
-function updateGroupsUI() {
-  debugLog('Updating groups UI...');
-  
-  const listContainer = document.getElementById('my-groups-list');
-  const lbSelect = document.getElementById('leaderboard-group-select');
-  
-  if (myGroups.length === 0) {
-    listContainer.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">👥</div>
-        <p>You haven't joined any groups yet.<br>Create one or join with a code below!</p>
-      </div>
-    `;
-  } else {
-    listContainer.innerHTML = myGroups.map(g => `
-      <div style="padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <strong>${g.name}</strong>
-          ${g.owner_id === currentUser.id ? '<span style="font-size: 0.7rem; background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">Owner</span>' : ''}
-        </div>
-        <div style="margin-top: 8px; font-size: 0.85rem; color: var(--text-muted);">
-          Invite Code: <strong style="font-family: monospace; letter-spacing: 2px;">${g.group_code || 'N/A'}</strong>
-        </div>
-      </div>
-    `).join('');
-  }
-  
-  // Update leaderboard selector
-  if (lbSelect) {
-    lbSelect.innerHTML = '<option value="">-- Select a Group --</option>';
-    myGroups.forEach(g => {
-      lbSelect.innerHTML += `<option value="${g.id}">${g.name}</option>`;
-    });
-  }
-}
-
-// ======================
-// TAB NAVIGATION
-// ======================
-function showTab(tabName, btn) {
-  debugLog('Switching to tab: ' + tabName);
-  
-  // Hide all tabs
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-  
-  // Show selected tab
-  const tabEl = document.getElementById('tab-' + tabName);
-  if (tabEl) {
-    tabEl.classList.remove('hidden');
-  }
-  
-  // Update nav styling
-  document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
-  if (btn) {
-    btn.classList.add('active');
-  }
-}
-
-function showSettingsPanel(panel) {
-  debugLog('Showing settings panel: ' + panel);
-  
-  // Hide all panels
-  document.querySelectorAll('[id^="panel-"]').forEach(p => p.classList.add('hidden'));
-  
-  // Show selected panel
-  const panelEl = document.getElementById('panel-' + panel);
-  if (panelEl) {
-    panelEl.classList.remove('hidden');
-  }
-}
-
-// ======================
-// ROUND FUNCTIONS
-// ======================
-function fillCourseDetails() {
-  const select = document.getElementById('round-course');
-  const courseId = select.value;
-  
-  if (!courseId) return;
-  
-  const course = allCourses.find(c => c.id === courseId);
-  if (course) {
-    document.getElementById('round-rating').value = course.course_rating || '';
-    document.getElementById('round-slope').value = course.slope_rating || '';
-  }
-}
-
-async function saveRound() {
-  debugLog('Saving round...');
-  
-  const courseSelect = document.getElementById('round-course');
-  const score = parseInt(document.getElementById('round-score').value);
-  const rating = parseFloat(document.getElementById('round-rating').value);
-  const slope = parseInt(document.getElementById('round-slope').value);
-  const date = document.getElementById('round-date').value;
-  const notes = document.getElementById('round-notes').value;
-  
-  if (!score || !rating || !slope || !date) {
-    alert('Please fill in all required fields');
+  var el = document.getElementById('rounds-list');
+  if (data.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏌️</div><p>No rounds yet</p></div>';
     return;
   }
   
-  const differential = ((score - rating) * 113 / slope).toFixed(1);
-  const courseName = courseSelect.options[courseSelect.selectedIndex]?.text || 'Unknown Course';
+  var html = '';
+  for (var i = 0; i < data.length; i++) {
+    var rd = data[i];
+    html += '<div class="card round-card">';
+    html += '<div><small>' + App.formatDate(rd.date_played) + '</small><div style="font-weight:600;margin-top:4px;">' + (rd.course_name || 'Unknown') + '</div></div>';
+    html += '<div><div class="round-score">' + rd.score + '</div><div class="round-diff">Diff: ' + (rd.differential || '--') + '</div></div>';
+    html += '</div>';
+  }
+  el.innerHTML = html;
+};
+
+// ========== UI ==========
+App.updateHeader = function() {
+  document.getElementById('header-name').textContent = profile && profile.display_name ? profile.display_name : 'Golfer';
+  document.getElementById('header-hcp').textContent = profile && profile.handicap_index != null ? profile.handicap_index : '--';
   
-  debugLog('Round data: score=' + score + ', rating=' + rating + ', slope=' + slope + ', diff=' + differential);
+  var groupText = 'No groups';
+  if (groups.length === 1) groupText = groups[0].name;
+  else if (groups.length > 1) groupText = groups.length + ' groups';
+  document.getElementById('header-group').textContent = groupText;
+};
+
+App.updateGroupsUI = function() {
+  var el = document.getElementById('groups-list');
+  var lbSelect = document.getElementById('lb-group');
+  
+  if (groups.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><p>No groups yet</p></div>';
+  } else {
+    var html = '';
+    for (var i = 0; i < groups.length; i++) {
+      var g = groups[i];
+      html += '<div style="padding:12px;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:10px;">';
+      html += '<strong>' + g.name + '</strong>';
+      if (g.owner_id === user.id) html += ' <span style="font-size:0.7rem;background:var(--accent);color:white;padding:2px 6px;border-radius:4px;">Owner</span>';
+      html += '<div style="margin-top:8px;font-size:0.85rem;color:#666;">Code: <strong style="font-family:monospace;letter-spacing:2px;">' + g.group_code + '</strong></div>';
+      html += '</div>';
+    }
+    el.innerHTML = html;
+  }
+  
+  // Leaderboard select
+  var lbHtml = '<option value="">-- Select --</option>';
+  for (var i = 0; i < groups.length; i++) {
+    lbHtml += '<option value="' + groups[i].id + '">' + groups[i].name + '</option>';
+  }
+  lbSelect.innerHTML = lbHtml;
+};
+
+App.showTab = function(name, btn) {
+  var tabs = document.querySelectorAll('.tab-content');
+  for (var i = 0; i < tabs.length; i++) tabs[i].className = 'tab-content hidden';
+  document.getElementById('tab-' + name).className = 'tab-content';
+  
+  var links = document.querySelectorAll('.tab-link');
+  for (var i = 0; i < links.length; i++) links[i].className = 'tab-link';
+  btn.className = 'tab-link active';
+};
+
+App.showPanel = function(name) {
+  var panels = ['courses', 'help', 'privacy', 'terms'];
+  for (var i = 0; i < panels.length; i++) {
+    document.getElementById('panel-' + panels[i]).className = 'card hidden mt-2';
+  }
+  document.getElementById('panel-' + name).className = 'card mt-2';
+};
+
+// ========== ROUNDS ==========
+App.fillCourse = function() {
+  var id = document.getElementById('round-course').value;
+  if (!id) return;
+  for (var i = 0; i < courses.length; i++) {
+    if (courses[i].id === id) {
+      document.getElementById('round-rating').value = courses[i].course_rating || '';
+      document.getElementById('round-slope').value = courses[i].slope_rating || '';
+      break;
+    }
+  }
+};
+
+App.saveRound = async function() {
+  var sel = document.getElementById('round-course');
+  var score = parseInt(document.getElementById('round-score').value);
+  var rating = parseFloat(document.getElementById('round-rating').value);
+  var slope = parseInt(document.getElementById('round-slope').value);
+  var date = document.getElementById('round-date').value;
+  var notes = document.getElementById('round-notes').value;
+  
+  if (!score || !rating || !slope || !date) { alert('Fill all required fields'); return; }
+  
+  var diff = ((score - rating) * 113 / slope).toFixed(1);
+  var courseName = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : 'Unknown';
   
   try {
-    const { error } = await sb.from('rounds').insert({
-      user_id: currentUser.id,
+    var r = await sb.from('rounds').insert({
+      user_id: user.id,
       course_name: courseName,
       score: score,
       course_rating: rating,
       slope_rating: slope,
-      differential: parseFloat(differential),
+      differential: parseFloat(diff),
       date_played: date,
       notes: notes || null
     });
     
-    if (error) {
-      debugLog('Save round error: ' + error.message);
-      alert('Error saving round: ' + error.message);
-      return;
-    }
+    if (r.error) { alert('Error: ' + r.error.message); return; }
     
-    debugLog('Round saved, recalculating handicap...');
+    await App.recalcHandicap();
+    await App.loadProfile();
+    await App.loadRounds();
+    App.updateHeader();
     
-    // Recalculate handicap
-    await recalculateHandicap();
-    
-    // Reload
-    await loadProfile();
-    await loadRounds();
-    updateHeader();
-    
-    // Clear form
     document.getElementById('round-score').value = '';
     document.getElementById('round-notes').value = '';
     
-    // Switch to history
-    showTab('history', document.getElementById('tab-btn-history'));
-    
-    alert('Round saved!');
-    
+    alert('Saved!');
+    App.showTab('history', document.querySelector('.tab-link'));
   } catch (e) {
-    debugLog('Save round exception: ' + e.message);
     alert('Error: ' + e.message);
   }
-}
+};
 
-async function recalculateHandicap() {
-  debugLog('Recalculating handicap...');
-  
+App.recalcHandicap = async function() {
   try {
-    const { data: rounds, error } = await sb
-      .from('rounds')
-      .select('differential')
-      .eq('user_id', currentUser.id)
-      .not('differential', 'is', null)
-      .order('date_played', { ascending: false })
-      .limit(20);
+    var r = await sb.from('rounds').select('differential').eq('user_id', user.id).not('differential', 'is', null).order('date_played', { ascending: false }).limit(20);
     
-    if (error) {
-      debugLog('Fetch rounds for handicap error: ' + error.message);
+    if (r.error || !r.data || r.data.length < 3) {
+      console.log('Not enough rounds for handicap');
       return;
     }
     
-    if (!rounds || rounds.length < 3) {
-      debugLog('Not enough rounds for handicap: ' + (rounds?.length || 0));
-      return;
-    }
+    var diffs = r.data.map(function(x) { return parseFloat(x.differential); }).sort(function(a, b) { return a - b; });
     
-    const diffs = rounds.map(r => parseFloat(r.differential)).sort((a, b) => a - b);
-    debugLog('Differentials (sorted): ' + JSON.stringify(diffs));
-    
-    // Determine how many to use
-    let useCount;
-    const count = diffs.length;
+    var useCount;
+    var count = diffs.length;
     if (count <= 4) useCount = 1;
     else if (count <= 6) useCount = 2;
     else if (count <= 8) useCount = 3;
@@ -1412,352 +597,204 @@ async function recalculateHandicap() {
     else if (count <= 16) useCount = 7;
     else useCount = 8;
     
-    const bestDiffs = diffs.slice(0, useCount);
-    const avg = bestDiffs.reduce((sum, d) => sum + d, 0) / bestDiffs.length;
-    const handicapIndex = Math.round(avg * 0.96 * 10) / 10;
+    var best = diffs.slice(0, useCount);
+    var sum = 0;
+    for (var i = 0; i < best.length; i++) sum += best[i];
+    var avg = sum / best.length;
+    var hcp = Math.round(avg * 0.96 * 10) / 10;
     
-    debugLog('Using ' + useCount + ' of ' + count + ' diffs, avg=' + avg.toFixed(2) + ', handicap=' + handicapIndex);
+    console.log('Calculated handicap:', hcp);
     
-    const { error: updateError } = await sb
-      .from('profiles')
-      .update({ handicap_index: handicapIndex })
-      .eq('id', currentUser.id);
-    
-    if (updateError) {
-      debugLog('Update handicap error: ' + updateError.message);
-    } else {
-      debugLog('Handicap updated to: ' + handicapIndex);
-      currentProfile.handicap_index = handicapIndex;
-    }
-    
+    await sb.from('profiles').update({ handicap_index: hcp }).eq('id', user.id);
   } catch (e) {
-    debugLog('Recalculate handicap exception: ' + e.message);
+    console.log('Handicap error:', e);
   }
-}
+};
 
-// ======================
-// GROUP FUNCTIONS
-// ======================
-function generateCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
+// ========== GROUPS ==========
+App.genCode = function() {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var code = '';
+  for (var i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
   document.getElementById('new-group-code').value = code;
-}
+};
 
-async function createGroup() {
-  const name = document.getElementById('new-group-name').value.trim();
-  const code = document.getElementById('new-group-code').value.trim();
-  
-  if (!name || !code) {
-    alert('Please enter a group name and generate a code');
-    return;
-  }
-  
-  debugLog('Creating group: ' + name);
+App.createGroup = async function() {
+  var name = document.getElementById('new-group-name').value.trim();
+  var code = document.getElementById('new-group-code').value.trim();
+  if (!name || !code) { alert('Enter name and generate code'); return; }
   
   try {
-    const { data: group, error: groupError } = await sb
-      .from('groups')
-      .insert({
-        name: name,
-        group_code: code,
-        owner_id: currentUser.id
-      })
-      .select()
-      .single();
+    var r1 = await sb.from('groups').insert({ name: name, group_code: code, owner_id: user.id }).select().single();
+    if (r1.error) { alert('Error: ' + r1.error.message); return; }
     
-    if (groupError) {
-      debugLog('Create group error: ' + groupError.message);
-      alert('Error creating group: ' + groupError.message);
-      return;
-    }
+    await sb.from('group_members').insert({ group_id: r1.data.id, user_id: user.id });
     
-    // Add membership
-    const { error: memberError } = await sb
-      .from('group_members')
-      .insert({
-        group_id: group.id,
-        user_id: currentUser.id
-      });
-    
-    if (memberError) {
-      debugLog('Add membership error: ' + memberError.message);
-    }
-    
-    // Clear form
     document.getElementById('new-group-name').value = '';
     document.getElementById('new-group-code').value = '';
     
-    // Reload
-    await loadGroups();
-    updateHeader();
-    
-    alert('Group created! Share code "' + code + '" with friends.');
-    
+    await App.loadGroups();
+    App.updateHeader();
+    alert('Created! Code: ' + code);
   } catch (e) {
-    debugLog('Create group exception: ' + e.message);
     alert('Error: ' + e.message);
   }
-}
+};
 
-async function joinGroup() {
-  const code = document.getElementById('join-group-code').value.trim().toUpperCase();
-  
-  if (!code) {
-    alert('Please enter an invite code');
-    return;
-  }
-  
-  debugLog('Joining group with code: ' + code);
+App.joinGroup = async function() {
+  var code = document.getElementById('join-code').value.trim().toUpperCase();
+  if (!code) { alert('Enter a code'); return; }
   
   try {
-    // Find group
-    const { data: group, error: findError } = await sb
-      .from('groups')
-      .select('id, name')
-      .eq('group_code', code)
-      .single();
+    var r1 = await sb.from('groups').select('id, name').eq('group_code', code).single();
+    if (r1.error || !r1.data) { alert('Invalid code'); return; }
     
-    if (findError || !group) {
-      debugLog('Find group error: ' + (findError?.message || 'not found'));
-      alert('Invalid invite code');
-      return;
-    }
+    await sb.from('group_members').insert({ group_id: r1.data.id, user_id: user.id });
+    document.getElementById('join-code').value = '';
     
-    // Check if already member
-    const { data: existing } = await sb
-      .from('group_members')
-      .select('id')
-      .eq('group_id', group.id)
-      .eq('user_id', currentUser.id)
-      .single();
-    
-    if (existing) {
-      alert('You are already a member of this group');
-      return;
-    }
-    
-    // Add membership
-    const { error: joinError } = await sb
-      .from('group_members')
-      .insert({
-        group_id: group.id,
-        user_id: currentUser.id
-      });
-    
-    if (joinError) {
-      debugLog('Join group error: ' + joinError.message);
-      alert('Error joining group: ' + joinError.message);
-      return;
-    }
-    
-    // Clear form
-    document.getElementById('join-group-code').value = '';
-    
-    // Reload
-    await loadGroups();
-    updateHeader();
-    
-    alert('Joined "' + group.name + '"!');
-    
+    await App.loadGroups();
+    App.updateHeader();
+    alert('Joined ' + r1.data.name + '!');
   } catch (e) {
-    debugLog('Join group exception: ' + e.message);
     alert('Error: ' + e.message);
   }
-}
+};
 
-// ======================
-// LEADERBOARD
-// ======================
-async function loadLeaderboard() {
-  const groupId = document.getElementById('leaderboard-group-select').value;
-  const container = document.getElementById('leaderboard-content');
+// ========== LEADERBOARD ==========
+App.loadLeaderboard = async function() {
+  var groupId = document.getElementById('lb-group').value;
+  var el = document.getElementById('lb-content');
   
   if (!groupId) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">👥</div>
-        <p>Select a group above to see rankings</p>
-      </div>
-    `;
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><p>Select a group</p></div>';
     return;
   }
   
-  debugLog('Loading leaderboard for group: ' + groupId);
-  
   try {
-    // Get members
-    const { data: members, error: memError } = await sb
-      .from('group_members')
-      .select('user_id')
-      .eq('group_id', groupId);
-    
-    if (memError || !members || members.length === 0) {
-      container.innerHTML = '<p class="text-muted text-center">No members in this group</p>';
+    var r1 = await sb.from('group_members').select('user_id').eq('group_id', groupId);
+    if (r1.error || !r1.data || r1.data.length === 0) {
+      el.innerHTML = '<p style="text-align:center;color:#666;">No members</p>';
       return;
     }
     
-    const userIds = members.map(m => m.user_id);
+    var userIds = r1.data.map(function(m) { return m.user_id; });
+    var r2 = await sb.from('profiles').select('id, display_name, handicap_index').in('id', userIds);
+    var r3 = await sb.from('rounds').select('user_id').in('user_id', userIds);
     
-    // Get profiles
-    const { data: profiles, error: profError } = await sb
-      .from('profiles')
-      .select('id, display_name, handicap_index')
-      .in('id', userIds);
-    
-    if (profError) {
-      container.innerHTML = '<p class="text-muted text-center">Error loading leaderboard</p>';
-      return;
+    var counts = {};
+    if (r3.data) {
+      for (var i = 0; i < r3.data.length; i++) {
+        var uid = r3.data[i].user_id;
+        counts[uid] = (counts[uid] || 0) + 1;
+      }
     }
     
-    // Get round counts
-    const { data: roundCounts } = await sb
-      .from('rounds')
-      .select('user_id')
-      .in('user_id', userIds);
-    
-    const counts = {};
-    (roundCounts || []).forEach(r => {
-      counts[r.user_id] = (counts[r.user_id] || 0) + 1;
-    });
-    
-    // Sort
-    const sorted = (profiles || []).sort((a, b) => {
+    var profiles = (r2.data || []).sort(function(a, b) {
       if (a.handicap_index === null) return 1;
       if (b.handicap_index === null) return -1;
       return a.handicap_index - b.handicap_index;
     });
     
-    if (sorted.length === 0) {
-      container.innerHTML = '<p class="text-muted text-center">No players found</p>';
+    if (profiles.length === 0) {
+      el.innerHTML = '<p style="text-align:center;color:#666;">No players</p>';
       return;
     }
     
-    container.innerHTML = `
-      <div class="lb-header">
-        <span>#</span><span>NAME</span><span>INDEX</span><span>ROUNDS</span>
-      </div>
-      ${sorted.map((p, i) => {
-        const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-        return `
-          <div class="lb-row">
-            <span class="lb-rank ${rankClass}">${i + 1}</span>
-            <span class="lb-name">${p.display_name || 'Unknown'}${p.id === currentUser.id ? ' (You)' : ''}</span>
-            <span class="lb-index">${p.handicap_index ?? '--'}</span>
-            <span class="lb-rounds">${counts[p.id] || 0}</span>
-          </div>
-        `;
-      }).join('')}
-    `;
-    
+    var html = '<div class="lb-header"><span>#</span><span>NAME</span><span>INDEX</span><span>ROUNDS</span></div>';
+    for (var i = 0; i < profiles.length; i++) {
+      var p = profiles[i];
+      var rankClass = i === 0 ? 'lb-rank' : 'lb-rank';
+      if (i === 0) rankClass = 'lb-rank" style="color:#FFD700';
+      else if (i === 1) rankClass = 'lb-rank" style="color:#C0C0C0';
+      else if (i === 2) rankClass = 'lb-rank" style="color:#CD7F32';
+      html += '<div class="lb-row">';
+      html += '<span class="' + rankClass + '">' + (i + 1) + '</span>';
+      html += '<span style="font-weight:600;">' + (p.display_name || 'Unknown') + (p.id === user.id ? ' (You)' : '') + '</span>';
+      html += '<span class="lb-index">' + (p.handicap_index != null ? p.handicap_index : '--') + '</span>';
+      html += '<span style="text-align:center;font-size:0.8rem;color:#666;">' + (counts[p.id] || 0) + '</span>';
+      html += '</div>';
+    }
+    el.innerHTML = html;
   } catch (e) {
-    debugLog('Leaderboard exception: ' + e.message);
-    container.innerHTML = '<p class="text-muted text-center">Error loading leaderboard</p>';
+    el.innerHTML = '<p style="text-align:center;color:#666;">Error loading</p>';
   }
-}
+};
 
-// ======================
-// COURSE MANAGEMENT
-// ======================
-function loadCourseForEdit() {
-  const select = document.getElementById('manage-course-select');
-  const courseId = select.value;
-  const deleteBtn = document.getElementById('delete-course-btn');
+// ========== COURSES ==========
+App.loadCourseEdit = function() {
+  var id = document.getElementById('manage-course').value;
+  var delBtn = document.getElementById('del-course-btn');
   
-  if (courseId === 'new') {
+  if (id === 'new') {
     document.getElementById('edit-course-id').value = '';
     document.getElementById('edit-course-name').value = '';
     document.getElementById('edit-course-tee').value = '';
     document.getElementById('edit-course-rating').value = '';
     document.getElementById('edit-course-slope').value = '';
-    deleteBtn.classList.add('hidden');
+    delBtn.className = 'btn btn-danger mt-1 hidden';
   } else {
-    const course = allCourses.find(c => c.id === courseId);
-    if (course) {
-      document.getElementById('edit-course-id').value = course.id;
-      document.getElementById('edit-course-name').value = course.name || '';
-      document.getElementById('edit-course-tee').value = course.tee || '';
-      document.getElementById('edit-course-rating').value = course.course_rating || '';
-      document.getElementById('edit-course-slope').value = course.slope_rating || '';
-      deleteBtn.classList.remove('hidden');
+    for (var i = 0; i < courses.length; i++) {
+      if (courses[i].id === id) {
+        var c = courses[i];
+        document.getElementById('edit-course-id').value = c.id;
+        document.getElementById('edit-course-name').value = c.name || '';
+        document.getElementById('edit-course-tee').value = c.tee || '';
+        document.getElementById('edit-course-rating').value = c.course_rating || '';
+        document.getElementById('edit-course-slope').value = c.slope_rating || '';
+        delBtn.className = 'btn btn-danger mt-1';
+        break;
+      }
     }
   }
-}
+};
 
-async function saveCourse() {
-  const id = document.getElementById('edit-course-id').value;
-  const name = document.getElementById('edit-course-name').value.trim();
-  const tee = document.getElementById('edit-course-tee').value.trim();
-  const rating = parseFloat(document.getElementById('edit-course-rating').value);
-  const slope = parseInt(document.getElementById('edit-course-slope').value);
+App.saveCourse = async function() {
+  var id = document.getElementById('edit-course-id').value;
+  var name = document.getElementById('edit-course-name').value.trim();
+  var tee = document.getElementById('edit-course-tee').value.trim();
+  var rating = parseFloat(document.getElementById('edit-course-rating').value);
+  var slope = parseInt(document.getElementById('edit-course-slope').value);
   
-  if (!name || !rating || !slope) {
-    alert('Please fill in course name, rating, and slope');
-    return;
-  }
+  if (!name || !rating || !slope) { alert('Fill name, rating, slope'); return; }
   
   try {
-    const courseData = {
-      name: name,
-      tee: tee || null,
-      course_rating: rating,
-      slope_rating: slope,
-      created_by: currentUser.id
-    };
-    
+    var data = { name: name, tee: tee || null, course_rating: rating, slope_rating: slope, created_by: user.id };
     if (id) {
-      const { error } = await sb.from('courses').update(courseData).eq('id', id);
-      if (error) throw error;
+      await sb.from('courses').update(data).eq('id', id);
     } else {
-      const { error } = await sb.from('courses').insert(courseData);
-      if (error) throw error;
+      await sb.from('courses').insert(data);
     }
-    
-    await loadCourses();
-    
-    document.getElementById('manage-course-select').value = 'new';
-    loadCourseForEdit();
-    
-    alert('Course saved!');
-    
+    await App.loadCourses();
+    document.getElementById('manage-course').value = 'new';
+    App.loadCourseEdit();
+    alert('Saved!');
   } catch (e) {
     alert('Error: ' + e.message);
   }
-}
+};
 
-async function deleteCourse() {
-  const id = document.getElementById('edit-course-id').value;
-  if (!id) return;
-  
-  if (!confirm('Delete this course?')) return;
-  
+App.deleteCourse = async function() {
+  var id = document.getElementById('edit-course-id').value;
+  if (!id || !confirm('Delete?')) return;
   try {
-    const { error } = await sb.from('courses').delete().eq('id', id);
-    if (error) throw error;
-    
-    await loadCourses();
-    
-    document.getElementById('manage-course-select').value = 'new';
-    loadCourseForEdit();
-    
-    alert('Course deleted');
-    
+    await sb.from('courses').delete().eq('id', id);
+    await App.loadCourses();
+    document.getElementById('manage-course').value = 'new';
+    App.loadCourseEdit();
+    alert('Deleted');
   } catch (e) {
     alert('Error: ' + e.message);
   }
-}
+};
 
-// ======================
-// UTILITIES
-// ======================
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
+// ========== UTILS ==========
+App.formatDate = function(str) {
+  if (!str) return '';
+  var d = new Date(str + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+console.log('Golf Tracker loaded');
 </script>
 
 </body>
