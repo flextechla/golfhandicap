@@ -23,7 +23,9 @@
     .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
     .hidden { display: none !important; }
     .lb-row { display: grid; grid-template-columns: 30px 1fr 60px 50px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-    .legal-text { font-size: 0.75rem; color: #666; background: #f9f9f9; padding: 10px; border: 1px solid #eee; height: 120px; overflow-y: auto; margin: 10px 0; border-radius: 5px; }
+    .legal-text { font-size: 0.75rem; color: #333; background: #f9f9f9; padding: 15px; border: 1px solid #eee; max-height: 300px; overflow-y: auto; margin: 10px 0; border-radius: 5px; line-height: 1.6; }
+    .group-card { background: #f0f7f0; border-left: 4px solid var(--primary); padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+    .error-msg { color: var(--danger); font-size: 0.85rem; margin-top: 5px; }
   </style>
 </head>
 <body>
@@ -39,7 +41,7 @@
 
     <input type="email" id="email" class="form-control" placeholder="Email">
 
-    <div id="display-name-wrapper">
+    <div id="display-name-wrapper" style="display:none;">
       <input type="text" id="display-name" class="form-control" placeholder="Display Name (for leaderboard)">
     </div>
 
@@ -77,7 +79,7 @@
 <div id="view-app" class="hidden">
   <div class="header">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-      <span id="user-display-name" style="font-weight: bold;">Don</span>
+      <span id="user-display-name" style="font-weight: bold; font-size: 0.9rem;">Loading...</span>
       <button onclick="sb.auth.signOut()" class="btn-sm">Logout</button>
     </div>
     <div class="hcp-display" id="dash-hcp">--</div>
@@ -94,13 +96,15 @@
 
   <div class="container">
     <div id="tab-history">
-      <div id="recent-list"></div>
+      <div id="recent-list">Loading scores...</div>
     </div>
 
     <div id="tab-add" class="hidden">
       <div class="card">
         <h3>Add Scores</h3>
-        <select id="r-course-select" class="form-control" onchange="autoFillCourse()"></select>
+        <select id="r-course-select" class="form-control" onchange="autoFillCourse()">
+          <option value="">-- Select Course --</option>
+        </select>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
           <input type="number" step="0.1" id="r-rating" class="form-control" placeholder="Rating">
           <input type="number" id="r-slope" class="form-control" placeholder="Slope">
@@ -108,6 +112,7 @@
         <input type="number" id="r-score" class="form-control" placeholder="Gross Score">
         <input type="date" id="r-date" class="form-control">
         <button class="btn btn-primary" onclick="saveRound()">Save Round</button>
+        <div id="add-error" class="error-msg"></div>
       </div>
     </div>
 
@@ -117,62 +122,193 @@
         <div style="display: grid; grid-template-columns: 30px 1fr 60px 50px; font-size: 0.65rem; font-weight: bold; color: #999; margin-bottom: 5px;">
           <span>#</span><span>NAME</span><span>INDEX</span><span>ROUNDS</span>
         </div>
-        <div id="lb-list"></div>
+        <div id="lb-list">Loading...</div>
       </div>
     </div>
 
     <div id="tab-groups" class="hidden">
-      <div id="group-status" class="card">No group joined.</div>
+      <div id="group-status" class="card">Loading groups...</div>
+      
       <div class="card">
-        <h3>Group Actions</h3>
-
-        <input type="text" id="new-group-name" class="form-control" placeholder="New Group Name">
-
+        <h3>Create New Group</h3>
+        <input type="text" id="new-group-name" class="form-control" placeholder="Group Name (e.g., Sunday Warriors)">
         <div style="display:flex; gap:8px; align-items:center;">
           <input type="text" id="new-group-code" class="form-control" placeholder="Group Code" readonly>
           <button type="button" class="btn-sm" onclick="handleGenerateCode()">Generate Code</button>
         </div>
+        <button class="btn btn-primary" onclick="createGroup()">Create & Join Group</button>
+      </div>
 
-        <button class="btn btn-primary" onclick="createGroup()">Create & Join</button>
-        <hr>
-        <input type="text" id="join-code" class="form-control" placeholder="Enter Join Code">
+      <div class="card">
+        <h3>Join Existing Group</h3>
+        <input type="text" id="join-code" class="form-control" placeholder="Enter Join Code" style="text-transform: uppercase;">
         <button class="btn btn-outline" onclick="joinGroup()">Join Group</button>
-        <hr>
-        <button class="btn btn-danger-outline" onclick="deleteCurrentGroup()">Delete Active Group (owner only)</button>
+      </div>
+
+      <div class="card">
+        <h3>Danger Zone</h3>
+        <button class="btn btn-danger-outline" onclick="leaveCurrentGroup()">Leave Active Group</button>
+        <button class="btn btn-danger-outline" onclick="deleteCurrentGroup()">Delete Group (Owner Only)</button>
       </div>
     </div>
 
     <div id="tab-settings" class="hidden">
       <button class="btn btn-outline" onclick="toggleSub('set-courses')">Manage Courses</button>
       <button class="btn btn-outline" onclick="toggleSub('set-help')">Help & Support</button>
-      <button class="btn btn-outline" onclick="toggleSub('set-legal')">Privacy & Terms</button>
+      <button class="btn btn-outline" onclick="toggleSub('set-privacy')">Privacy Policy</button>
+      <button class="btn btn-outline" onclick="toggleSub('set-terms')">Terms of Use</button>
 
       <div id="set-courses" class="card hidden" style="margin-top: 15px;">
         <h3>Course Manager</h3>
-        <select id="m-course-select" class="form-control" onchange="prepCourseEdit()"></select>
+        <p style="font-size: 0.85rem; color: #666;">Add courses you play frequently for quick score entry.</p>
+        
+        <select id="m-course-select" class="form-control" onchange="prepCourseEdit()">
+          <option value="new">-- Add New Course --</option>
+        </select>
+        
         <hr>
         <input type="hidden" id="edit-c-id">
-        <input type="text" id="edit-c-name" class="form-control" placeholder="Course Name">
-        <input type="text" id="edit-c-tee" class="form-control" placeholder="Tee Box">
+        <input type="text" id="edit-c-name" class="form-control" placeholder="Course Name (e.g., Pebble Beach)">
+        <input type="text" id="edit-c-tee" class="form-control" placeholder="Tee Box (e.g., Blue, White, Championship)">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <input type="number" step="0.1" id="edit-c-rating" class="form-control" placeholder="Rating">
-          <input type="number" id="edit-c-slope" class="form-control" placeholder="Slope">
+          <input type="number" step="0.1" id="edit-c-rating" class="form-control" placeholder="Course Rating (e.g., 72.5)">
+          <input type="number" id="edit-c-slope" class="form-control" placeholder="Slope Rating (e.g., 131)">
         </div>
         <button class="btn btn-primary" onclick="saveCourse()">Save Course</button>
         <button id="btn-c-del" class="btn btn-danger-outline hidden" onclick="deleteCourse()">Delete Course</button>
+        <div id="course-error" class="error-msg"></div>
       </div>
 
       <div id="set-help" class="card hidden" style="margin-top: 15px;">
         <h3>Help & Support</h3>
-        <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com'">Email support@lazybstudios.com</button>
+        <div class="legal-text">
+          <h4>Frequently Asked Questions</h4>
+          
+          <p><strong>How is my handicap calculated?</strong><br>
+          We use the World Handicap System (WHS). Your handicap index is calculated by averaging the best differentials from your recent rounds (best 8 of your last 20 rounds, or best 50% if you have fewer rounds), then multiplying by 0.96.</p>
+          
+          <p><strong>What is a Score Differential?</strong><br>
+          Score Differential = (Gross Score - Course Rating) × 113 / Slope Rating</p>
+          
+          <p><strong>How many rounds do I need?</strong><br>
+          You can establish a handicap with as few as 3 rounds, but 20 rounds gives the most accurate index.</p>
+          
+          <p><strong>What if the course I play isn't listed?</strong><br>
+          You can add any course in Settings → Manage Courses. You'll need the course rating and slope rating, which are typically found on the scorecard or course website.</p>
+          
+          <p><strong>Can I play solo or do I need a group?</strong><br>
+          You can track your handicap solo! Groups are optional and let you compare scores with friends.</p>
+          
+          <p><strong>How do I invite friends to my group?</strong><br>
+          Share your group code found in the Groups tab. Friends enter this code to join your leaderboard.</p>
+        </div>
+        
+        <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com?subject=Golf%20Tracker%20Support'">
+          📧 Email support@lazybstudios.com
+        </button>
       </div>
 
-      <div id="set-legal" class="card hidden" style="margin-top: 15px;">
-        <h3>Privacy & Terms</h3>
-        <h4>Privacy Policy</h4>
-        <div class="legal-text">Lazy B Studios values your privacy. Scores shared only with group members.</div>
-        <h4>Terms of Agreement</h4>
-        <div class="legal-text">Agreement to submit honest scores for handicap calculation.</div>
+      <div id="set-privacy" class="card hidden" style="margin-top: 15px;">
+        <h3>Privacy Policy</h3>
+        <div class="legal-text">
+          <p><strong>Effective Date:</strong> January 18, 2026</p>
+          
+          <h4>Information We Collect</h4>
+          <p>When you use Golf Tracker, we collect:</p>
+          <ul>
+            <li><strong>Account Information:</strong> Email address and display name</li>
+            <li><strong>Golf Scores:</strong> Scores, course information, dates played</li>
+            <li><strong>Group Membership:</strong> Groups you create or join</li>
+          </ul>
+          
+          <h4>How We Use Your Information</h4>
+          <p>Your information is used solely to:</p>
+          <ul>
+            <li>Calculate your WHS handicap index</li>
+            <li>Display your scores and handicap to you</li>
+            <li>Share your scores with group members (only groups you voluntarily join)</li>
+            <li>Enable group leaderboards</li>
+          </ul>
+          
+          <h4>Data Sharing</h4>
+          <p>Your golf scores are ONLY visible to:</p>
+          <ul>
+            <li>You (always)</li>
+            <li>Members of groups you choose to join</li>
+          </ul>
+          <p>We never sell your data to third parties. We never share your email address with other users or advertisers.</p>
+          
+          <h4>Data Security</h4>
+          <p>We use Supabase for secure data storage with industry-standard encryption. Your password is hashed and never stored in plain text.</p>
+          
+          <h4>Your Rights</h4>
+          <p>You have the right to:</p>
+          <ul>
+            <li>Access all your data</li>
+            <li>Delete your account and all associated data</li>
+            <li>Leave groups at any time</li>
+            <li>Export your score history (contact support)</li>
+          </ul>
+          
+          <h4>Contact</h4>
+          <p>For privacy concerns, email <a href="mailto:support@lazybstudios.com">support@lazybstudios.com</a></p>
+        </div>
+      </div>
+
+      <div id="set-terms" class="card hidden" style="margin-top: 15px;">
+        <h3>Terms of Use</h3>
+        <div class="legal-text">
+          <p><strong>Effective Date:</strong> January 18, 2026</p>
+          
+          <h4>Agreement to Terms</h4>
+          <p>By using Golf Tracker, you agree to these terms. If you don't agree, please don't use the service.</p>
+          
+          <h4>Honest Score Reporting</h4>
+          <p>Golf is a game of integrity. You agree to:</p>
+          <ul>
+            <li>Submit accurate, honest scores</li>
+            <li>Follow USGA rules when recording scores</li>
+            <li>Not manipulate your handicap for unfair competitive advantage</li>
+            <li>Report scores from actual rounds played</li>
+          </ul>
+          
+          <h4>Acceptable Use</h4>
+          <p>You agree to:</p>
+          <ul>
+            <li>Use the service for its intended purpose (golf handicap tracking)</li>
+            <li>Not attempt to access other users' accounts</li>
+            <li>Not spam, harass, or abuse other group members</li>
+            <li>Keep your login credentials secure</li>
+          </ul>
+          
+          <h4>Service Availability</h4>
+          <p>We strive for 99.9% uptime but cannot guarantee uninterrupted service. Lazy B Studios is not liable for:</p>
+          <ul>
+            <li>Temporary service outages</li>
+            <li>Data loss due to technical issues (though we maintain regular backups)</li>
+            <li>Decisions made based on handicap calculations</li>
+          </ul>
+          
+          <h4>Handicap Accuracy</h4>
+          <p>While we follow WHS guidelines, this app is for recreational use. For official USGA handicaps, please use a USGA-licensed service.</p>
+          
+          <h4>Account Termination</h4>
+          <p>We reserve the right to suspend accounts that:</p>
+          <ul>
+            <li>Violate these terms</li>
+            <li>Submit fraudulent scores</li>
+            <li>Harass other users</li>
+          </ul>
+          
+          <h4>Modifications</h4>
+          <p>We may update these terms. Continued use after changes constitutes acceptance.</p>
+          
+          <h4>Limitation of Liability</h4>
+          <p>Golf Tracker is provided "as is" without warranties. Lazy B Studios is not liable for any damages arising from use of this service.</p>
+          
+          <h4>Contact</h4>
+          <p>Questions about these terms? Email <a href="mailto:support@lazybstudios.com">support@lazybstudios.com</a></p>
+        </div>
       </div>
     </div>
   </div>
@@ -186,7 +322,16 @@
 
   let user = null, profile = null, masterCourses = [];
   let authMode = 'signin';
-  let activeGroup = null; // { id, name, group_code } or null
+  let activeGroup = null;
+
+  // Set today's date as default
+  function setDefaultDate() {
+    const dateInput = document.getElementById('r-date');
+    if (dateInput) {
+      const today = new Date().toISOString().split('T')[0];
+      dateInput.value = today;
+    }
+  }
 
   function generateGroupCode(length = 6) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -213,8 +358,9 @@
   function updateHeaderName() {
     const nameEl = document.getElementById('user-display-name');
     if (!nameEl) return;
-    const baseName = profile?.display_name || 'Don';
-    if (activeGroup) {
+    const baseName = profile?.display_name || 'Golfer';
+    
+    if (activeGroup && activeGroup.name) {
       nameEl.textContent = `${baseName} · ${activeGroup.name}`;
     } else {
       nameEl.textContent = baseName;
@@ -229,19 +375,14 @@
 
     if (mode === 'signup') {
       if (displayWrapper) displayWrapper.style.display = 'block';
-      confirmWrapper.style.display = 'block';
+      if (confirmWrapper) confirmWrapper.style.display = 'block';
       btn.textContent = 'Create Account';
     } else {
       if (displayWrapper) displayWrapper.style.display = 'none';
-      confirmWrapper.style.display = 'none';
+      if (confirmWrapper) confirmWrapper.style.display = 'none';
       btn.textContent = 'Sign In';
     }
   }
-
-  // Hide display-name on initial load
-  document.addEventListener('DOMContentLoaded', () => {
-    setAuthMode('signin');
-  });
 
   sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
@@ -258,10 +399,12 @@
       user = session.user;
       document.getElementById('view-auth').classList.add('hidden');
       document.getElementById('view-app').classList.remove('hidden');
-      refreshData();
+      setDefaultDate();
+      await refreshData();
     } else {
       user = null;
       profile = null;
+      activeGroup = null;
       document.getElementById('view-auth').classList.remove('hidden');
       document.getElementById('view-app').classList.add('hidden');
     }
@@ -294,19 +437,17 @@
             await sb
               .from('profiles')
               .upsert(
-                { id: userId, display_name: displayNameInput || email, email },
+                { id: userId, display_name: displayNameInput || email.split('@')[0], email },
                 { onConflict: 'id' }
               );
           }
-          alert('Account created. You can now sign in.');
+          alert('Account created! Please check your email to verify your account, then sign in.');
           setAuthMode('signin');
         }
       } else {
         const { data, error } = await sb.auth.signInWithPassword({ email, password });
         if (error) {
           alert(error.message);
-        } else {
-          alert('Signed in successfully.');
         }
       }
     } catch (e) {
@@ -322,7 +463,7 @@
       return;
     }
 
-    const redirectUrl = 'https://flextechla.github.io/golfhandicap/';
+    const redirectUrl = window.location.href;
 
     const { error } = await sb.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl
@@ -337,6 +478,9 @@
   async function refreshData() {
     if (!user) return;
 
+    console.log('Refreshing data for user:', user.id);
+
+    // Load profile
     const { data: pData, error: pError } = await sb
       .from('profiles')
       .select('*')
@@ -349,10 +493,11 @@
       document.getElementById('dash-hcp').textContent = '--';
     } else {
       profile = pData;
-      document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
+      const hcp = profile.handicap_index;
+      document.getElementById('dash-hcp').textContent = (hcp !== null && hcp !== undefined) ? hcp.toFixed(1) : '--';
     }
 
-    // Step 1: get membership group_ids
+    // Load group memberships
     const { data: memberships, error: mError } = await sb
       .from('group_members')
       .select('group_id')
@@ -362,7 +507,7 @@
       console.error('Membership fetch error:', mError);
     }
 
-    // Step 2: load groups by those ids
+    // Load actual groups
     let groups = [];
     if (memberships && memberships.length) {
       const ids = memberships.map(m => m.group_id);
@@ -378,8 +523,8 @@
       }
     }
 
+    // Determine active group
     activeGroup = null;
-
     if (profile?.current_group_id) {
       activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
     }
@@ -392,11 +537,13 @@
       profile.current_group_id = activeGroup.id;
     }
 
+    console.log('Active group:', activeGroup);
+
     updateHeaderName();
     updateGroupStatus(groups);
-    loadHistory();
-    loadCourses();
-    loadLeaderboard();
+    await loadHistory();
+    await loadCourses();
+    await loadLeaderboard();
   }
 
   function updateGroupStatus(groups) {
@@ -405,39 +552,41 @@
     if (!activeGroup) {
       if (!groups || !groups.length) {
         status.innerHTML = `
-          <strong>No active group.</strong><br>
-          You are currently playing solo. Create a new group or join one below.
+          <strong>No Groups</strong><br>
+          <p style="margin: 10px 0; font-size: 0.9rem;">You're playing solo. Create or join a group to compete with friends!</p>
         `;
       } else {
         const options = groups
           .map(g => `<option value="${g.id}">${g.name}</option>`)
           .join('');
         status.innerHTML = `
-          <strong>No active group selected.</strong><br>
-          Choose a group to view rankings and set as active.<br>
-          <div style="margin-top:8px;">
-            <label style="font-size:0.8rem;">Choose group:</label>
-            <select id="active-group-select" class="form-control" onchange="setActiveGroupFromSelect()">
-              <option value="">-- Select Group --</option>
-              ${options}
-            </select>
-          </div>
+          <strong>Select Active Group</strong><br>
+          <p style="margin: 10px 0; font-size: 0.85rem;">Choose which group to display in rankings:</p>
+          <select id="active-group-select" class="form-control" onchange="setActiveGroupFromSelect()">
+            <option value="">-- Select Group --</option>
+            ${options}
+          </select>
         `;
       }
     } else {
+      const groupCount = groups.length;
       status.innerHTML = `
-        <strong>Active Group:</strong> ${activeGroup.name}<br>
-        Code: <strong>${activeGroup.group_code}</strong><br>
-        <div style="margin-top:8px;">
-          <span style="font-size:0.8rem; color:#555;">Use this code to invite friends.</span><br>
-          <button class="btn-sm" onclick="clearActiveGroup()" style="margin-top:6px;">Play solo</button>
+        <div class="group-card">
+          <strong style="font-size: 1.1rem;">📍 ${activeGroup.name}</strong><br>
+          <div style="margin: 10px 0; font-size: 0.85rem; color: #555;">
+            Join Code: <strong style="color: var(--primary); font-size: 1rem;">${activeGroup.group_code}</strong><br>
+            <span style="font-size: 0.75rem;">Share this code with friends to invite them</span>
+          </div>
+          <button class="btn-sm" onclick="clearActiveGroup()" style="margin-top: 8px;">Switch to Solo Play</button>
         </div>
+        ${groupCount > 1 ? `<p style="font-size: 0.8rem; color: #666;">You're in ${groupCount} groups total. Select a different one above to switch.</p>` : ''}
       `;
     }
   }
 
   window.setActiveGroupFromSelect = async function () {
     const sel = document.getElementById('active-group-select');
+    if (!sel) return;
     const gid = sel.value || null;
     if (!gid) return;
 
@@ -446,7 +595,10 @@
       .select('id, name, group_code')
       .eq('id', gid)
       .single();
-    if (error || !g) return;
+    if (error || !g) {
+      console.error('Error loading group:', error);
+      return;
+    }
 
     activeGroup = g;
     await sb
@@ -456,7 +608,7 @@
     profile.current_group_id = g.id;
 
     updateHeaderName();
-    refreshData();
+    await refreshData();
   };
 
   window.clearActiveGroup = async function () {
@@ -468,7 +620,7 @@
     profile.current_group_id = null;
 
     updateHeaderName();
-    refreshData();
+    await refreshData();
   };
 
   async function loadCourses() {
@@ -483,27 +635,49 @@
     }
 
     masterCourses = data || [];
+    console.log('Loaded courses:', masterCourses.length);
 
     const sel = document.getElementById('r-course-select');
     const mSel = document.getElementById('m-course-select');
 
     if (!masterCourses.length) {
-      sel.innerHTML = '<option value="">(No courses in database)</option>';
-      mSel.innerHTML = '<option value="new">-- Add New Course --</option>';
+      sel.innerHTML = '<option value="">-- No Courses (Add in Settings) --</option>';
+      if (mSel) mSel.innerHTML = '<option value="new">-- Add New Course --</option>';
     } else {
       const opts = masterCourses
-        .map(c => `<option value="${c.id}">${c.name} (${c.tee ?? ''})</option>`)
+        .map(c => `<option value="${c.id}">${c.name}${c.tee ? ' (' + c.tee + ')' : ''}</option>`)
         .join('');
       sel.innerHTML = '<option value="">-- Select Course --</option>' + opts;
-      mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
+      if (mSel) mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
     }
   }
 
-  async function loadLeaderboard() {
-    if (!activeGroup) {
-      document.getElementById('lb-list').innerText = 'Select a group in the Groups tab to see rankings, or play solo.';
+  window.autoFillCourse = function() {
+    const sel = document.getElementById('r-course-select');
+    const id = sel.value;
+    
+    if (!id) {
+      document.getElementById('r-rating').value = '';
+      document.getElementById('r-slope').value = '';
       return;
     }
+
+    const course = masterCourses.find(c => String(c.id) === String(id));
+    if (course) {
+      document.getElementById('r-rating').value = course.course_rating || '';
+      document.getElementById('r-slope').value = course.slope_rating || '';
+    }
+  };
+
+  async function loadLeaderboard() {
+    const lbDiv = document.getElementById('lb-list');
+    
+    if (!activeGroup) {
+      lbDiv.innerHTML = '<p style="color: #666; font-size: 0.85rem; padding: 20px 0;">Select a group in the Groups tab to view rankings.</p>';
+      return;
+    }
+
+    lbDiv.innerHTML = 'Loading leaderboard...';
 
     const { data: members, error } = await sb
       .from('group_members')
@@ -511,20 +685,37 @@
         user_id,
         profiles!inner (
           display_name,
-          handicap_index,
-          rounds(count)
+          handicap_index
         )
       `)
       .eq('group_id', activeGroup.id);
 
     if (error || !members) {
       console.error('Leaderboard error:', error);
-      document.getElementById('lb-list').innerText = 'Unable to load leaderboard.';
+      lbDiv.innerHTML = '<p style="color: var(--danger);">Unable to load leaderboard.</p>';
       return;
     }
 
+    // Get round counts for each member
+    const memberIds = members.map(m => m.user_id);
+    const { data: roundCounts, error: rcError } = await sb
+      .from('rounds')
+      .select('user_id')
+      .in('user_id', memberIds);
+
+    const countMap = {};
+    if (roundCounts) {
+      roundCounts.forEach(r => {
+        countMap[r.user_id] = (countMap[r.user_id] || 0) + 1;
+      });
+    }
+
     const golfers = members
-      .map(m => m.profiles)
+      .map(m => ({
+        ...m.profiles,
+        user_id: m.user_id,
+        round_count: countMap[m.user_id] || 0
+      }))
       .filter(Boolean)
       .sort((a, b) => {
         if (a.handicap_index == null) return 1;
@@ -533,97 +724,153 @@
       });
 
     if (!golfers.length) {
-      document.getElementById('lb-list').innerText = 'No players with scores yet in this group.';
+      lbDiv.innerHTML = '<p style="color: #666; padding: 20px 0;">No players in this group yet.</p>';
       return;
     }
 
-    document.getElementById('lb-list').innerHTML = golfers
+    lbDiv.innerHTML = golfers
       .map((p, i) => `
         <div class="lb-row">
           <span style="color:#aaa; font-weight:bold;">${i + 1}</span>
-          <span style="font-weight:bold;">${p.display_name}</span>
-          <span style="color:var(--primary); font-weight:900;">${p.handicap_index ?? '--'}</span>
-          <span style="font-size:0.7rem; color:#888; text-align:center;">${p.rounds?.[0]?.count ?? 0}</span>
+          <span style="font-weight:bold;">${p.display_name || 'Unknown'}</span>
+          <span style="color:var(--primary); font-weight:900;">${p.handicap_index !== null && p.handicap_index !== undefined ? p.handicap_index.toFixed(1) : '--'}</span>
+          <span style="font-size:0.7rem; color:#888; text-align:center;">${p.round_count}</span>
         </div>
       `)
       .join('');
   }
 
   function toggleSub(id) {
-    document.getElementById('set-courses').classList.add('hidden');
-    document.getElementById('set-help').classList.add('hidden');
-    document.getElementById('set-legal').classList.add('hidden');
+    ['set-courses', 'set-help', 'set-privacy', 'set-terms'].forEach(subId => {
+      document.getElementById(subId).classList.add('hidden');
+    });
     document.getElementById(id).classList.remove('hidden');
   }
 
   window.prepCourseEdit = function () {
-    const id = document.getElementById('m-course-select').value;
+    const sel = document.getElementById('m-course-select');
+    if (!sel) return;
+    
+    const id = sel.value;
     const btnDel = document.getElementById('btn-c-del');
+    const errDiv = document.getElementById('course-error');
+    if (errDiv) errDiv.textContent = '';
+    
     if (id === 'new') {
       document.getElementById('edit-c-id').value = '';
       document.getElementById('edit-c-name').value = '';
       document.getElementById('edit-c-tee').value = '';
       document.getElementById('edit-c-rating').value = '';
       document.getElementById('edit-c-slope').value = '';
-      btnDel.classList.add('hidden');
+      if (btnDel) btnDel.classList.add('hidden');
     } else {
       const c = masterCourses.find(x => String(x.id) === String(id));
       if (!c) return;
       document.getElementById('edit-c-id').value = c.id;
-      document.getElementById('edit-c-name').value = c.name;
-      document.getElementById('edit-c-tee').value = c.tee;
-      document.getElementById('edit-c-rating').value = c.course_rating;
-      document.getElementById('edit-c-slope').value = c.slope_rating;
-      btnDel.classList.remove('hidden');
+      document.getElementById('edit-c-name').value = c.name || '';
+      document.getElementById('edit-c-tee').value = c.tee || '';
+      document.getElementById('edit-c-rating').value = c.course_rating || '';
+      document.getElementById('edit-c-slope').value = c.slope_rating || '';
+      if (btnDel) btnDel.classList.remove('hidden');
     }
   };
 
   async function saveCourse() {
+    const errDiv = document.getElementById('course-error');
+    if (errDiv) errDiv.textContent = '';
+
     const id = document.getElementById('edit-c-id').value;
+    const name = document.getElementById('edit-c-name').value.trim();
+    const tee = document.getElementById('edit-c-tee').value.trim();
+    const rating = parseFloat(document.getElementById('edit-c-rating').value);
+    const slope = parseInt(document.getElementById('edit-c-slope').value, 10);
+
+    if (!name || isNaN(rating) || isNaN(slope)) {
+      if (errDiv) errDiv.textContent = 'Please fill in all fields with valid numbers.';
+      return;
+    }
+
     const data = {
-      name: document.getElementById('edit-c-name').value,
-      tee: document.getElementById('edit-c-tee').value,
-      course_rating: parseFloat(document.getElementById('edit-c-rating').value),
-      slope_rating: parseInt(document.getElementById('edit-c-slope').value, 10),
+      name,
+      tee,
+      course_rating: rating,
+      slope_rating: slope,
       created_by: user.id
     };
-    if (id) await sb.from('courses').update(data).eq('id', id);
-    else await sb.from('courses').insert(data);
-    alert('Course Saved!');
-    loadCourses();
+
+    let error;
+    if (id) {
+      const result = await sb.from('courses').update(data).eq('id', id);
+      error = result.error;
+    } else {
+      const result = await sb.from('courses').insert(data);
+      error = result.error;
+    }
+
+    if (error) {
+      console.error('Save course error:', error);
+      if (errDiv) errDiv.textContent = 'Error saving course: ' + error.message;
+    } else {
+      alert('Course saved successfully!');
+      await loadCourses();
+      // Reset form to "Add New"
+      document.getElementById('m-course-select').value = 'new';
+      prepCourseEdit();
+    }
   }
 
   async function deleteCourse() {
     const id = document.getElementById('edit-c-id').value;
-    if (confirm('Delete this course?')) {
-      await sb.from('courses').delete().eq('id', id);
-      loadCourses();
+    if (!id) return;
+
+    if (!confirm('Delete this course? This cannot be undone.')) {
+      return;
+    }
+
+    const { error } = await sb.from('courses').delete().eq('id', id);
+    if (error) {
+      console.error('Delete error:', error);
+      alert('Error deleting course: ' + error.message);
+    } else {
+      alert('Course deleted.');
+      await loadCourses();
+      document.getElementById('m-course-select').value = 'new';
+      prepCourseEdit();
     }
   }
 
   async function createGroup() {
     const name = document.getElementById('new-group-name').value.trim();
     const code = document.getElementById('new-group-code').value.trim();
-    if (!name || !code) {
-      alert('Enter a group name and generate a code first.');
+    
+    if (!name) {
+      alert('Please enter a group name.');
+      return;
+    }
+    
+    if (!code) {
+      alert('Please generate a group code.');
       return;
     }
 
     const { data: group, error } = await sb
       .from('groups')
-      .insert({ name, group_code: code, owner_id: user.id })
+      .insert({ name, group_code: code.toUpperCase(), owner_id: user.id })
       .select()
       .single();
 
-    if (error || !group) {
-      alert(error?.message || 'Unable to create group.');
+    if (error) {
+      console.error('Create group error:', error);
+      alert(error?.message || 'Unable to create group. The code might already be in use.');
       return;
     }
 
+    // Join the group
     await sb
       .from('group_members')
       .insert({ group_id: group.id, user_id: user.id });
 
+    // Set as active
     await sb
       .from('profiles')
       .update({ current_group_id: group.id })
@@ -632,15 +879,20 @@
     profile.current_group_id = group.id;
     activeGroup = group;
 
+    // Clear form
+    document.getElementById('new-group-name').value = '';
+    document.getElementById('new-group-code').value = '';
+
     updateHeaderName();
-    alert('Group created and joined.');
-    refreshData();
+    alert(`Group "${group.name}" created successfully!`);
+    await refreshData();
   }
 
   async function joinGroup() {
-    const code = document.getElementById('join-code').value.trim();
+    const code = document.getElementById('join-code').value.trim().toUpperCase();
+    
     if (!code) {
-      alert('Enter a join code.');
+      alert('Please enter a join code.');
       return;
     }
 
@@ -651,17 +903,49 @@
       .single();
 
     if (error || !group) {
-      alert('Code not found.');
+      console.error('Join error:', error);
+      alert('Group not found. Please check the code and try again.');
       return;
     }
 
-    await sb
+    // Check if already a member
+    const { data: existing } = await sb
       .from('group_members')
-      .insert({ group_id: group.id, user_id: user.id })
-      .select()
-      .single()
-      .catch(() => {});
+      .select('id')
+      .eq('group_id', group.id)
+      .eq('user_id', user.id)
+      .single();
 
+    if (existing) {
+      alert(`You're already in "${group.name}"!`);
+      
+      // Set as active anyway
+      await sb
+        .from('profiles')
+        .update({ current_group_id: group.id })
+        .eq('id', user.id);
+      
+      profile.current_group_id = group.id;
+      activeGroup = group;
+      
+      document.getElementById('join-code').value = '';
+      updateHeaderName();
+      await refreshData();
+      return;
+    }
+
+    // Join the group
+    const { error: joinError } = await sb
+      .from('group_members')
+      .insert({ group_id: group.id, user_id: user.id });
+
+    if (joinError) {
+      console.error('Join insert error:', joinError);
+      alert('Error joining group.');
+      return;
+    }
+
+    // Set as active
     await sb
       .from('profiles')
       .update({ current_group_id: group.id })
@@ -670,9 +954,46 @@
     profile.current_group_id = group.id;
     activeGroup = group;
 
+    document.getElementById('join-code').value = '';
     updateHeaderName();
-    alert(`Joined group ${group.name}.`);
-    refreshData();
+    alert(`Joined "${group.name}" successfully!`);
+    await refreshData();
+  }
+
+  async function leaveCurrentGroup() {
+    if (!activeGroup) {
+      alert('No active group to leave.');
+      return;
+    }
+
+    if (!confirm(`Leave "${activeGroup.name}"? Your scores will remain but you won't see this group's leaderboard.`)) {
+      return;
+    }
+
+    const { error } = await sb
+      .from('group_members')
+      .delete()
+      .eq('group_id', activeGroup.id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Leave error:', error);
+      alert('Error leaving group.');
+      return;
+    }
+
+    // Clear active group
+    await sb
+      .from('profiles')
+      .update({ current_group_id: null })
+      .eq('id', user.id);
+
+    activeGroup = null;
+    profile.current_group_id = null;
+
+    updateHeaderName();
+    alert('Left group successfully.');
+    await refreshData();
   }
 
   async function deleteCurrentGroup() {
@@ -688,7 +1009,7 @@
       .single();
 
     if (error || !group) {
-      alert('Unable to load group.');
+      alert('Unable to load group details.');
       return;
     }
 
@@ -697,7 +1018,7 @@
       return;
     }
 
-    if (!confirm(`Delete group "${group.name}" for all members? This cannot be undone.`)) {
+    if (!confirm(`DELETE "${group.name}" permanently? This will remove the group for ALL members and cannot be undone.`)) {
       return;
     }
 
@@ -707,7 +1028,8 @@
       .eq('id', group.id);
 
     if (delError) {
-      alert('Unable to delete group.');
+      console.error('Delete error:', delError);
+      alert('Unable to delete group: ' + delError.message);
       return;
     }
 
@@ -719,16 +1041,40 @@
     profile.current_group_id = null;
 
     updateHeaderName();
-    alert('Group deleted.');
-    refreshData();
+    alert('Group deleted successfully.');
+    await refreshData();
   }
 
   async function saveRound() {
-    const sel = document.getElementById('r-course-select');
-    const score = parseInt(document.getElementById('r-score').value, 10);
-    const courseRating = parseFloat(document.getElementById('r-rating').value);
-    const slopeRating = parseInt(document.getElementById('r-slope').value, 10);
+    const errDiv = document.getElementById('add-error');
+    if (errDiv) errDiv.textContent = '';
 
+    const sel = document.getElementById('r-course-select');
+    const scoreVal = document.getElementById('r-score').value;
+    const ratingVal = document.getElementById('r-rating').value;
+    const slopeVal = document.getElementById('r-slope').value;
+    const dateVal = document.getElementById('r-date').value;
+
+    const score = parseInt(scoreVal, 10);
+    const courseRating = parseFloat(ratingVal);
+    const slopeRating = parseInt(slopeVal, 10);
+
+    if (!sel.value) {
+      if (errDiv) errDiv.textContent = 'Please select a course.';
+      return;
+    }
+
+    if (isNaN(score) || isNaN(courseRating) || isNaN(slopeRating)) {
+      if (errDiv) errDiv.textContent = 'Please enter valid score, rating, and slope.';
+      return;
+    }
+
+    if (!dateVal) {
+      if (errDiv) errDiv.textContent = 'Please select a date.';
+      return;
+    }
+
+    // Calculate differential
     const diff = ((score - courseRating) * 113) / slopeRating;
 
     const data = {
@@ -737,64 +1083,147 @@
       score,
       course_rating: courseRating,
       slope_rating: slopeRating,
-      differential: diff.toFixed(1),
-      date_played: document.getElementById('r-date').value
+      differential: parseFloat(diff.toFixed(1)),
+      date_played: dateVal
     };
 
-    await sb.from('rounds').insert(data);
+    console.log('Saving round:', data);
+
+    const { error } = await sb.from('rounds').insert(data);
+    
+    if (error) {
+      console.error('Save round error:', error);
+      if (errDiv) errDiv.textContent = 'Error saving round: ' + error.message;
+      return;
+    }
+
+    // Recalculate handicap
     await recalculateHandicap();
-    refreshData();
+    
+    // Clear form
+    document.getElementById('r-course-select').value = '';
+    document.getElementById('r-score').value = '';
+    document.getElementById('r-rating').value = '';
+    document.getElementById('r-slope').value = '';
+    setDefaultDate();
+
+    alert('Round saved successfully!');
+    
+    // Refresh and go to history
+    await refreshData();
     showTab('history', document.querySelector('.tab-link'));
   }
 
   async function recalculateHandicap() {
+    console.log('Recalculating handicap for user:', user.id);
+
     const { data: rounds, error } = await sb
       .from('rounds')
       .select('differential, date_played')
       .eq('user_id', user.id)
       .order('date_played', { ascending: false });
 
-    if (error || !rounds || !rounds.length) return;
+    if (error) {
+      console.error('Fetch rounds error:', error);
+      return;
+    }
+
+    if (!rounds || !rounds.length) {
+      console.log('No rounds found');
+      return;
+    }
+
+    console.log('Found rounds:', rounds.length);
 
     const diffs = rounds
       .map(r => parseFloat(r.differential))
-      .filter(d => !isNaN(d));
+      .filter(d => !isNaN(d))
+      .sort((a, b) => a - b); // Sort ascending for WHS
 
-    if (!diffs.length) return;
+    if (!diffs.length) {
+      console.log('No valid differentials');
+      return;
+    }
 
-    const n = Math.min(8, Math.floor(diffs.length / 2) || 1);
-    const lowest = diffs.sort((a, b) => a - b).slice(0, n);
+    // WHS: Use best differentials
+    // 3-6 rounds: lowest 1
+    // 7-8 rounds: lowest 2
+    // 9-11 rounds: lowest 3
+    // 12-14 rounds: lowest 4
+    // 15-16 rounds: lowest 5
+    // 17-18 rounds: lowest 6
+    // 19 rounds: lowest 7
+    // 20+ rounds: lowest 8
+    let numToUse = 1;
+    const totalRounds = diffs.length;
+    
+    if (totalRounds >= 20) numToUse = 8;
+    else if (totalRounds >= 19) numToUse = 7;
+    else if (totalRounds >= 17) numToUse = 6;
+    else if (totalRounds >= 15) numToUse = 5;
+    else if (totalRounds >= 12) numToUse = 4;
+    else if (totalRounds >= 9) numToUse = 3;
+    else if (totalRounds >= 7) numToUse = 2;
+    else numToUse = 1;
+
+    const lowest = diffs.slice(0, numToUse);
     const avg = lowest.reduce((sum, d) => sum + d, 0) / lowest.length;
-    const index = Math.floor(avg * 0.96 * 10) / 10;
+    const index = Math.round(avg * 0.96 * 10) / 10; // Round to 1 decimal
 
-    await sb
+    console.log('Calculated index:', index, 'from', numToUse, 'best of', totalRounds, 'rounds');
+
+    const { error: updateError } = await sb
       .from('profiles')
       .update({ handicap_index: index })
       .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Update handicap error:', updateError);
+    } else {
+      console.log('Handicap updated to:', index);
+    }
   }
 
   async function loadHistory() {
+    const listDiv = document.getElementById('recent-list');
+    listDiv.innerHTML = 'Loading scores...';
+
+    console.log('Loading history for user:', user.id);
+
     const { data: rounds, error } = await sb
       .from('rounds')
       .select('*')
       .eq('user_id', user.id)
       .order('date_played', { ascending: false });
 
-    if (error || !rounds || !rounds.length) {
-      document.getElementById('recent-list').innerHTML = 'No rounds.';
+    if (error) {
+      console.error('Load history error:', error);
+      listDiv.innerHTML = `<div class="card"><p style="color: var(--danger);">Error loading scores: ${error.message}</p></div>`;
       return;
     }
 
-    document.getElementById('recent-list').innerHTML = rounds
-      .map(
-        r => `
-      <div class="card" style="border-left: 5px solid var(--primary);">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div><small>${r.date_played}</small><br><b>${r.course_name}</b></div>
-          <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">${r.score}</div>
+    console.log('Loaded rounds:', rounds?.length || 0);
+
+    if (!rounds || !rounds.length) {
+      listDiv.innerHTML = '<div class="card"><p>No rounds recorded yet. Add your first score in the "Add Scores" tab!</p></div>';
+      return;
+    }
+
+    listDiv.innerHTML = rounds
+      .map(r => `
+        <div class="card" style="border-left: 5px solid var(--primary);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <small style="color: #666;">${new Date(r.date_played).toLocaleDateString()}</small><br>
+              <strong>${r.course_name}</strong><br>
+              <span style="font-size: 0.75rem; color: #888;">
+                Rating: ${r.course_rating} | Slope: ${r.slope_rating} | Diff: ${r.differential}
+              </span>
+            </div>
+            <div style="font-size: 2rem; font-weight: 900; color: var(--primary);">${r.score}</div>
+          </div>
         </div>
-      </div>`
-      )
+      `)
       .join('');
   }
 
@@ -802,7 +1231,7 @@
     document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
     document.getElementById('tab-' + name).classList.remove('hidden');
     document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
+    if (el) el.classList.add('active');
   }
 </script>
 
