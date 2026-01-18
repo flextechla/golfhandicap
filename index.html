@@ -32,7 +32,6 @@
   <div class="card" style="text-align: center;">
     <h2 style="color: var(--primary);">⛳ Golf Tracker</h2>
 
-    <!-- Auth mode toggle -->
     <div style="margin-bottom:10px; font-size:0.8rem;">
       <button class="btn-sm" onclick="setAuthMode('signin')">Sign In</button>
       <button class="btn-sm" onclick="setAuthMode('signup')">Create Account</button>
@@ -64,7 +63,7 @@
   </div>
 
   <div class="nav-tabs">
-    <div class="tab-link active" onclick="showTab('history', this)">SCORE HISTORY1</div>
+    <div class="tab-link active" onclick="showTab('history', this)">SCORE HISTORY</div>
     <div class="tab-link" onclick="showTab('add', this)">ADD SCORES</div>
     <div class="tab-link" onclick="showTab('leader', this)">RANKINGS</div>
     <div class="tab-link" onclick="showTab('groups', this)">GROUPS</div>
@@ -102,17 +101,24 @@
 
     <div id="tab-groups" class="hidden">
       <div id="group-status" class="card">No group joined.</div>
-        <div class="card">
-    <h3>Group Actions</h3>
-    <input type="text" id="new-group-name" class="form-control" placeholder="New Group Name">
-    <input type="text" id="new-group-code" class="form-control" placeholder="Create Unique Code">
-    <button class="btn btn-primary" onclick="createGroup()">Create & Join</button>
-    <hr>
-    <input type="text" id="join-code" class="form-control" placeholder="Enter Join Code">
-    <button class="btn btn-outline" onclick="joinGroup()">Join Group</button>
-    <hr>
-    <button class="btn btn-danger-outline" onclick="deleteCurrentGroup()">Delete Active Group (owner only)</button>
-  </div>
+      <div class="card">
+        <h3>Group Actions</h3>
+
+        <input type="text" id="new-group-name" class="form-control" placeholder="New Group Name">
+
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="new-group-code" class="form-control" placeholder="Group Code" readonly>
+          <button type="button" class="btn-sm" onclick="handleGenerateCode()">Generate Code</button>
+        </div>
+
+        <button class="btn btn-primary" onclick="createGroup()">Create & Join</button>
+        <hr>
+        <input type="text" id="join-code" class="form-control" placeholder="Enter Join Code">
+        <button class="btn btn-outline" onclick="joinGroup()">Join Group</button>
+        <hr>
+        <button class="btn btn-danger-outline" onclick="deleteCurrentGroup()">Delete Active Group (owner only)</button>
+      </div>
+    </div>
 
     <div id="tab-settings" class="hidden">
       <button class="btn btn-outline" onclick="toggleSub('set-courses')">Manage Courses</button>
@@ -150,7 +156,6 @@
   </div>
 </div>
 
-
 <script>
   const S_URL = 'https://vonbibroncsxrgstetow.supabase.co';
   const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
@@ -160,9 +165,9 @@
   let user = null, profile = null, masterCourses = [];
   let authMode = 'signin';
   let activeGroup = null; // { id, name, group_code } or null
- 
+
   function generateGroupCode(length = 6) {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
     for (let i = 0; i < length; i++) {
       code += chars[Math.floor(Math.random() * chars.length)];
@@ -170,13 +175,12 @@
     return code;
   }
 
-    document.addEventListener('DOMContentLoaded', () => {
-    const codeInput = document.getElementById('new-group-code');
-    if (codeInput) {
-      codeInput.value = generateGroupCode();
+  function handleGenerateCode() {
+    const input = document.getElementById('new-group-code');
+    if (input) {
+      input.value = generateGroupCode();
     }
-  });
-
+  }
 
   function setAuthMode(mode) {
     authMode = mode;
@@ -193,76 +197,68 @@
   }
 
   sb.auth.onAuthStateChange(async (event, session) => {
-  console.log('Auth event:', event, session);
+    console.log('Auth event:', event, session);
 
-  if (event === 'PASSWORD_RECOVERY') {
-    const newPassword = prompt('Enter a new password:');
-    if (newPassword) {
-      const { error } = await sb.auth.updateUser({ password: newPassword });
-      if (error) alert(error.message);
-      else alert('Password updated successfully. Please sign in with your new password.');
+    if (event === 'PASSWORD_RECOVERY') {
+      const newPassword = prompt('Enter a new password:');
+      if (newPassword) {
+        const { error } = await sb.auth.updateUser({ password: newPassword });
+        if (error) alert(error.message);
+        else alert('Password updated successfully. Please sign in with your new password.');
+      }
+      return;
     }
-    return;
-  }
 
-  if (session) {
-    user = session.user;
-    document.getElementById('view-auth').classList.add('hidden');
-    document.getElementById('view-app').classList.remove('hidden');
-    refreshData();
-  } else {
-    user = null;
-    profile = null;
-    document.getElementById('view-auth').classList.remove('hidden');
-    document.getElementById('view-app').classList.add('hidden');
-  }
-});
+    if (session) {
+      user = session.user;
+      document.getElementById('view-auth').classList.add('hidden');
+      document.getElementById('view-app').classList.remove('hidden');
+      refreshData();
+    } else {
+      user = null;
+      profile = null;
+      document.getElementById('view-auth').classList.remove('hidden');
+      document.getElementById('view-app').classList.add('hidden');
+    }
+  });
 
   async function handleAuth() {
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const passwordConfirm = document.getElementById('password-confirm').value;
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const passwordConfirm = document.getElementById('password-confirm').value;
 
-  console.log('handleAuth clicked, mode:', authMode, 'email:', email);
-
-  if (!email || !password) {
-    alert('Email and password are required.');
-    return;
-  }
-
-  try {
-    if (authMode === 'signup') {
-      if (password !== passwordConfirm) {
-        alert('Passwords do not match.');
-        return;
-      }
-
-      console.log('Signing up...');
-      const { data, error } = await sb.auth.signUp({ email, password });
-      console.log('signUp result:', { data, error });
-
-      if (error) {
-        alert(error.message);
-      } else {
-        alert('Account created. You can now sign in.');
-        setAuthMode('signin');
-      }
-    } else {
-      console.log('Signing in...');
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
-      console.log('signInWithPassword result:', { data, error });
-
-      if (error) {
-        alert(error.message);
-      } else {
-        alert('Signed in successfully.');
-      }
+    if (!email || !password) {
+      alert('Email and password are required.');
+      return;
     }
-  } catch (e) {
-    console.error('Auth exception:', e);
-    alert('Unexpected error. See console.');
+
+    try {
+      if (authMode === 'signup') {
+        if (password !== passwordConfirm) {
+          alert('Passwords do not match.');
+          return;
+        }
+
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) {
+          alert(error.message);
+        } else {
+          alert('Account created. You can now sign in.');
+          setAuthMode('signin');
+        }
+      } else {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+          alert(error.message);
+        } else {
+          alert('Signed in successfully.');
+        }
+      }
+    } catch (e) {
+      console.error('Auth exception:', e);
+      alert('Unexpected error. See console.');
+    }
   }
-}
 
   async function handleForgotPassword() {
     const email = document.getElementById('email').value.trim();
@@ -271,8 +267,7 @@
       return;
     }
 
-    // IMPORTANT: replace this with the actual URL where this HTML is served
-    const redirectUrl = 'https://flextechla.github.io/golfhandicap/'; // or your deployed origin
+    const redirectUrl = 'https://flextechla.github.io/golfhandicap/';
 
     const { error } = await sb.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl
@@ -284,158 +279,160 @@
     }
   }
 
- async function refreshData() {
-  if (!user) return;
+  async function refreshData() {
+    if (!user) return;
 
-  console.log('Fetching profile for user:', user.id);
-
-  const { data: pData, error: pError } = await sb
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  if (pError) {
-    console.error('Profile fetch error:', pError);
-    profile = null;
-    document.getElementById('user-display-name').textContent = 'Don';
-    document.getElementById('dash-hcp').textContent = '--';
-  } else {
-    profile = pData;
-    document.getElementById('user-display-name').textContent = profile.display_name || 'Don';
-    document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
-  }
-
-  // Load all groups this user belongs to
-  const { data: memberships, error: mError } = await sb
-    .from('group_members')
-    .select('group_id, groups(id, name, group_code)')
-    .eq('user_id', user.id);
-
-  if (mError) {
-    console.error('Membership fetch error:', mError);
-  }
-
-  const groups = (memberships || []).map(m => m.groups).filter(Boolean);
-
-  // Decide activeGroup:
-  // 1) if profile.current_group_id matches one of the groups, use that
-  // 2) else if exactly one group, use it
-  // 3) else leave null for "solo" until user chooses
-  activeGroup = null;
-
-  if (profile?.current_group_id) {
-    activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
-  }
-  if (!activeGroup && groups.length === 1) {
-    activeGroup = groups[0];
-    await sb
+    const { data: pData, error: pError } = await sb
       .from('profiles')
-      .update({ current_group_id: activeGroup.id })
-      .eq('id', user.id);
-    profile.current_group_id = activeGroup.id;
-  }
-    // >>> NEW BLOCK to update header <<<
-  const nameEl = document.getElementById('user-display-name');
-  if (nameEl) {
-    if (activeGroup) {
-      nameEl.textContent = `${profile?.display_name || 'Don'} · ${activeGroup.name}`;
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (pError) {
+      console.error('Profile fetch error:', pError);
+      profile = null;
+      document.getElementById('user-display-name').textContent = 'Don';
+      document.getElementById('dash-hcp').textContent = '--';
     } else {
-      nameEl.textContent = profile?.display_name || 'Don';
+      profile = pData;
+      document.getElementById('dash-hcp').textContent = profile.handicap_index || '--';
     }
+
+    const { data: memberships, error: mError } = await sb
+      .from('group_members')
+      .select('group_id, groups(id, name, group_code)')
+      .eq('user_id', user.id);
+
+    if (mError) {
+      console.error('Membership fetch error:', mError);
+    }
+
+    const groups = (memberships || []).map(m => m.groups).filter(Boolean);
+
+    activeGroup = null;
+
+    if (profile?.current_group_id) {
+      activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
+    }
+    if (!activeGroup && groups.length === 1) {
+      activeGroup = groups[0];
+      await sb
+        .from('profiles')
+        .update({ current_group_id: activeGroup.id })
+        .eq('id', user.id);
+      profile.current_group_id = activeGroup.id;
+    }
+
+    const nameEl = document.getElementById('user-display-name');
+    if (nameEl) {
+      if (activeGroup) {
+        nameEl.textContent = `${profile?.display_name || 'Don'} · ${activeGroup.name}`;
+      } else {
+        nameEl.textContent = profile?.display_name || 'Don';
+      }
+    }
+
+    updateGroupStatus(groups);
+    loadHistory();
+    loadCourses();
+    loadLeaderboard(groups);
   }
 
-  // Update group status UI
-  updateGroupStatus(groups);
+  function updateGroupStatus(groups) {
+    const status = document.getElementById('group-status');
 
-  loadHistory();
-  loadCourses();
-  loadLeaderboard(groups);
-}
-function updateGroupStatus(groups) {
-  const status = document.getElementById('group-status');
-
-  if (!activeGroup) {
-    if (!groups || !groups.length) {
-      status.innerHTML = `
-        <strong>No active group.</strong><br>
-        You are currently playing solo. Create a new group or join one below.
-      `;
+    if (!activeGroup) {
+      if (!groups || !groups.length) {
+        status.innerHTML = `
+          <strong>No active group.</strong><br>
+          You are currently playing solo. Create a new group or join one below.
+        `;
+      } else {
+        const options = groups
+          .map(g => `<option value="${g.id}">${g.name}</option>`)
+          .join('');
+        status.innerHTML = `
+          <strong>No active group selected.</strong><br>
+          Choose a group to view rankings and set as active.<br>
+          <div style="margin-top:8px;">
+            <label style="font-size:0.8rem;">Choose group:</label>
+            <select id="active-group-select" class="form-control" onchange="setActiveGroupFromSelect()">
+              <option value="">-- Select Group --</option>
+              ${options}
+            </select>
+          </div>
+        `;
+      }
     } else {
-      const options = groups
-        .map(g => `<option value="${g.id}">${g.name}</option>`)
-        .join('');
       status.innerHTML = `
-        <strong>No active group selected.</strong><br>
-        Choose a group to view rankings and set as active.<br>
+        <strong>Active Group:</strong> ${activeGroup.name}<br>
+        Code: <strong>${activeGroup.group_code}</strong><br>
         <div style="margin-top:8px;">
-          <label style="font-size:0.8rem;">Choose group:</label>
-          <select id="active-group-select" class="form-control" onchange="setActiveGroupFromSelect()">
-            <option value="">-- Select Group --</option>
-            ${options}
-          </select>
+          <span style="font-size:0.8rem; color:#555;">Use this code to invite friends.</span><br>
+          <button class="btn-sm" onclick="clearActiveGroup()" style="margin-top:6px;">Play solo</button>
         </div>
       `;
     }
-  } else {
-    status.innerHTML = `
-      <strong>Active Group:</strong> ${activeGroup.name}<br>
-      Code: <strong>${activeGroup.group_code}</strong><br>
-      <div style="margin-top:8px;">
-        <span style="font-size:0.8rem; color:#555;">Use this code to invite friends.</span><br>
-        <button class="btn-sm" onclick="clearActiveGroup()" style="margin-top:6px;">Play solo</button>
-      </div>
-    `;
   }
-}
 
-window.setActiveGroupFromSelect = async function () {
-  const sel = document.getElementById('active-group-select');
-  const gid = sel.value || null;
-  if (!gid) return;
+  window.setActiveGroupFromSelect = async function () {
+    const sel = document.getElementById('active-group-select');
+    const gid = sel.value || null;
+    if (!gid) return;
 
-  const { data: g, error } = await sb
-    .from('groups')
-    .select('id, name, group_code')
-    .eq('id', gid)
-    .single();
-  if (error || !g) return;
+    const { data: g, error } = await sb
+      .from('groups')
+      .select('id, name, group_code')
+      .eq('id', gid)
+      .single();
+    if (error || !g) return;
 
-  activeGroup = g;
-  await sb
-    .from('profiles')
-    .update({ current_group_id: g.id })
-    .eq('id', user.id);
-  profile.current_group_id = g.id;
+    activeGroup = g;
+    await sb
+      .from('profiles')
+      .update({ current_group_id: g.id })
+      .eq('id', user.id);
+    profile.current_group_id = g.id;
 
-  // reload memberships to update UI
-  const { data: memberships } = await sb
-    .from('group_members')
-    .select('group_id, groups(id, name, group_code)')
-    .eq('user_id', user.id);
-  const groups = (memberships || []).map(m => m.groups).filter(Boolean);
-  updateGroupStatus(groups);
-};
+    const { data: memberships } = await sb
+      .from('group_members')
+      .select('group_id, groups(id, name, group_code)')
+      .eq('user_id', user.id);
+    const groups = (memberships || []).map(m => m.groups).filter(Boolean);
 
-window.clearActiveGroup = async function () {
-  activeGroup = null;
-  await sb
-    .from('profiles')
-    .update({ current_group_id: null })
-    .eq('id', user.id);
-  profile.current_group_id = null;
+    const nameEl = document.getElementById('user-display-name');
+    if (nameEl) {
+      nameEl.textContent = `${profile?.display_name || 'Don'} · ${activeGroup.name}`;
+    }
 
-  const { data: memberships } = await sb
-    .from('group_members')
-    .select('group_id, groups(id, name, group_code)')
-    .eq('user_id', user.id);
-  const groups = (memberships || []).map(m => m.groups).filter(Boolean);
-  updateGroupStatus(groups);
-};
+    updateGroupStatus(groups);
+    loadLeaderboard(groups);
+  };
 
+  window.clearActiveGroup = async function () {
+    activeGroup = null;
+    await sb
+      .from('profiles')
+      .update({ current_group_id: null })
+      .eq('id', user.id);
+    profile.current_group_id = null;
+
+    const { data: memberships } = await sb
+      .from('group_members')
+      .select('group_id, groups(id, name, group_code)')
+      .eq('user_id', user.id);
+    const groups = (memberships || []).map(m => m.groups).filter(Boolean);
+
+    const nameEl = document.getElementById('user-display-name');
+    if (nameEl) {
+      nameEl.textContent = profile?.display_name || 'Don';
+    }
+
+    updateGroupStatus(groups);
+    loadLeaderboard(groups);
+  };
 
   async function loadCourses() {
-    console.log('Loading courses...');
     const { data, error } = await sb
       .from('courses')
       .select('*')
@@ -447,7 +444,6 @@ window.clearActiveGroup = async function () {
     }
 
     masterCourses = data || [];
-    console.log('Courses loaded:', masterCourses.length);
 
     const sel = document.getElementById('r-course-select');
     const mSel = document.getElementById('m-course-select');
@@ -464,58 +460,55 @@ window.clearActiveGroup = async function () {
     }
   }
 
-async function loadLeaderboard(groupsFromRefresh) {
-  const groups = groupsFromRefresh || [];
+  async function loadLeaderboard(groupsFromRefresh) {
+    if (!activeGroup) {
+      document.getElementById('lb-list').innerText = 'Select a group in the Groups tab to see rankings, or play solo.';
+      return;
+    }
 
-  if (!activeGroup) {
-    document.getElementById('lb-list').innerText = 'Select a group in the Groups tab to see rankings, or play solo.';
-    return;
+    const { data: members, error } = await sb
+      .from('group_members')
+      .select(`
+        user_id,
+        profiles!inner (
+          display_name,
+          handicap_index,
+          rounds(count)
+        )
+      `)
+      .eq('group_id', activeGroup.id);
+
+    if (error || !members) {
+      console.error('Leaderboard error:', error);
+      document.getElementById('lb-list').innerText = 'Unable to load leaderboard.';
+      return;
+    }
+
+    const golfers = members
+      .map(m => m.profiles)
+      .filter(Boolean)
+      .sort((a, b) => {
+        if (a.handicap_index == null) return 1;
+        if (b.handicap_index == null) return -1;
+        return a.handicap_index - b.handicap_index;
+      });
+
+    if (!golfers.length) {
+      document.getElementById('lb-list').innerText = 'No players with scores yet in this group.';
+      return;
+    }
+
+    document.getElementById('lb-list').innerHTML = golfers
+      .map((p, i) => `
+        <div class="lb-row">
+          <span style="color:#aaa; font-weight:bold;">${i + 1}</span>
+          <span style="font-weight:bold;">${p.display_name}</span>
+          <span style="color:var(--primary); font-weight:900;">${p.handicap_index ?? '--'}</span>
+          <span style="font-size:0.7rem; color:#888; text-align:center;">${p.rounds?.[0]?.count ?? 0}</span>
+        </div>
+      `)
+      .join('');
   }
-
-  // get all members of the active group with profile + rounds count
-  const { data: members, error } = await sb
-    .from('group_members')
-    .select(`
-      user_id,
-      profiles!inner (
-        display_name,
-        handicap_index,
-        rounds(count)
-      )
-    `)
-    .eq('group_id', activeGroup.id);
-
-  if (error || !members) {
-    console.error('Leaderboard error:', error);
-    document.getElementById('lb-list').innerText = 'Unable to load leaderboard.';
-    return;
-  }
-
-  const golfers = members
-    .map(m => m.profiles)
-    .filter(Boolean)
-    .sort((a, b) => {
-      if (a.handicap_index == null) return 1;
-      if (b.handicap_index == null) return -1;
-      return a.handicap_index - b.handicap_index;
-    });
-
-  if (!golfers.length) {
-    document.getElementById('lb-list').innerText = 'No players with scores yet in this group.';
-    return;
-  }
-
-  document.getElementById('lb-list').innerHTML = golfers
-    .map((p, i) => `
-      <div class="lb-row">
-        <span style="color:#aaa; font-weight:bold;">${i + 1}</span>
-        <span style="font-weight:bold;">${p.display_name}</span>
-        <span style="color:var(--primary); font-weight:900;">${p.handicap_index ?? '--'}</span>
-        <span style="font-size:0.7rem; color:#888; text-align:center;">${p.rounds?.[0]?.count ?? 0}</span>
-      </div>
-    `)
-    .join('');
-}
 
   function toggleSub(id) {
     document.getElementById('set-courses').classList.add('hidden');
@@ -569,129 +562,124 @@ async function loadLeaderboard(groupsFromRefresh) {
     }
   }
 
- 
- async function createGroup() {
-  const name = document.getElementById('new-group-name').value.trim();
-  const code = document.getElementById('new-group-code').value.trim();
-  if (!name || !code) {
-    alert('Enter a group name and unique code.');
-    return;
+  async function createGroup() {
+    const name = document.getElementById('new-group-name').value.trim();
+    const code = document.getElementById('new-group-code').value.trim();
+    if (!name || !code) {
+      alert('Enter a group name and generate a code first.');
+      return;
+    }
+
+    const { data: group, error } = await sb
+      .from('groups')
+      .insert({ name, group_code: code, owner_id: user.id })
+      .select()
+      .single();
+
+    if (error || !group) {
+      alert(error?.message || 'Unable to create group.');
+      return;
+    }
+
+    await sb
+      .from('group_members')
+      .insert({ group_id: group.id, user_id: user.id });
+
+    await sb
+      .from('profiles')
+      .update({ current_group_id: group.id })
+      .eq('id', user.id);
+
+    profile.current_group_id = group.id;
+    activeGroup = group;
+
+    alert('Group created and joined.');
+    refreshData();
   }
 
-  const { data: group, error } = await sb
-    .from('groups')
-    .insert({ name, group_code: code, owner_id: user.id })
-    .select()
-    .single();
+  async function joinGroup() {
+    const code = document.getElementById('join-code').value.trim();
+    if (!code) {
+      alert('Enter a join code.');
+      return;
+    }
 
-  if (error || !group) {
-    alert(error?.message || 'Unable to create group.');
-    return;
+    const { data: group, error } = await sb
+      .from('groups')
+      .select('id, name, group_code')
+      .eq('group_code', code)
+      .single();
+
+    if (error || !group) {
+      alert('Code not found.');
+      return;
+    }
+
+    await sb
+      .from('group_members')
+      .insert({ group_id: group.id, user_id: user.id })
+      .select()
+      .single()
+      .catch(() => {});
+
+    await sb
+      .from('profiles')
+      .update({ current_group_id: group.id })
+      .eq('id', user.id);
+
+    profile.current_group_id = group.id;
+    activeGroup = group;
+
+    alert(`Joined group ${group.name}.`);
+    refreshData();
   }
 
-  // add membership
-  await sb
-    .from('group_members')
-    .insert({ group_id: group.id, user_id: user.id });
+  async function deleteCurrentGroup() {
+    if (!activeGroup) {
+      alert('No active group selected.');
+      return;
+    }
 
-  // set as current active group
-  await sb
-    .from('profiles')
-    .update({ current_group_id: group.id })
-    .eq('id', user.id);
+    const { data: group, error } = await sb
+      .from('groups')
+      .select('id, owner_id, name')
+      .eq('id', activeGroup.id)
+      .single();
 
-  profile.current_group_id = group.id;
-  activeGroup = group;
+    if (error || !group) {
+      alert('Unable to load group.');
+      return;
+    }
 
-  alert('Group created and joined.');
-  refreshData();
-}
+    if (group.owner_id !== user.id) {
+      alert('Only the group creator can delete this group.');
+      return;
+    }
 
-async function joinGroup() {
-  const code = document.getElementById('join-code').value.trim();
-  if (!code) {
-    alert('Enter a join code.');
-    return;
+    if (!confirm(`Delete group "${group.name}" for all members? This cannot be undone.`)) {
+      return;
+    }
+
+    const { error: delError } = await sb
+      .from('groups')
+      .delete()
+      .eq('id', group.id);
+
+    if (delError) {
+      alert('Unable to delete group.');
+      return;
+    }
+
+    activeGroup = null;
+    await sb
+      .from('profiles')
+      .update({ current_group_id: null })
+      .eq('id', user.id);
+    profile.current_group_id = null;
+
+    alert('Group deleted.');
+    refreshData();
   }
-
-  const { data: group, error } = await sb
-    .from('groups')
-    .select('id, name, group_code')
-    .eq('group_code', code)
-    .single();
-
-  if (error || !group) {
-  alert('Code not found.');
-  return;
-}
-
-
-  // add membership (ignore error if already member)
-  await sb
-    .from('group_members')
-    .insert({ group_id: group.id, user_id: user.id })
-    .select()
-    .single()
-    .catch(() => {});
-
-  // set as current active group
-  await sb
-    .from('profiles')
-    .update({ current_group_id: group.id })
-    .eq('id', user.id);
-
-  profile.current_group_id = group.id;
-  activeGroup = group;
-
-  alert(`Joined group ${group.name}.`);
-  refreshData();
-}
-async function deleteCurrentGroup() {
-  if (!activeGroup) {
-    alert('No active group selected.');
-    return;
-  }
-
-  const { data: group, error } = await sb
-    .from('groups')
-    .select('id, owner_id, name')
-    .eq('id', activeGroup.id)
-    .single();
-
-  if (error || !group) {
-    alert('Unable to load group.');
-    return;
-  }
-
-  if (group.owner_id !== user.id) {
-    alert('Only the group creator can delete this group.');
-    return;
-  }
-
-  if (!confirm(`Delete group "${group.name}" for all members? This cannot be undone.`)) {
-    return;
-  }
-
-  const { error: delError } = await sb
-    .from('groups')
-    .delete()
-    .eq('id', group.id);
-
-  if (delError) {
-    alert('Unable to delete group.');
-    return;
-  }
-
-  activeGroup = null;
-  await sb
-    .from('profiles')
-    .update({ current_group_id: null })
-    .eq('id', user.id);
-  profile.current_group_id = null;
-
-  alert('Group deleted.');
-  refreshData();
-}
 
   async function saveRound() {
     const sel = document.getElementById('r-course-select');
@@ -778,15 +766,3 @@ async function deleteCurrentGroup() {
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
