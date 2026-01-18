@@ -204,7 +204,7 @@
         </div>
         
         <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com?subject=Golf%20Tracker%20Support'">
-          📧 Email support@lazybstudios.com
+          📧 Email <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="33404643435c4147735f52494a51404746575a5c401d505c5e">[email&#160;protected]</a>
         </button>
       </div>
 
@@ -251,7 +251,7 @@
           </ul>
           
           <h4>Contact</h4>
-          <p>For privacy concerns, email <a href="mailto:support@lazybstudios.com">support@lazybstudios.com</a></p>
+          <p>For privacy concerns, email <a href="/cdn-cgi/l/email-protection#f1828481819e8385b19d908b889382858495989e82df929e9c"><span class="__cf_email__" data-cfemail="71020401011e0305311d100b081302050415181e025f121e1c">[email&#160;protected]</span></a></p>
         </div>
       </div>
 
@@ -307,14 +307,14 @@
           <p>Golf Tracker is provided "as is" without warranties. Lazy B Studios is not liable for any damages arising from use of this service.</p>
           
           <h4>Contact</h4>
-          <p>Questions about these terms? Email <a href="mailto:support@lazybstudios.com">support@lazybstudios.com</a></p>
+          <p>Questions about these terms? Email <a href="/cdn-cgi/l/email-protection#1e6d6b6e6e716c6a5e727f64677c6d6a6b7a77716d307d7173"><span class="__cf_email__" data-cfemail="89fafcf9f9e6fbfdc9e5e8f3f0ebfafdfcede0e6faa7eae6e4">[email&#160;protected]</span></a></p>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
   // CRITICAL: Error logging
   console.log('=== GOLF TRACKER STARTING ===');
   
@@ -629,15 +629,24 @@
       // Determine active group
       activeGroup = null;
       if (profile?.current_group_id) {
+        // Try to find the saved group
         activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
       }
-      if (!activeGroup && groups.length === 1) {
+      
+      // If no active group but user has groups, auto-select the first one
+      if (!activeGroup && groups.length > 0) {
+        console.log('No active group set but user is in', groups.length, 'group(s). Auto-selecting first group.');
         activeGroup = groups[0];
+        
+        // Save this selection to the database
         await sb
           .from('profiles')
           .update({ current_group_id: activeGroup.id })
           .eq('id', user.id);
-        profile.current_group_id = activeGroup.id;
+        
+        if (profile) {
+          profile.current_group_id = activeGroup.id;
+        }
       }
 
       console.log('Active group:', activeGroup);
@@ -1391,20 +1400,4 @@
 
   function showTab(name, el) {
     try {
-      document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
-      document.getElementById('tab-' + name).classList.remove('hidden');
-      document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
-      if (el) el.classList.add('active');
-    } catch (e) {
-      console.error('Error in showTab:', e);
-    }
-  }
-
-  // Initial setup
-  console.log('=== INITIALIZATION COMPLETE ===');
-  console.log('If you see this message, JavaScript loaded successfully.');
-  console.log('Try clicking Sign In now. Check console for any errors.');
-</script>
-
-</body>
-</html>
+      document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'))
