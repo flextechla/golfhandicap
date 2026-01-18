@@ -499,63 +499,62 @@
     }
   });
 
-  window.refreshData = async function() {
-    if (!user) return;
+ window.refreshData = async function() {
+  if (!user) return;
 
-    try {
-      // Load profile with timeout
-      const profilePromise = sb.from('profiles').select('*').eq('id', user.id).single();
-      const { data: pData, error: pError } = await withTimeout(profilePromise, 5000);
+  try {
+    // Load profile with longer timeout
+    const profilePromise = sb.from('profiles').select('*').eq('id', user.id).single();
+    const { data: pData, error: pError } = await withTimeout(profilePromise, 15000); // Changed from 5000 to 15000
 
-      if (pError) {
-        console.error('Profile error:', pError);
-        document.getElementById('dash-hcp').textContent = '--';
-      } else {
-        profile = pData;
-        const hcp = profile.handicap_index;
-        document.getElementById('dash-hcp').textContent = (hcp !== null && hcp !== undefined) ? hcp.toFixed(1) : '--';
-      }
-
-      // Load memberships with timeout
-      const memberPromise = sb.from('group_members').select('group_id').eq('user_id', user.id);
-      const { data: memberships } = await withTimeout(memberPromise, 5000).catch(() => ({ data: null }));
-
-      let groups = [];
-      if (memberships && memberships.length) {
-        const ids = memberships.map(m => m.group_id);
-        const groupPromise = sb.from('groups').select('id, name, group_code').in('id', ids);
-        const { data: groupRows } = await withTimeout(groupPromise, 5000).catch(() => ({ data: [] }));
-        groups = groupRows || [];
-      }
-
-      // Determine active group
-      activeGroup = null;
-      if (profile?.current_group_id) {
-        activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
-      }
-      
-      if (!activeGroup && groups.length > 0) {
-        activeGroup = groups[0];
-        await sb.from('profiles').update({ current_group_id: activeGroup.id }).eq('id', user.id);
-        if (profile) profile.current_group_id = activeGroup.id;
-      }
-
-      window.updateHeaderName();
-      window.updateGroupStatus(groups);
-      
-      // Load data in parallel with timeout
-      await Promise.allSettled([
-        withTimeout(window.loadHistory(), 5000),
-        withTimeout(window.loadCourses(), 5000),
-        withTimeout(window.loadLeaderboard(), 5000)
-      ]);
-    } catch (e) {
-      console.error('Refresh data error:', e);
-      if (e.message === 'Request timeout') {
-        alert('Loading data is taking too long. Please refresh the page.');
-      }
+    if (pError) {
+      console.error('Profile error:', pError);
+      document.getElementById('dash-hcp').textContent = '--';
+    } else {
+      profile = pData;
+      const hcp = profile.handicap_index;
+      document.getElementById('dash-hcp').textContent = (hcp !== null && hcp !== undefined) ? hcp.toFixed(1) : '--';
     }
-  };
+
+    // Load memberships with longer timeout
+    const memberPromise = sb.from('group_members').select('group_id').eq('user_id', user.id);
+    const { data: memberships } = await withTimeout(memberPromise, 15000).catch(() => ({ data: null })); // Changed from 5000 to 15000
+
+    let groups = [];
+    if (memberships && memberships.length) {
+      const ids = memberships.map(m => m.group_id);
+      const groupPromise = sb.from('groups').select('id, name, group_code').in('id', ids);
+      const { data: groupRows } = await withTimeout(groupPromise, 15000).catch(() => ({ data: [] })); // Changed from 5000 to 15000
+      groups = groupRows || [];
+    }
+
+    // Determine active group
+    activeGroup = null;
+    if (profile?.current_group_id) {
+      activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
+    }
+    
+    if (!activeGroup && groups.length > 0) {
+      activeGroup = groups[0];
+      await sb.from('profiles').update({ current_group_id: activeGroup.id }).eq('id', user.id);
+      if (profile) profile.current_group_id = activeGroup.id;
+    }
+
+    window.updateHeaderName();
+    window.updateGroupStatus(groups);
+    
+    // Load data in parallel with longer timeout
+    await Promise.allSettled([
+      withTimeout(window.loadHistory(), 15000), // Changed from 5000 to 15000
+      withTimeout(window.loadCourses(), 15000), // Changed from 5000 to 15000
+      withTimeout(window.loadLeaderboard(), 15000) // Changed from 5000 to 15000
+    ]);
+  } catch (e) {
+    console.error('Refresh data error:', e);
+    // REMOVED the alert that was causing the browser warning
+    // Just log the error instead
+  }
+};
 
   window.updateGroupStatus = function(groups) {
     const status = document.getElementById('group-status');
@@ -1027,5 +1026,6 @@ window.loadLeaderboard = async function() {
 
 </body>
 </html>
+
 
 
