@@ -13,7 +13,7 @@
     .nav-tabs { display: flex; background: white; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-x: auto; }
     .tab-link { flex: 1; padding: 15px; text-align: center; font-size: 0.7rem; font-weight: bold; cursor: pointer; color: #666; border-bottom: 3px solid transparent; white-space: nowrap; }
     .tab-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
-    .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+    .container { max-width: 600px; margin: 0; auto; padding: 15px; }
     .card { background: white; border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
     .btn-primary { background: var(--primary); color: white; }
@@ -318,50 +318,36 @@
 (function() {
   'use strict';
   
-  console.log('=== GOLF TRACKER LOADING (v3) ===');
-  
-  // CRITICAL: All functions MUST be on window object
-  window.APP_VERSION = '3.0';
-  
-  // Supabase credentials
   const S_URL = 'https://vonbibroncsxrgstetow.supabase.co';
   const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
 
-  // Check if Supabase loaded
   if (typeof supabase === 'undefined') {
-    alert('FATAL ERROR: Supabase library failed to load. Check your internet connection.');
+    alert('Failed to load Supabase library. Check your internet connection.');
     return;
   }
 
-  let sb;
-  try {
-    sb = supabase.createClient(S_URL, S_KEY);
-    console.log('✓ Supabase client created');
-  } catch (e) {
-    alert('FATAL ERROR: Failed to create Supabase client: ' + e.message);
-    return;
-  }
+  const sb = supabase.createClient(S_URL, S_KEY);
 
-  // Global state
   let user = null;
   let profile = null;
   let masterCourses = [];
   let authMode = 'signin';
   let activeGroup = null;
 
-  // ============================================
-  // UTILITY FUNCTIONS - EXPLICITLY ON WINDOW
-  // ============================================
+  // Timeout helper
+  function withTimeout(promise, ms = 10000) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), ms)
+      )
+    ]);
+  }
 
   window.setDefaultDate = function() {
-    try {
-      const dateInput = document.getElementById('r-date');
-      if (dateInput) {
-        const today = new Date().toISOString().split('T')[0];
-        dateInput.value = today;
-      }
-    } catch (e) {
-      console.error('Error setting default date:', e);
+    const dateInput = document.getElementById('r-date');
+    if (dateInput) {
+      dateInput.value = new Date().toISOString().split('T')[0];
     }
   };
 
@@ -375,72 +361,43 @@
   };
 
   window.handleGenerateCode = function() {
-    try {
-      const input = document.getElementById('new-group-code');
-      if (input) input.value = window.generateGroupCode();
-    } catch (e) {
-      console.error('Error generating code:', e);
-    }
+    const input = document.getElementById('new-group-code');
+    if (input) input.value = window.generateGroupCode();
   };
 
   window.togglePassword = function(inputId, btnEl) {
-    try {
-      const input = document.getElementById(inputId);
-      if (!input) return;
-      const isHidden = input.type === 'password';
-      input.type = isHidden ? 'text' : 'password';
-      if (btnEl) btnEl.textContent = isHidden ? 'Hide' : 'Show';
-    } catch (e) {
-      console.error('Error toggling password:', e);
-    }
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    if (btnEl) btnEl.textContent = isHidden ? 'Hide' : 'Show';
   };
 
   window.updateHeaderName = function() {
-    try {
-      const nameEl = document.getElementById('user-display-name');
-      if (!nameEl) return;
-      const baseName = profile?.display_name || 'Golfer';
-      
-      if (activeGroup && activeGroup.name) {
-        nameEl.textContent = baseName + ' · ' + activeGroup.name;
-      } else {
-        nameEl.textContent = baseName;
-      }
-    } catch (e) {
-      console.error('Error updating header name:', e);
-    }
+    const nameEl = document.getElementById('user-display-name');
+    if (!nameEl) return;
+    const baseName = profile?.display_name || 'Golfer';
+    nameEl.textContent = activeGroup?.name ? baseName + ' · ' + activeGroup.name : baseName;
   };
 
   window.setAuthMode = function(mode) {
-    try {
-      console.log('Setting auth mode to:', mode);
-      authMode = mode;
-      const confirmWrapper = document.getElementById('password-confirm-wrapper');
-      const displayWrapper = document.getElementById('display-name-wrapper');
-      const btn = document.getElementById('auth-btn-label');
+    authMode = mode;
+    const confirmWrapper = document.getElementById('password-confirm-wrapper');
+    const displayWrapper = document.getElementById('display-name-wrapper');
+    const btn = document.getElementById('auth-btn-label');
 
-      if (mode === 'signup') {
-        if (displayWrapper) displayWrapper.style.display = 'block';
-        if (confirmWrapper) confirmWrapper.style.display = 'block';
-        btn.textContent = 'Create Account';
-      } else {
-        if (displayWrapper) displayWrapper.style.display = 'none';
-        if (confirmWrapper) confirmWrapper.style.display = 'none';
-        btn.textContent = 'Sign In';
-      }
-    } catch (e) {
-      console.error('Error in setAuthMode:', e);
-      alert('Error: ' + e.message);
+    if (mode === 'signup') {
+      if (displayWrapper) displayWrapper.style.display = 'block';
+      if (confirmWrapper) confirmWrapper.style.display = 'block';
+      btn.textContent = 'Create Account';
+    } else {
+      if (displayWrapper) displayWrapper.style.display = 'none';
+      if (confirmWrapper) confirmWrapper.style.display = 'none';
+      btn.textContent = 'Sign In';
     }
   };
 
-  // ============================================
-  // AUTH FUNCTIONS
-  // ============================================
-
-  window.handleAuth = function() {
-    console.log('handleAuth called, mode:', authMode);
-    
+  window.handleAuth = async function() {
     const email = document.getElementById('email').value.trim();
     const displayNameInput = document.getElementById('display-name').value.trim();
     const password = document.getElementById('password').value;
@@ -451,70 +408,59 @@
       return;
     }
 
-    if (authMode === 'signup') {
-      if (password !== passwordConfirm) {
-        alert('Passwords do not match.');
-        return;
-      }
+    try {
+      if (authMode === 'signup') {
+        if (password !== passwordConfirm) {
+          alert('Passwords do not match.');
+          return;
+        }
 
-      console.log('Attempting sign up...');
-      sb.auth.signUp({ email, password }).then(({ data, error }) => {
+        const { data, error } = await sb.auth.signUp({ email, password });
         if (error) {
-          console.error('Sign up error:', error);
           alert(error.message);
         } else {
           const userId = data.user?.id;
           if (userId) {
-            sb.from('profiles').upsert(
+            await sb.from('profiles').upsert(
               { id: userId, display_name: displayNameInput || email.split('@')[0] },
               { onConflict: 'id' }
-            ).then(() => {
-              alert('Account created! Please check your email to verify, then sign in.');
-              window.setAuthMode('signin');
-            });
+            );
           }
+          alert('Account created! Please check your email to verify, then sign in.');
+          window.setAuthMode('signin');
         }
-      });
-    } else {
-      console.log('Attempting sign in...');
-      sb.auth.signInWithPassword({ email, password }).then(({ data, error }) => {
-        if (error) {
-          console.error('Sign in error:', error);
-          alert(error.message);
-        } else {
-          console.log('Sign in successful!');
-        }
-      });
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) alert(error.message);
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
     }
   };
 
-  window.handleForgotPassword = function() {
+  window.handleForgotPassword = async function() {
     const email = document.getElementById('email').value.trim();
     if (!email) {
       alert('Enter your email first, then click Forgot password.');
       return;
     }
 
-    sb.auth.resetPasswordForEmail(email, {
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.href
-    }).then(({ error }) => {
-      if (error) {
-        alert(error.message);
-      } else {
-        alert('If an account exists for that email, a reset link has been sent.');
-      }
     });
+    
+    if (error) {
+      alert(error.message);
+    } else {
+      alert('If an account exists for that email, a reset link has been sent.');
+    }
   };
 
   window.handleLogout = function() {
-    console.log('Logging out...');
     sb.auth.signOut();
   };
 
-  // AUTH STATE LISTENER
   sb.auth.onAuthStateChange(async (event, session) => {
-    console.log('Auth state changed:', event);
-    
     if (event === 'PASSWORD_RECOVERY') {
       const newPassword = prompt('Enter a new password:');
       if (newPassword) {
@@ -526,14 +472,12 @@
     }
 
     if (session) {
-      console.log('User logged in:', session.user.id);
       user = session.user;
       document.getElementById('view-auth').classList.add('hidden');
       document.getElementById('view-app').classList.remove('hidden');
       window.setDefaultDate();
       await window.refreshData();
     } else {
-      console.log('User logged out');
       user = null;
       profile = null;
       activeGroup = null;
@@ -542,70 +486,62 @@
     }
   });
 
-  // ============================================
-  // DATA LOADING
-  // ============================================
-
   window.refreshData = async function() {
     if (!user) return;
 
-    console.log('Refreshing data for user:', user.id);
+    try {
+      // Load profile with timeout
+      const profilePromise = sb.from('profiles').select('*').eq('id', user.id).single();
+      const { data: pData, error: pError } = await withTimeout(profilePromise, 5000);
 
-    // Load profile
-    const { data: pData, error: pError } = await sb
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+      if (pError) {
+        console.error('Profile error:', pError);
+        document.getElementById('dash-hcp').textContent = '--';
+      } else {
+        profile = pData;
+        const hcp = profile.handicap_index;
+        document.getElementById('dash-hcp').textContent = (hcp !== null && hcp !== undefined) ? hcp.toFixed(1) : '--';
+      }
 
-    if (pError) {
-      console.error('Profile fetch error:', pError);
-      profile = null;
-      document.getElementById('dash-hcp').textContent = '--';
-    } else {
-      profile = pData;
-      const hcp = profile.handicap_index;
-      document.getElementById('dash-hcp').textContent = (hcp !== null && hcp !== undefined) ? hcp.toFixed(1) : '--';
+      // Load memberships with timeout
+      const memberPromise = sb.from('group_members').select('group_id').eq('user_id', user.id);
+      const { data: memberships } = await withTimeout(memberPromise, 5000).catch(() => ({ data: null }));
+
+      let groups = [];
+      if (memberships && memberships.length) {
+        const ids = memberships.map(m => m.group_id);
+        const groupPromise = sb.from('groups').select('id, name, group_code').in('id', ids);
+        const { data: groupRows } = await withTimeout(groupPromise, 5000).catch(() => ({ data: [] }));
+        groups = groupRows || [];
+      }
+
+      // Determine active group
+      activeGroup = null;
+      if (profile?.current_group_id) {
+        activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
+      }
+      
+      if (!activeGroup && groups.length > 0) {
+        activeGroup = groups[0];
+        await sb.from('profiles').update({ current_group_id: activeGroup.id }).eq('id', user.id);
+        if (profile) profile.current_group_id = activeGroup.id;
+      }
+
+      window.updateHeaderName();
+      window.updateGroupStatus(groups);
+      
+      // Load data in parallel with timeout
+      await Promise.allSettled([
+        withTimeout(window.loadHistory(), 5000),
+        withTimeout(window.loadCourses(), 5000),
+        withTimeout(window.loadLeaderboard(), 5000)
+      ]);
+    } catch (e) {
+      console.error('Refresh data error:', e);
+      if (e.message === 'Request timeout') {
+        alert('Loading data is taking too long. Please refresh the page.');
+      }
     }
-
-    // Load group memberships
-    const { data: memberships } = await sb
-      .from('group_members')
-      .select('group_id')
-      .eq('user_id', user.id);
-
-    // Load actual groups
-    let groups = [];
-    if (memberships && memberships.length) {
-      const ids = memberships.map(m => m.group_id);
-      const { data: groupRows } = await sb
-        .from('groups')
-        .select('id, name, group_code')
-        .in('id', ids);
-      groups = groupRows || [];
-    }
-
-    // Determine active group - AUTO-SELECT FIRST IF ANY EXIST
-    activeGroup = null;
-    if (profile?.current_group_id) {
-      activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
-    }
-    
-    if (!activeGroup && groups.length > 0) {
-      console.log('Auto-selecting first group');
-      activeGroup = groups[0];
-      await sb
-        .from('profiles')
-        .update({ current_group_id: activeGroup.id })
-        .eq('id', user.id);
-      if (profile) profile.current_group_id = activeGroup.id;
-    }
-
-    window.updateHeaderName();
-    window.updateGroupStatus(groups);
-    await window.loadHistory();
-    await window.loadCourses();
-    await window.loadLeaderboard();
   };
 
   window.updateGroupStatus = function(groups) {
@@ -629,11 +565,7 @@
     const gid = sel.value || null;
     if (!gid) return;
 
-    const { data: g } = await sb
-      .from('groups')
-      .select('id, name, group_code')
-      .eq('id', gid)
-      .single();
+    const { data: g } = await sb.from('groups').select('id, name, group_code').eq('id', gid).single();
     if (!g) return;
 
     activeGroup = g;
@@ -694,42 +626,51 @@
       return;
     }
 
-    const { data: members } = await sb
-      .from('group_members')
-      .select('user_id, profiles!inner (display_name, handicap_index)')
-      .eq('group_id', activeGroup.id);
+    try {
+      const { data: members, error } = await sb
+        .from('group_members')
+        .select('user_id, profiles!inner (display_name, handicap_index)')
+        .eq('group_id', activeGroup.id);
 
-    if (!members || !members.length) {
-      lbDiv.innerHTML = '<p style="color: #666; padding: 20px 0;">No players in this group yet.</p>';
-      return;
+      if (error) {
+        lbDiv.innerHTML = '<p style="color: var(--danger);">Error loading leaderboard.</p>';
+        return;
+      }
+
+      if (!members || !members.length) {
+        lbDiv.innerHTML = '<p style="color: #666; padding: 20px 0;">No players in this group yet.</p>';
+        return;
+      }
+
+      const memberIds = members.map(m => m.user_id);
+      const { data: roundCounts } = await sb.from('rounds').select('user_id').in('user_id', memberIds);
+
+      const countMap = {};
+      if (roundCounts) {
+        roundCounts.forEach(r => {
+          countMap[r.user_id] = (countMap[r.user_id] || 0) + 1;
+        });
+      }
+
+      const golfers = members
+        .map(m => ({
+          ...m.profiles,
+          user_id: m.user_id,
+          round_count: countMap[m.user_id] || 0
+        }))
+        .filter(Boolean)
+        .sort((a, b) => {
+          if (a.handicap_index == null) return 1;
+          if (b.handicap_index == null) return -1;
+          return a.handicap_index - b.handicap_index;
+        });
+
+      lbDiv.innerHTML = golfers.map((p, i) => 
+        '<div class="lb-row"><span style="color:#aaa; font-weight:bold;">' + (i + 1) + '</span><span style="font-weight:bold;">' + (p.display_name || 'Unknown') + '</span><span style="color:var(--primary); font-weight:900;">' + (p.handicap_index !== null && p.handicap_index !== undefined ? p.handicap_index.toFixed(1) : '--') + '</span><span style="font-size:0.7rem; color:#888; text-align:center;">' + p.round_count + '</span></div>'
+      ).join('');
+    } catch (e) {
+      lbDiv.innerHTML = '<p style="color: var(--danger);">Error: ' + e.message + '</p>';
     }
-
-    const memberIds = members.map(m => m.user_id);
-    const { data: roundCounts } = await sb.from('rounds').select('user_id').in('user_id', memberIds);
-
-    const countMap = {};
-    if (roundCounts) {
-      roundCounts.forEach(r => {
-        countMap[r.user_id] = (countMap[r.user_id] || 0) + 1;
-      });
-    }
-
-    const golfers = members
-      .map(m => ({
-        ...m.profiles,
-        user_id: m.user_id,
-        round_count: countMap[m.user_id] || 0
-      }))
-      .filter(Boolean)
-      .sort((a, b) => {
-        if (a.handicap_index == null) return 1;
-        if (b.handicap_index == null) return -1;
-        return a.handicap_index - b.handicap_index;
-      });
-
-    lbDiv.innerHTML = golfers.map((p, i) => 
-      '<div class="lb-row"><span style="color:#aaa; font-weight:bold;">' + (i + 1) + '</span><span style="font-weight:bold;">' + (p.display_name || 'Unknown') + '</span><span style="color:var(--primary); font-weight:900;">' + (p.handicap_index !== null && p.handicap_index !== undefined ? p.handicap_index.toFixed(1) : '--') + '</span><span style="font-size:0.7rem; color:#888; text-align:center;">' + p.round_count + '</span></div>'
-    ).join('');
   };
 
   window.toggleSub = function(id) {
@@ -1005,7 +946,7 @@
       .order('date_played', { ascending: false });
 
     if (error) {
-      listDiv.innerHTML = '<div class="card"><p style="color: var(--danger);">Error loading scores: ' + error.message + '</p></div>';
+      listDiv.innerHTML = '<div class="card"><p style="color: var(--danger);">Error loading scores.</p></div>';
       return;
     }
 
@@ -1025,10 +966,6 @@
     document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
     if (el) el.classList.add('active');
   };
-
-  console.log('=== INITIALIZATION COMPLETE (v3) ===');
-  console.log('All functions are on window object');
-  console.log('Try clicking buttons now.');
 })();
 </script>
 
