@@ -177,48 +177,54 @@
   }
 
   sb.auth.onAuthStateChange(async (event, session) => {
-    console.log('Auth event:', event, session);
+  console.log('Auth event:', event, session);
 
-    if (event === 'PASSWORD_RECOVERY') {
-      const newPassword = prompt('Enter a new password:');
-      if (newPassword) {
-        const { error } = await sb.auth.updateUser({ password: newPassword });
-        if (error) alert(error.message);
-        else alert('Password updated successfully. Please sign in with your new password.');
-      }
-      return;
+  if (event === 'PASSWORD_RECOVERY') {
+    const newPassword = prompt('Enter a new password:');
+    if (newPassword) {
+      const { error } = await sb.auth.updateUser({ password: newPassword });
+      if (error) alert(error.message);
+      else alert('Password updated successfully. Please sign in with your new password.');
     }
+    return;
+  }
 
-    if (session) {
-      user = session.user;
-      document.getElementById('view-auth').classList.add('hidden');
-      document.getElementById('view-app').classList.remove('hidden');
-      refreshData();
-    } else {
-      user = null;
-      profile = null;
-      document.getElementById('view-auth').classList.remove('hidden');
-      document.getElementById('view-app').classList.add('hidden');
-    }
-  });
+  if (session) {
+    user = session.user;
+    document.getElementById('view-auth').classList.add('hidden');
+    document.getElementById('view-app').classList.remove('hidden');
+    refreshData();
+  } else {
+    user = null;
+    profile = null;
+    document.getElementById('view-auth').classList.remove('hidden');
+    document.getElementById('view-app').classList.add('hidden');
+  }
+});
 
   async function handleAuth() {
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const passwordConfirm = document.getElementById('password-confirm').value;
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const passwordConfirm = document.getElementById('password-confirm').value;
 
-    if (!email || !password) {
-      alert('Email and password are required.');
-      return;
-    }
+  console.log('handleAuth clicked, mode:', authMode, 'email:', email);
 
+  if (!email || !password) {
+    alert('Email and password are required.');
+    return;
+  }
+
+  try {
     if (authMode === 'signup') {
       if (password !== passwordConfirm) {
         alert('Passwords do not match.');
         return;
       }
 
+      console.log('Signing up...');
       const { data, error } = await sb.auth.signUp({ email, password });
+      console.log('signUp result:', { data, error });
+
       if (error) {
         alert(error.message);
       } else {
@@ -226,14 +232,21 @@
         setAuthMode('signin');
       }
     } else {
+      console.log('Signing in...');
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      console.log('signInWithPassword result:', { data, error });
+
       if (error) {
         alert(error.message);
       } else {
-        console.log('Signed in:', data);
+        alert('Signed in successfully.');
       }
     }
+  } catch (e) {
+    console.error('Auth exception:', e);
+    alert('Unexpected error. See console.');
   }
+}
 
   async function handleForgotPassword() {
     const email = document.getElementById('email').value.trim();
@@ -243,7 +256,7 @@
     }
 
     // IMPORTANT: replace this with the actual URL where this HTML is served
-    const redirectUrl = 'http://localhost:3000'; // or your deployed origin
+    const redirectUrl = 'https://flextechla.github.io/golfhandicap/'; // or your deployed origin
 
     const { error } = await sb.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl
@@ -742,6 +755,7 @@ async function deleteCurrentGroup() {
 
 </body>
 </html>
+
 
 
 
