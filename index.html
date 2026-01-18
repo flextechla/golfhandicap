@@ -30,7 +30,7 @@
 
 <div id="view-auth" class="container" style="margin-top: 5vh;">
   <div class="card" style="text-align: center;">
-    <h2 style="color: var(--primary);">⛳ Golf Tracker1</h2>
+    <h2 style="color: var(--primary);">⛳ Golf Tracker</h2>
 
     <!-- Auth mode toggle -->
     <div style="margin-bottom:10px; font-size:0.8rem;">
@@ -539,15 +539,7 @@ async function loadLeaderboard(groupsFromRefresh) {
     }
   }
 
-  function loadGroupsUI() {
-    const status = document.getElementById('group-status');
-    if (profile?.group_id && profile.groups) {
-      status.innerHTML = `<strong>Active Group:</strong> ${profile.groups.name}<br>Code: <strong>${profile.groups.group_code}</strong>`;
-    } else {
-      status.innerText = 'No group joined.';
-    }
-  }
-
+ 
  async function createGroup() {
   const name = document.getElementById('new-group-name').value.trim();
   const code = document.getElementById('new-group-code').value.trim();
@@ -599,9 +591,10 @@ async function joinGroup() {
     .single();
 
   if (error || !group) {
-    alert('Code not found.');
-   .return;
-  }
+  alert('Code not found.');
+  return;
+}
+
 
   // add membership (ignore error if already member)
   await sb
@@ -755,6 +748,7 @@ async function deleteCurrentGroup() {
 
 </body>
 </html>
+
 
 
 
