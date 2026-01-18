@@ -641,60 +641,66 @@
     }
   };
 
-  window.loadLeaderboard = async function() {
-    const lbDiv = document.getElementById('lb-list');
-    
-    if (!activeGroup) {
-      lbDiv.innerHTML = '<p style="color: #666; font-size: 0.85rem; padding: 20px 0;">Select a group in the Groups tab to view rankings.</p>';
+ window.loadLeaderboard = async function() {
+  const lbDiv = document.getElementById('lb-list');
+  
+  if (!activeGroup) {
+    lbDiv.innerHTML = '<p style="color: #666; font-size: 0.85rem; padding: 20px 0;">Select a group in the Groups tab to view rankings.</p>';
+    return;
+  }
+
+  try {
+    // First, get all group members
+    const { data: members, error: memberError } = await sb
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', activeGroup.id);
+
+    if (memberError || !members || !members.length) {
+      lbDiv.innerHTML = '<p style="color: #666; padding: 20px 0;">No players in this group yet.</p>';
       return;
     }
 
-    try {
-      const { data: members, error } = await sb
-        .from('group_members')
-        .select('user_id, profiles!inner (display_name, handicap_index)')
-        .eq('group_id', activeGroup.id);
+    // Then get profiles separately
+    const memberIds = members.map(m => m.user_id);
+    const { data: profiles, error: profileError } = await sb
+      .from('profiles')
+      .select('id, display_name, handicap_index')
+      .in('id', memberIds);
 
-      if (error) {
-        lbDiv.innerHTML = '<p style="color: var(--danger);">Error loading leaderboard.</p>';
-        return;
-      }
-
-      if (!members || !members.length) {
-        lbDiv.innerHTML = '<p style="color: #666; padding: 20px 0;">No players in this group yet.</p>';
-        return;
-      }
-
-      const memberIds = members.map(m => m.user_id);
-      const { data: roundCounts } = await sb.from('rounds').select('user_id').in('user_id', memberIds);
-
-      const countMap = {};
-      if (roundCounts) {
-        roundCounts.forEach(r => {
-          countMap[r.user_id] = (countMap[r.user_id] || 0) + 1;
-        });
-      }
-
-      const golfers = members
-        .map(m => ({
-          ...m.profiles,
-          user_id: m.user_id,
-          round_count: countMap[m.user_id] || 0
-        }))
-        .filter(Boolean)
-        .sort((a, b) => {
-          if (a.handicap_index == null) return 1;
-          if (b.handicap_index == null) return -1;
-          return a.handicap_index - b.handicap_index;
-        });
-
-      lbDiv.innerHTML = golfers.map((p, i) => 
-        '<div class="lb-row"><span style="color:#aaa; font-weight:bold;">' + (i + 1) + '</span><span style="font-weight:bold;">' + (p.display_name || 'Unknown') + '</span><span style="color:var(--primary); font-weight:900;">' + (p.handicap_index !== null && p.handicap_index !== undefined ? p.handicap_index.toFixed(1) : '--') + '</span><span style="font-size:0.7rem; color:#888; text-align:center;">' + p.round_count + '</span></div>'
-      ).join('');
-    } catch (e) {
-      lbDiv.innerHTML = '<p style="color: var(--danger);">Error: ' + e.message + '</p>';
+    if (profileError) {
+      lbDiv.innerHTML = '<p style="color: var(--danger);">Error loading leaderboard.</p>';
+      return;
     }
-  };
+
+    // Get round counts
+    const { data: roundCounts } = await sb.from('rounds').select('user_id').in('user_id', memberIds);
+
+    const countMap = {};
+    if (roundCounts) {
+      roundCounts.forEach(r => {
+        countMap[r.user_id] = (countMap[r.user_id] || 0) + 1;
+      });
+    }
+
+    const golfers = profiles
+      .map(p => ({
+        ...p,
+        round_count: countMap[p.id] || 0
+      }))
+      .sort((a, b) => {
+        if (a.handicap_index == null) return 1;
+        if (b.handicap_index == null) return -1;
+        return a.handicap_index - b.handicap_index;
+      });
+
+    lbDiv.innerHTML = golfers.map((p, i) => 
+      '<div class="lb-row"><span style="color:#aaa; font-weight:bold;">' + (i + 1) + '</span><span style="font-weight:bold;">' + (p.display_name || 'Unknown') + '</span><span style="color:var(--primary); font-weight:900;">' + (p.handicap_index !== null && p.handicap_index !== undefined ? p.handicap_index.toFixed(1) : '--') + '</span><span style="font-size:0.7rem; color:#888; text-align:center;">' + p.round_count + '</span></div>'
+    ).join('');
+  } catch (e) {
+    lbDiv.innerHTML = '<p style="color: var(--danger);">Error: ' + e.message + '</p>';
+  }
+};
 
   window.toggleSub = function(id) {
     ['set-courses', 'set-help', 'set-privacy', 'set-terms'].forEach(subId => {
@@ -1002,3 +1008,4 @@
 
 </body>
 </html>
+
