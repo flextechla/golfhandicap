@@ -38,8 +38,27 @@
     </div>
 
     <input type="email" id="email" class="form-control" placeholder="Email">
-    <input type="password" id="password" class="form-control" placeholder="Password">
-    <input type="password" id="password-confirm" class="form-control" placeholder="Confirm Password" style="display:none;">
+    <input type="text" id="display-name" class="form-control" placeholder="Display Name (for leaderboard)">
+
+    <div style="position:relative;">
+      <input type="password" id="password" class="form-control" placeholder="Password" style="margin-bottom:0;">
+      <button type="button"
+              onclick="togglePassword('password', this)"
+              class="btn-sm"
+              style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:0.7rem;">
+        Show
+      </button>
+    </div>
+
+    <div id="password-confirm-wrapper" style="position:relative; display:none; margin-top:10px;">
+      <input type="password" id="password-confirm" class="form-control" placeholder="Confirm Password" style="margin-bottom:0;">
+      <button type="button"
+              onclick="togglePassword('password-confirm', this)"
+              class="btn-sm"
+              style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:0.7rem;">
+        Show
+      </button>
+    </div>
 
     <button class="btn btn-primary" onclick="handleAuth()" id="auth-btn-label">Sign In</button>
 
@@ -177,21 +196,38 @@
 
   function handleGenerateCode() {
     const input = document.getElementById('new-group-code');
-    if (input) {
-      input.value = generateGroupCode();
+    if (input) input.value = generateGroupCode();
+  }
+
+  function togglePassword(inputId, btnEl) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    if (btnEl) btnEl.textContent = isHidden ? 'Hide' : 'Show';
+  }
+
+  function updateHeaderName() {
+    const nameEl = document.getElementById('user-display-name');
+    if (!nameEl) return;
+    const baseName = profile?.display_name || 'Don';
+    if (activeGroup) {
+      nameEl.textContent = `${baseName} · ${activeGroup.name}`;
+    } else {
+      nameEl.textContent = baseName;
     }
   }
 
   function setAuthMode(mode) {
     authMode = mode;
-    const confirmInput = document.getElementById('password-confirm');
+    const confirmWrapper = document.getElementById('password-confirm-wrapper');
     const btn = document.getElementById('auth-btn-label');
 
     if (mode === 'signup') {
-      confirmInput.style.display = 'block';
+      confirmWrapper.style.display = 'block';
       btn.textContent = 'Create Account';
     } else {
-      confirmInput.style.display = 'none';
+      confirmWrapper.style.display = 'none';
       btn.textContent = 'Sign In';
     }
   }
@@ -224,6 +260,7 @@
 
   async function handleAuth() {
     const email = document.getElementById('email').value.trim();
+    const displayNameInput = document.getElementById('display-name').value.trim();
     const password = document.getElementById('password').value;
     const passwordConfirm = document.getElementById('password-confirm').value;
 
@@ -243,6 +280,15 @@
         if (error) {
           alert(error.message);
         } else {
+          const userId = data.user?.id;
+          if (userId) {
+            await sb
+              .from('profiles')
+              .upsert(
+                { id: userId, display_name: displayNameInput || email, email },
+                { onConflict: 'id' }
+              );
+          }
           alert('Account created. You can now sign in.');
           setAuthMode('signin');
         }
@@ -291,7 +337,6 @@
     if (pError) {
       console.error('Profile fetch error:', pError);
       profile = null;
-      document.getElementById('user-display-name').textContent = 'Don';
       document.getElementById('dash-hcp').textContent = '--';
     } else {
       profile = pData;
@@ -323,15 +368,7 @@
       profile.current_group_id = activeGroup.id;
     }
 
-    const nameEl = document.getElementById('user-display-name');
-    if (nameEl) {
-      if (activeGroup) {
-        nameEl.textContent = `${profile?.display_name || 'Don'} · ${activeGroup.name}`;
-      } else {
-        nameEl.textContent = profile?.display_name || 'Don';
-      }
-    }
-
+    updateHeaderName();
     updateGroupStatus(groups);
     loadHistory();
     loadCourses();
@@ -400,11 +437,7 @@
       .eq('user_id', user.id);
     const groups = (memberships || []).map(m => m.groups).filter(Boolean);
 
-    const nameEl = document.getElementById('user-display-name');
-    if (nameEl) {
-      nameEl.textContent = `${profile?.display_name || 'Don'} · ${activeGroup.name}`;
-    }
-
+    updateHeaderName();
     updateGroupStatus(groups);
     loadLeaderboard(groups);
   };
@@ -423,11 +456,7 @@
       .eq('user_id', user.id);
     const groups = (memberships || []).map(m => m.groups).filter(Boolean);
 
-    const nameEl = document.getElementById('user-display-name');
-    if (nameEl) {
-      nameEl.textContent = profile?.display_name || 'Don';
-    }
-
+    updateHeaderName();
     updateGroupStatus(groups);
     loadLeaderboard(groups);
   };
@@ -460,7 +489,7 @@
     }
   }
 
-  async function loadLeaderboard(groupsFromRefresh) {
+  async function loadLeaderboard() {
     if (!activeGroup) {
       document.getElementById('lb-list').innerText = 'Select a group in the Groups tab to see rankings, or play solo.';
       return;
@@ -593,6 +622,7 @@
     profile.current_group_id = group.id;
     activeGroup = group;
 
+    updateHeaderName();
     alert('Group created and joined.');
     refreshData();
   }
@@ -630,6 +660,7 @@
     profile.current_group_id = group.id;
     activeGroup = group;
 
+    updateHeaderName();
     alert(`Joined group ${group.name}.`);
     refreshData();
   }
@@ -677,6 +708,7 @@
       .eq('id', user.id);
     profile.current_group_id = null;
 
+    updateHeaderName();
     alert('Group deleted.');
     refreshData();
   }
