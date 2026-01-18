@@ -13,7 +13,7 @@
     .nav-tabs { display: flex; background: white; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-x: auto; }
     .tab-link { flex: 1; padding: 15px; text-align: center; font-size: 0.7rem; font-weight: bold; cursor: pointer; color: #666; border-bottom: 3px solid transparent; white-space: nowrap; }
     .tab-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
-    .container { max-width: 600px; margin: 0; auto; padding: 15px; }
+    .container { max-width: 600px; margin: 0 auto; padding: 15px; }
     .card { background: white; border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
     .btn-primary { background: var(--primary); color: white; }
@@ -160,22 +160,35 @@
 
       <div id="set-courses" class="card hidden" style="margin-top: 15px;">
         <h3>Course Manager</h3>
-        <p style="font-size: 0.85rem; color: #666;">Add courses you play frequently for quick score entry.</p>
+        <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">
+          <strong>To edit a course:</strong> Select it from the dropdown below.<br>
+          <strong>To add a new course:</strong> Select "Add New Course" and fill in the details.
+        </p>
         
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <label style="font-size: 0.85rem; font-weight: bold; color: #555;">
+            Select Course to Edit:
+          </label>
+          <span id="course-count" style="font-size: 0.75rem; color: #888;">Loading...</span>
+        </div>
         <select id="m-course-select" class="form-control" onchange="window.prepCourseEdit()">
           <option value="new">-- Add New Course --</option>
         </select>
         
-        <hr>
-        <input type="hidden" id="edit-c-id">
-        <input type="text" id="edit-c-name" class="form-control" placeholder="Course Name (e.g., Pebble Beach)">
-        <input type="text" id="edit-c-tee" class="form-control" placeholder="Tee Box (e.g., Blue, White, Championship)">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <input type="number" step="0.1" id="edit-c-rating" class="form-control" placeholder="Course Rating (e.g., 72.5)">
-          <input type="number" id="edit-c-slope" class="form-control" placeholder="Slope Rating (e.g., 131)">
+        <hr style="margin: 15px 0;">
+        
+        <div id="course-form-section">
+          <input type="hidden" id="edit-c-id">
+          <input type="text" id="edit-c-name" class="form-control" placeholder="Course Name (e.g., Pebble Beach)">
+          <input type="text" id="edit-c-tee" class="form-control" placeholder="Tee Box (e.g., Blue, White, Championship)">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="number" step="0.1" id="edit-c-rating" class="form-control" placeholder="Course Rating (e.g., 72.5)">
+            <input type="number" id="edit-c-slope" class="form-control" placeholder="Slope Rating (e.g., 131)">
+          </div>
+          <button class="btn btn-primary" onclick="window.saveCourse()">Save Course</button>
+          <button id="btn-c-del" class="btn btn-danger-outline hidden" onclick="window.deleteCourse()">Delete This Course</button>
         </div>
-        <button class="btn btn-primary" onclick="window.saveCourse()">Save Course</button>
-        <button id="btn-c-del" class="btn btn-danger-outline hidden" onclick="window.deleteCourse()">Delete Course</button>
+        
         <div id="course-error" class="error-msg"></div>
       </div>
 
@@ -593,11 +606,21 @@
 
     if (!masterCourses.length) {
       sel.innerHTML = '<option value="">-- No Courses (Add in Settings) --</option>';
-      if (mSel) mSel.innerHTML = '<option value="new">-- Add New Course --</option>';
+      if (mSel) {
+        mSel.innerHTML = '<option value="new">-- Add New Course --</option>';
+      }
     } else {
       const opts = masterCourses.map(c => '<option value="' + c.id + '">' + c.name + (c.tee ? ' (' + c.tee + ')' : '') + '</option>').join('');
       sel.innerHTML = '<option value="">-- Select Course --</option>' + opts;
-      if (mSel) mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
+      if (mSel) {
+        mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
+      }
+    }
+    
+    // Update course count display if visible
+    const countDisplay = document.getElementById('course-count');
+    if (countDisplay) {
+      countDisplay.textContent = masterCourses.length + ' course' + (masterCourses.length !== 1 ? 's' : '') + ' in system';
     }
   };
 
@@ -678,6 +701,14 @@
       document.getElementById(subId).classList.add('hidden');
     });
     document.getElementById(id).classList.remove('hidden');
+    
+    // When opening Manage Courses, ensure dropdown is populated and form is reset
+    if (id === 'set-courses') {
+      window.loadCourses().then(() => {
+        document.getElementById('m-course-select').value = 'new';
+        window.prepCourseEdit();
+      });
+    }
   };
 
   window.prepCourseEdit = function() {
