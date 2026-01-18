@@ -641,7 +641,7 @@
     }
   };
 
- window.loadLeaderboard = async function() {
+window.loadLeaderboard = async function() {
   const lbDiv = document.getElementById('lb-list');
   
   if (!activeGroup) {
@@ -682,6 +682,25 @@
         countMap[r.user_id] = (countMap[r.user_id] || 0) + 1;
       });
     }
+
+    const golfers = profiles
+      .map(p => ({
+        ...p,
+        round_count: countMap[p.id] || 0
+      }))
+      .sort((a, b) => {
+        if (a.handicap_index == null) return 1;
+        if (b.handicap_index == null) return -1;
+        return a.handicap_index - b.handicap_index;
+      });
+
+    lbDiv.innerHTML = golfers.map((p, i) => 
+      '<div class="lb-row"><span style="color:#aaa; font-weight:bold;">' + (i + 1) + '</span><span style="font-weight:bold;">' + (p.display_name || 'Unknown') + '</span><span style="color:var(--primary); font-weight:900;">' + (p.handicap_index !== null && p.handicap_index !== undefined ? p.handicap_index.toFixed(1) : '--') + '</span><span style="font-size:0.7rem; color:#888; text-align:center;">' + p.round_count + '</span></div>'
+    ).join('');
+  } catch (e) {
+    lbDiv.innerHTML = '<p style="color: var(--danger);">Error: ' + e.message + '</p>';
+  }
+};
 
     const golfers = profiles
       .map(p => ({
@@ -1008,4 +1027,5 @@
 
 </body>
 </html>
+
 
