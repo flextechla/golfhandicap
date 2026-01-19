@@ -105,7 +105,7 @@
       </div>
       <div class="card">
         <h3>Join Group</h3>
-        <input type="text" id="join-code" class="form-control" placeholder="Join Code" style="text-transform: uppercase;">
+        <input type="text" id="join-code" class="form-control" placeholder="Enter Join Code" style="text-transform: uppercase;">
         <button class="btn btn-outline" onclick="window.joinGroup()">Join</button>
       </div>
     </div>
@@ -139,6 +139,10 @@
           <h4>What is a Golf Handicap?</h4>
           <p>A handicap is a numerical measure of a golfer's potential ability. It allows players of different skill levels to compete fairly. A lower handicap indicates a more skilled player.</p>
           
+          <h4>Where do I find Rating and Slope?</h4>
+          <p>These are located on your scorecard, usually next to the Tee Box names (Blue, White, Red, etc.).</p>
+          
+          
           <h4>How is my Index calculated?</h4>
           <p>This app uses the World Handicap System (WHS) logic. We take your "Score Differentials" from your most recent rounds. Specifically:</p>
           <ul>
@@ -147,18 +151,10 @@
             <li>We then multiply that average by <strong>0.96</strong> to get your Index.</li>
           </ul>
 
-          <h4>What are Rating and Slope?</h4>
-          <p>These numbers are found on your scorecard:</p>
-          <ul>
-            <li><strong>Course Rating:</strong> Tells you how many strokes a "scratch" (0 handicap) golfer should take.</li>
-            <li><strong>Slope Rating:</strong> Tells you how much harder the course is for a "bogey" golfer compared to a scratch golfer (Standard is 113).</li>
-          </ul>
-
-          <h4>Why is my Index different from my score?</h4>
-          <p>Your Handicap Index is not your average score; it represents your <strong>potential</strong> on a good day. It also adjusts for the difficulty of the course (Rating/Slope).</p>
-          
           <h4>Need Support?</h4>
-          <p>Contact us at: <strong>support@lazybstudios.com</strong></p>
+          <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com?subject=Golf%20Tracker%20Support'">
+            📧 Email Support
+          </button>
         </div>
       </div>
       
@@ -168,19 +164,10 @@
           <p><strong>Last Updated: January 19, 2026</strong></p>
           <h4>Information We Collect</h4>
           <p>We collect your email address for account authentication and your golf scores/course details to provide the handicap calculation service.</p>
-          
           <h4>Data Usage</h4>
-          <p>Your data is used strictly for:</p>
-          <ul>
-            <li>Calculating and displaying your handicap history.</li>
-            <li>Displaying your name and index to members of groups you choose to join.</li>
-          </ul>
-
-          <h4>Third Parties</h4>
-          <p>We do not sell or share your personal information with third-party advertisers. We use Supabase for secure data storage.</p>
-
-          <h4>Your Rights</h4>
-          <p>You can delete your account and all associated rounds at any time. For a full data export, please email support.</p>
+          <p>Your data is used strictly for calculating and displaying your handicap history and displaying your name to members of groups you join.</p>
+          <h4>Data Security</h4>
+          <p>We use Supabase for secure data storage with industry-standard encryption.</p>
         </div>
       </div>
 
@@ -188,16 +175,11 @@
         <h3>Terms of Service</h3>
         <div class="legal-text">
           <h4>1. Acceptance of Terms</h4>
-          <p>By using Golf Tracker, you agree to these terms. If you do not agree, please discontinue use of the app.</p>
-          
+          <p>By using Golf Tracker, you agree to these terms.</p>
           <h4>2. Honesty Policy</h4>
-          <p>Golf is a game of integrity. Users are expected to report honest gross scores. Manipulating scores to artificially lower or raise a handicap ("sandbagging") is discouraged and may result in removal from group leaderboards.</p>
-
-          <h4>3. Limitations</h4>
-          <p>This app is for recreational use only. While we follow the WHS formula, this is <strong>not</strong> an official USGA/R&A GHIN index. For official tournament play, please register with your local golf association.</p>
-
-          <h4>4. Disclaimer</h4>
-          <p>Lazy B Studios provides this service "as-is." We are not responsible for data loss or discrepancies in calculations.</p>
+          <p>Golf is a game of integrity. Users are expected to report honest gross scores.</p>
+          <h4>3. Recreational Use</h4>
+          <p>This app is for recreational use only. For official tournament play, please register with an official GHIN provider.</p>
         </div>
       </div>
     </div>
@@ -225,8 +207,6 @@
     } else {
       authView.classList.remove('hidden');
       appView.classList.add('hidden');
-      profile = null;
-      activeGroup = null;
     }
   }
 
@@ -249,7 +229,7 @@
       window.loadHistory(); 
       window.loadCourses(); 
       window.loadLeaderboard();
-    } catch (e) { console.error("Data Load Error:", e); }
+    } catch (e) { console.error(e); }
   };
 
   window.updateHeader = () => {
@@ -296,17 +276,12 @@
     };
     if (id) await sb.from('courses').update(payload).eq('id', id);
     else await sb.from('courses').insert(payload);
-    alert("Saved"); 
-    window.loadCourses();
+    alert("Saved"); window.loadCourses();
   };
 
   window.deleteCourse = async () => {
     const id = document.getElementById('edit-c-id').value;
-    if (id && confirm("Delete course?")) { 
-      await sb.from('courses').delete().eq('id', id); 
-      window.loadCourses(); 
-      window.prepCourseEdit(); 
-    }
+    if (id && confirm("Delete?")) { await sb.from('courses').delete().eq('id', id); window.loadCourses(); window.prepCourseEdit(); }
   };
 
   window.loadHistory = async () => {
@@ -367,7 +342,7 @@
       const { data, error } = await sb.auth.signUp({ email, password: pass });
       if (error) return alert(error.message);
       await sb.from('profiles').upsert({ id: data.user.id, display_name: document.getElementById('display-name').value || email.split('@')[0] });
-      alert('Verify email then sign in.');
+      alert('Check email then sign in.');
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
       if (error) alert(error.message);
@@ -381,10 +356,6 @@
     if (n !== 'leader') document.getElementById('lb-history-card').classList.add('hidden');
   };
   window.toggleSub = (id) => { 
-    document.querySelectorAll('#tab-settings .card').forEach(c => {
-        if(c.id !== 'm-course-select-parent') c.classList.add('hidden');
-    }); 
-    // Re-hide specific sub sections
     ['set-courses','set-help','set-privacy','set-terms'].forEach(s => document.getElementById(s).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden'); 
   };
