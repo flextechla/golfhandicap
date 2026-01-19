@@ -170,21 +170,33 @@
   let user = null, profile = null, activeGroup = null, masterCourses = [], authMode = 'signin';
 
   // --- SESSION HANDLER ---
+  // We handle the UI toggle first so the app doesn't look "stuck"
   async function handleSessionChange(session) {
     user = session?.user || null;
+    const authView = document.getElementById('view-auth');
+    const appView = document.getElementById('view-app');
+
     if (user) {
-      document.getElementById('view-auth').classList.add('hidden');
-      document.getElementById('view-app').classList.remove('hidden');
+      authView.classList.add('hidden');
+      appView.classList.remove('hidden');
+      // Set a temporary display name immediately while data loads
+      document.getElementById('user-display-name').textContent = user.email.split('@')[0];
       await window.refreshData();
     } else {
-      document.getElementById('view-auth').classList.remove('hidden');
-      document.getElementById('view-app').classList.add('hidden');
+      authView.classList.remove('hidden');
+      appView.classList.add('hidden');
+      profile = null;
+      activeGroup = null;
     }
   }
 
   // --- CORE DATA REFRESH ---
   window.refreshData = async function() {
     if (!user) return;
+    
+    // Immediately update header to get rid of "Connecting..."
+    window.updateHeader();
+
     try {
       const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
       profile = p || null;
@@ -198,15 +210,27 @@
 
       activeGroup = profile?.current_group_id ? groups.find(g => g.id === profile.current_group_id) : groups[0] || null;
       
+      // Update UI again with full data
       window.updateHeader();
       window.updateGroupUI(groups);
-      await Promise.all([window.loadHistory(), window.loadCourses(), window.loadLeaderboard()]);
-    } catch (e) { console.error(e); }
+      
+      // Load tables in parallel
+      await Promise.all([
+        window.loadHistory().catch(e => console.error("History fail:", e)),
+        window.loadCourses().catch(e => console.error("Course fail:", e)),
+        window.loadLeaderboard().catch(e => console.error("Leaderboard fail:", e))
+      ]);
+    } catch (e) { 
+      console.error("Refresh error:", e); 
+    }
   };
 
   window.updateHeader = function() {
-    document.getElementById('user-display-name').textContent = (profile?.display_name || user.email.split('@')[0]) + (activeGroup ? ` · ${activeGroup.name}` : '');
-    document.getElementById('dash-hcp').textContent = profile?.handicap_index?.toFixed(1) || '--';
+    if (!user) return;
+    const displayName = profile?.display_name || user.email.split('@')[0];
+    const groupName = activeGroup ? ` · ${activeGroup.name}` : '';
+    document.getElementById('user-display-name').textContent = displayName + groupName;
+    document.getElementById('dash-hcp').textContent = profile?.handicap_index ? profile.handicap_index.toFixed(1) : '--';
   };
 
   // --- AUTH FUNCTIONS ---
@@ -230,7 +254,12 @@
     }
   };
 
-  window.handleLogout = () => sb.auth.signOut();
+  // Improved Logout: Signs out and forces a clean page refresh
+  window.handleLogout = async () => { 
+    await sb.auth.signOut(); 
+    window.location.reload(); 
+  };
+
   window.togglePassword = (id, btn) => {
     const el = document.getElementById(id);
     el.type = el.type === 'password' ? 'text' : 'password';
@@ -240,19 +269,21 @@
   // --- LEADERBOARD & PLAYER HISTORY ---
   window.loadLeaderboard = async () => {
     const lbDiv = document.getElementById('lb-list');
-    if (!activeGroup) return lbDiv.innerHTML = '<p>Join a group to see rankings.</p>';
+    if (!activeGroup) return lbDiv.innerHTML = '<p style="padding:10px; font-size:0.8rem;">Join a group to see rankings.</p>';
     
     const { data: mems } = await sb.from('group_members').select('user_id').eq('group_id', activeGroup.id);
+    if (!mems?.length) return;
+    
     const ids = mems.map(m => m.user_id);
     const { data: pros } = await sb.from('profiles').select('*').in('id', ids);
     const { data: rounds } = await sb.from('rounds').select('user_id').in('user_id', ids);
     
-    const counts = rounds.reduce((acc, r) => { acc[r.user_id] = (acc[r.user_id] || 0) + 1; return acc; }, {});
+    const counts = rounds?.reduce((acc, r) => { acc[r.user_id] = (acc[r.user_id] || 0) + 1; return acc; }, {}) || {};
     const sorted = pros.sort((a,b) => (a.handicap_index ?? 99) - (b.handicap_index ?? 99));
 
     lbDiv.innerHTML = sorted.map((p, i) => `
-      <div class="lb-row" onclick="window.viewMemberHistory('${p.id}', '${p.display_name}')">
-        <span>${i+1}</span><strong>${p.display_name}</strong>
+      <div class="lb-row" onclick="window.viewMemberHistory('${p.id}', '${p.display_name || 'Golfer'}')">
+        <span>${i+1}</span><strong>${p.display_name || 'Golfer'}</strong>
         <span style="color:var(--primary)">${p.handicap_index?.toFixed(1) || '--'}</span>
         <span style="text-align:center">${counts[p.id] || 0}</span>
       </div>`).join('');
@@ -278,8 +309,12 @@
   // --- ROUNDS & COURSES ---
   window.saveRound = async () => {
     const score = parseInt(document.getElementById('r-score').value), rating = parseFloat(document.getElementById('r-rating').value), slope = parseInt(document.getElementById('r-slope').value);
+    const date = document.getElementById('r-date').value;
+    const course = document.getElementById('r-course-select').selectedOptions[0].text;
+    if (!score || !rating || !slope || !date) return alert("Fill all fields");
+
     const diff = ((score - rating) * 113) / slope;
-    await sb.from('rounds').insert({ user_id: user.id, score, course_rating: rating, slope_rating: slope, differential: diff.toFixed(1), date_played: document.getElementById('r-date').value, course_name: document.getElementById('r-course-select').selectedOptions[0].text });
+    await sb.from('rounds').insert({ user_id: user.id, score, course_rating: rating, slope_rating: slope, differential: diff.toFixed(1), date_played: date, course_name: course });
     await window.recalcHcp();
     alert('Saved!');
     window.refreshData();
@@ -287,7 +322,7 @@
 
   window.recalcHcp = async () => {
     const { data: rs } = await sb.from('rounds').select('differential').eq('user_id', user.id).order('date_played', {ascending:false}).limit(20);
-    if (!rs.length) return;
+    if (!rs?.length) return;
     const sorted = rs.map(r => r.differential).sort((a,b) => a-b);
     const take = rs.length >= 20 ? 8 : (rs.length >= 15 ? 5 : (rs.length >= 10 ? 3 : 1));
     const avg = sorted.slice(0, take).reduce((a,b) => a+b, 0) / take;
@@ -296,7 +331,7 @@
 
   window.loadHistory = async () => {
     const { data } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending:false});
-    document.getElementById('recent-list').innerHTML = data.map(r => `<div class="card"><b>${r.score}</b> @ ${r.course_name} (${r.date_played})</div>`).join('');
+    document.getElementById('recent-list').innerHTML = data?.map(r => `<div class="card"><b>${r.score}</b> @ ${r.course_name} (${r.date_played})</div>`).join('') || "No history.";
   };
 
   window.loadCourses = async () => {
@@ -329,6 +364,7 @@
   
   window.createGroup = async () => {
     const name = document.getElementById('new-group-name').value, code = document.getElementById('new-group-code').value;
+    if (!name || !code) return alert("Enter name and generate code");
     const { data } = await sb.from('groups').insert({ name, group_code: code, owner_id: user.id }).select().single();
     await sb.from('group_members').insert({ group_id: data.id, user_id: user.id });
     await sb.from('profiles').update({ current_group_id: data.id }).eq('id', user.id);
@@ -342,7 +378,7 @@
       await sb.from('group_members').upsert({ group_id: g.id, user_id: user.id });
       await sb.from('profiles').update({ current_group_id: g.id }).eq('id', user.id);
       window.refreshData();
-    }
+    } else { alert("Group not found"); }
   };
 
   window.updateGroupUI = (groups) => {
@@ -351,10 +387,22 @@
     else div.innerHTML = `<div class="group-card"><b>Active: ${activeGroup.name}</b><br>Code: ${activeGroup.group_code}</div>`;
   };
 
-  // Init
-  sb.auth.onAuthStateChange((evt, session) => handleSessionChange(session));
+  // --- INITIALIZATION (THE KEY FIX) ---
+  // 1. Set up the listener for future changes
+  sb.auth.onAuthStateChange((evt, session) => {
+    if (evt === 'SIGNED_OUT') handleSessionChange(null);
+    else handleSessionChange(session);
+  });
+
+  // 2. Immediately check for an existing session on page load/refresh
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    handleSessionChange(session);
+  })();
+
   document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
 })();
 </script>
 </body>
 </html>
+
