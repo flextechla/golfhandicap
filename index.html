@@ -495,55 +495,46 @@
   console.log('Starting refreshData...');
 
   try {
-    // Load profile with timeout
-    const profilePromise = sb.from('profiles').select('*').eq('id', user.id).single();
-    const profileTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Profile timeout')), 10000)
-    );
+    // Load profile
+    console.log('Loading profile...');
+    const { data: pData, error: pError } = await sb
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
 
-    const { data: pData, error: pError } = await Promise.race([profilePromise, profileTimeout])
-      .catch(err => {
-        console.error('Profile load failed:', err);
-        return { data: null, error: err };
-      });
+    console.log('Profile result:', pData, pError);
 
     if (pError) {
       console.error('Profile error:', pError);
       document.getElementById('dash-hcp').textContent = '--';
-      document.getElementById('user-display-name').textContent = 'Error loading profile';
+      document.getElementById('user-display-name').textContent = 'Error loading';
     } else {
       profile = pData;
       const hcp = profile.handicap_index;
       document.getElementById('dash-hcp').textContent = (hcp !== null && hcp !== undefined) ? hcp.toFixed(1) : '--';
     }
 
-    // Load group memberships with timeout
-    const memberPromise = sb.from('group_members').select('group_id').eq('user_id', user.id);
-    const memberTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Members timeout')), 10000)
-    );
+    // Load group memberships
+    console.log('Loading memberships...');
+    const { data: memberships } = await sb
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', user.id);
 
-    const { data: memberships } = await Promise.race([memberPromise, memberTimeout])
-      .catch(err => {
-        console.error('Memberships load failed:', err);
-        return { data: null };
-      });
+    console.log('Memberships result:', memberships);
 
     // Load actual groups
     let groups = [];
     if (memberships && memberships.length) {
+      console.log('Loading groups...');
       const ids = memberships.map(m => m.group_id);
-      const groupPromise = sb.from('groups').select('id, name, group_code').in('id', ids);
-      const groupTimeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Groups timeout')), 10000)
-      );
-
-      const { data: groupRows } = await Promise.race([groupPromise, groupTimeout])
-        .catch(err => {
-          console.error('Groups load failed:', err);
-          return { data: [] };
-        });
+      const { data: groupRows } = await sb
+        .from('groups')
+        .select('id, name, group_code')
+        .in('id', ids);
       groups = groupRows || [];
+      console.log('Groups result:', groups);
     }
 
     // Determine active group
@@ -558,21 +549,23 @@
       if (profile) profile.current_group_id = activeGroup.id;
     }
 
+    console.log('Active group:', activeGroup);
+
     window.updateHeaderName();
     window.updateGroupStatus(groups);
 
-    // Load data with error handling
-    console.log('Loading history, courses, leaderboard...');
-    await Promise.allSettled([
-      window.loadHistory().catch(e => console.error('History failed:', e)),
-      window.loadCourses().catch(e => console.error('Courses failed:', e)),
-      window.loadLeaderboard().catch(e => console.error('Leaderboard failed:', e))
-    ]);
+    // Load data
+    console.log('Loading history...');
+    await window.loadHistory();
+    console.log('Loading courses...');
+    await window.loadCourses();
+    console.log('Loading leaderboard...');
+    await window.loadLeaderboard();
 
     console.log('RefreshData complete!');
   } catch (e) {
     console.error('Refresh data error:', e);
-    alert('Error loading data: ' + e.message + '. Please refresh the page.');
+    alert('Error loading data: ' + e.message);
   }
 };
 
@@ -1039,5 +1032,6 @@
 
 </body>
 </html>
+
 
 
