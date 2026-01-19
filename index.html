@@ -347,6 +347,32 @@
   let authMode = 'signin';
   let activeGroup = null;
 
+   // One central place to update UI when session changes
+  async function handleSessionChange(session) {
+    try {
+      if (session && session.user) {
+        user = session.user;
+        document.getElementById('view-auth').classList.add('hidden');
+        document.getElementById('view-app').classList.remove('hidden');
+        window.setDefaultDate();
+        await window.refreshData();
+      } else {
+        user = null;
+        profile = null;
+        activeGroup = null;
+        document.getElementById('view-auth').classList.remove('hidden');
+        document.getElementById('view-app').classList.add('hidden');
+        const nameEl = document.getElementById('user-display-name');
+        if (nameEl) nameEl.textContent = 'Not signed in';
+        document.getElementById('dash-hcp').textContent = '--';
+        const listDiv = document.getElementById('recent-list');
+        if (listDiv) listDiv.textContent = '';
+      }
+    } catch (e) {
+      console.error('handleSessionChange exception:', e);
+    }
+  }
+
   // Initial session check so UI doesn't get stuck on Loading...
   (async function initSession() {
     try {
@@ -355,20 +381,12 @@
         console.error('getSession error:', error);
         return;
       }
-      if (session && session.user) {
-        user = session.user;
-        document.getElementById('view-auth').classList.add('hidden');
-        document.getElementById('view-app').classList.remove('hidden');
-        window.setDefaultDate();
-        await window.refreshData();
-      } else {
-        document.getElementById('view-auth').classList.remove('hidden');
-        document.getElementById('view-app').classList.add('hidden');
-      }
+      await handleSessionChange(session);
     } catch (e) {
       console.error('initSession exception:', e);
     }
   })();
+
 
   window.setDefaultDate = function() {
     const dateInput = document.getElementById('r-date');
@@ -491,19 +509,21 @@
     }
   };
 
-  window.handleLogout = async function() {
+    window.handleLogout = async function() {
     try {
       const { error } = await sb.auth.signOut();
       if (error) {
         alert(error.message);
       }
-      // UI will be updated by onAuthStateChange
+      // Fallback in case onAuthStateChange is delayed or missed
+      await handleSessionChange(null);
     } catch (e) {
       console.error('Logout exception:', e);
     }
   };
 
-  sb.auth.onAuthStateChange(async (event, session) => {
+
+    sb.auth.onAuthStateChange(async (event, session) => {
     try {
       if (event === 'PASSWORD_RECOVERY') {
         const newPassword = prompt('Enter a new password:');
@@ -515,26 +535,12 @@
         return;
       }
 
-      if (session && session.user) {
-        user = session.user;
-        document.getElementById('view-auth').classList.add('hidden');
-        document.getElementById('view-app').classList.remove('hidden');
-        window.setDefaultDate();
-        await window.refreshData();
-      } else {
-        user = null;
-        profile = null;
-        activeGroup = null;
-        document.getElementById('view-auth').classList.remove('hidden');
-        document.getElementById('view-app').classList.add('hidden');
-        const nameEl = document.getElementById('user-display-name');
-        if (nameEl) nameEl.textContent = 'Not signed in';
-        document.getElementById('dash-hcp').textContent = '--';
-      }
+      await handleSessionChange(session);
     } catch (e) {
       console.error('onAuthStateChange exception:', e);
     }
   });
+
 
   window.refreshData = async function() {
     if (!user) return;
@@ -1105,3 +1111,4 @@
 
 </body>
 </html>
+
