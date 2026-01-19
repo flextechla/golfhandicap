@@ -489,39 +489,64 @@
     }
   });
 
-  window.refreshData = async function() {
-    if (!user) return;
+ window.refreshData = async function() {
+  if (!user) return;
 
-    const { data: pData, error: pError } = await sb
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+  console.log('Starting refreshData...');
+
+  try {
+    // Load profile with timeout
+    const profilePromise = sb.from('profiles').select('*').eq('id', user.id).single();
+    const profileTimeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Profile timeout')), 10000)
+    );
+
+    const { data: pData, error: pError } = await Promise.race([profilePromise, profileTimeout])
+      .catch(err => {
+        console.error('Profile load failed:', err);
+        return { data: null, error: err };
+      });
 
     if (pError) {
       console.error('Profile error:', pError);
       document.getElementById('dash-hcp').textContent = '--';
+      document.getElementById('user-display-name').textContent = 'Error loading profile';
     } else {
       profile = pData;
       const hcp = profile.handicap_index;
       document.getElementById('dash-hcp').textContent = (hcp !== null && hcp !== undefined) ? hcp.toFixed(1) : '--';
     }
 
-    const { data: memberships } = await sb
-      .from('group_members')
-      .select('group_id')
-      .eq('user_id', user.id);
+    // Load group memberships with timeout
+    const memberPromise = sb.from('group_members').select('group_id').eq('user_id', user.id);
+    const memberTimeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Members timeout')), 10000)
+    );
 
+    const { data: memberships } = await Promise.race([memberPromise, memberTimeout])
+      .catch(err => {
+        console.error('Memberships load failed:', err);
+        return { data: null };
+      });
+
+    // Load actual groups
     let groups = [];
     if (memberships && memberships.length) {
       const ids = memberships.map(m => m.group_id);
-      const { data: groupRows } = await sb
-        .from('groups')
-        .select('id, name, group_code')
-        .in('id', ids);
+      const groupPromise = sb.from('groups').select('id, name, group_code').in('id', ids);
+      const groupTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Groups timeout')), 10000)
+      );
+
+      const { data: groupRows } = await Promise.race([groupPromise, groupTimeout])
+        .catch(err => {
+          console.error('Groups load failed:', err);
+          return { data: [] };
+        });
       groups = groupRows || [];
     }
 
+    // Determine active group
     activeGroup = null;
     if (profile?.current_group_id) {
       activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
@@ -535,10 +560,21 @@
 
     window.updateHeaderName();
     window.updateGroupStatus(groups);
-    await window.loadHistory();
-    await window.loadCourses();
-    await window.loadLeaderboard();
-  };
+
+    // Load data with error handling
+    console.log('Loading history, courses, leaderboard...');
+    await Promise.allSettled([
+      window.loadHistory().catch(e => console.error('History failed:', e)),
+      window.loadCourses().catch(e => console.error('Courses failed:', e)),
+      window.loadLeaderboard().catch(e => console.error('Leaderboard failed:', e))
+    ]);
+
+    console.log('RefreshData complete!');
+  } catch (e) {
+    console.error('Refresh data error:', e);
+    alert('Error loading data: ' + e.message + '. Please refresh the page.');
+  }
+};
 
   window.updateGroupStatus = function(groups) {
     const status = document.getElementById('group-status');
@@ -963,7 +999,9 @@
   };
 
   window.loadHistory = async function() {
-    const listDiv = document.getElementById('recent-list');
+  const listDiv = document.getElementById('recent-list');
+  
+  try {
     const { data: rounds, error } = await sb
       .from('rounds')
       .select('*')
@@ -971,7 +1009,8 @@
       .order('date_played', { ascending: false });
 
     if (error) {
-      listDiv.innerHTML = '<div class="card"><p style="color: var(--danger);">Error loading scores.</p></div>';
+      console.error('Load history error:', error);
+      listDiv.innerHTML = '<div class="card"><p style="color: var(--danger);">Error loading scores: ' + error.message + '</p></div>';
       return;
     }
 
@@ -983,7 +1022,11 @@
     listDiv.innerHTML = rounds.map(r => 
       '<div class="card" style="border-left: 5px solid var(--primary);"><div style="display:flex; justify-content:space-between; align-items:center;"><div><small style="color: #666;">' + new Date(r.date_played).toLocaleDateString() + '</small><br><strong>' + r.course_name + '</strong><br><span style="font-size: 0.75rem; color: #888;">Rating: ' + r.course_rating + ' | Slope: ' + r.slope_rating + ' | Diff: ' + r.differential + '</span></div><div style="font-size: 2rem; font-weight: 900; color: var(--primary);">' + r.score + '</div></div></div>'
     ).join('');
-  };
+  } catch (e) {
+    console.error('Load history exception:', e);
+    listDiv.innerHTML = '<div class="card"><p style="color: var(--danger);">Error: ' + e.message + '</p></div>';
+  }
+};
 
   window.showTab = function(name, el) {
     document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
@@ -996,4 +1039,5 @@
 
 </body>
 </html>
+
 
