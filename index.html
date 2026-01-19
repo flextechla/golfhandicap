@@ -1,3 +1,5 @@
+Deployed version
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -347,47 +349,6 @@
   let authMode = 'signin';
   let activeGroup = null;
 
-   // One central place to update UI when session changes
-  async function handleSessionChange(session) {
-    try {
-      if (session && session.user) {
-        user = session.user;
-        document.getElementById('view-auth').classList.add('hidden');
-        document.getElementById('view-app').classList.remove('hidden');
-        window.setDefaultDate();
-        await window.refreshData();
-      } else {
-        user = null;
-        profile = null;
-        activeGroup = null;
-        document.getElementById('view-auth').classList.remove('hidden');
-        document.getElementById('view-app').classList.add('hidden');
-        const nameEl = document.getElementById('user-display-name');
-        if (nameEl) nameEl.textContent = 'Not signed in';
-        document.getElementById('dash-hcp').textContent = '--';
-        const listDiv = document.getElementById('recent-list');
-        if (listDiv) listDiv.textContent = '';
-      }
-    } catch (e) {
-      console.error('handleSessionChange exception:', e);
-    }
-  }
-
-  // Initial session check so UI doesn't get stuck on Loading...
-  (async function initSession() {
-    try {
-      const { data: { session }, error } = await sb.auth.getSession();
-      if (error) {
-        console.error('getSession error:', error);
-        return;
-      }
-      await handleSessionChange(session);
-    } catch (e) {
-      console.error('initSession exception:', e);
-    }
-  })();
-
-
   window.setDefaultDate = function() {
     const dateInput = document.getElementById('r-date');
     if (dateInput) {
@@ -474,17 +435,8 @@
           window.setAuthMode('signin');
         }
       } else {
-        const { data, error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) {
-          alert(error.message);
-        } else if (data && data.session && data.session.user) {
-          // Fallback in case the auth listener is delayed
-          user = data.session.user;
-          document.getElementById('view-auth').classList.add('hidden');
-          document.getElementById('view-app').classList.remove('hidden');
-          window.setDefaultDate();
-          await window.refreshData();
-        }
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) alert(error.message);
       }
     } catch (e) {
       alert('Error: ' + e.message);
@@ -509,95 +461,85 @@
     }
   };
 
-    window.handleLogout = async function() {
-    try {
-      const { error } = await sb.auth.signOut();
-      if (error) {
-        alert(error.message);
-      }
-      // Fallback in case onAuthStateChange is delayed or missed
-      await handleSessionChange(null);
-    } catch (e) {
-      console.error('Logout exception:', e);
-    }
+  window.handleLogout = function() {
+    sb.auth.signOut();
   };
 
-
-    sb.auth.onAuthStateChange(async (event, session) => {
-    try {
-      if (event === 'PASSWORD_RECOVERY') {
-        const newPassword = prompt('Enter a new password:');
-        if (newPassword) {
-          const { error } = await sb.auth.updateUser({ password: newPassword });
-          if (error) alert(error.message);
-          else alert('Password updated successfully. Please sign in with your new password.');
-        }
-        return;
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      const newPassword = prompt('Enter a new password:');
+      if (newPassword) {
+        const { error } = await sb.auth.updateUser({ password: newPassword });
+        if (error) alert(error.message);
+        else alert('Password updated successfully. Please sign in with your new password.');
       }
+      return;
+    }
 
-      await handleSessionChange(session);
-    } catch (e) {
-      console.error('onAuthStateChange exception:', e);
+    if (session) {
+      user = session.user;
+      document.getElementById('view-auth').classList.add('hidden');
+      document.getElementById('view-app').classList.remove('hidden');
+      window.setDefaultDate();
+      await window.refreshData();
+    } else {
+      user = null;
+      profile = null;
+      activeGroup = null;
+      document.getElementById('view-auth').classList.remove('hidden');
+      document.getElementById('view-app').classList.add('hidden');
     }
   });
-
 
   window.refreshData = async function() {
     if (!user) return;
 
-    try {
-      const { data: pData, error: pError } = await sb
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+    const { data: pData, error: pError } = await sb
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
 
-      if (pError) {
-        console.error('Profile error:', pError);
-        document.getElementById('dash-hcp').textContent = '--';
-        document.getElementById('user-display-name').textContent = 'Error';
-      } else {
-        profile = pData;
-        const hcp = profile.handicap_index;
-        document.getElementById('dash-hcp').textContent =
-          (hcp !== null && hcp !== undefined) ? hcp.toFixed(1) : '--';
-      }
-
-      const { data: memberships } = await sb
-        .from('group_members')
-        .select('group_id')
-        .eq('user_id', user.id);
-
-      let groups = [];
-      if (memberships && memberships.length) {
-        const ids = memberships.map(m => m.group_id);
-        const { data: groupRows } = await sb
-          .from('groups')
-          .select('id, name, group_code')
-          .in('id', ids);
-        groups = groupRows || [];
-      }
-
-      activeGroup = null;
-      if (profile?.current_group_id) {
-        activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
-      }
-      
-      if (!activeGroup && groups.length > 0) {
-        activeGroup = groups[0];
-        await sb.from('profiles').update({ current_group_id: activeGroup.id }).eq('id', user.id);
-        if (profile) profile.current_group_id = activeGroup.id;
-      }
-
-      window.updateHeaderName();
-      window.updateGroupStatus(groups);
-
-      await window.loadHistory();
-      await window.loadCourses();
-      await window.loadLeaderboard();
-    } catch (e) {
-      console.error('Refresh data error:', e);
+    if (pError) {
+      console.error('Profile error:', pError);
+      document.getElementById('dash-hcp').textContent = '--';
+    } else {
+      profile = pData;
+      const hcp = profile.handicap_index;
+      document.getElementById('dash-hcp').textContent = (hcp !== null && hcp !== undefined) ? hcp.toFixed(1) : '--';
     }
+
+    const { data: memberships } = await sb
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', user.id);
+
+    let groups = [];
+    if (memberships && memberships.length) {
+      const ids = memberships.map(m => m.group_id);
+      const { data: groupRows } = await sb
+        .from('groups')
+        .select('id, name, group_code')
+        .in('id', ids);
+      groups = groupRows || [];
+    }
+
+    activeGroup = null;
+    if (profile?.current_group_id) {
+      activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
+    }
+    
+    if (!activeGroup && groups.length > 0) {
+      activeGroup = groups[0];
+      await sb.from('profiles').update({ current_group_id: activeGroup.id }).eq('id', user.id);
+      if (profile) profile.current_group_id = activeGroup.id;
+    }
+
+    window.updateHeaderName();
+    window.updateGroupStatus(groups);
+    await window.loadHistory();
+    await window.loadCourses();
+    await window.loadLeaderboard();
   };
 
   window.updateGroupStatus = function(groups) {
@@ -605,29 +547,13 @@
 
     if (!activeGroup) {
       if (!groups || !groups.length) {
-        status.innerHTML =
-          '<strong>No Groups</strong><br>' +
-          '<p style="margin: 10px 0; font-size: 0.9rem;">You\'re playing solo. Create or join a group to compete with friends!</p>';
+        status.innerHTML = '<strong>No Groups</strong><br><p style="margin: 10px 0; font-size: 0.9rem;">You\'re playing solo. Create or join a group to compete with friends!</p>';
       } else {
-        const options = groups
-          .map(g => '<option value="' + g.id + '">' + g.name + '</option>')
-          .join('');
-        status.innerHTML =
-          '<strong>Select Active Group</strong><br>' +
-          '<p style="margin: 10px 0; font-size: 0.85rem;">Choose which group to display in rankings:</p>' +
-          '<select id="active-group-select" class="form-control" onchange="window.setActiveGroupFromSelect()">' +
-          '<option value="">-- Select Group --</option>' + options + '</select>';
+        const options = groups.map(g => '<option value="' + g.id + '">' + g.name + '</option>').join('');
+        status.innerHTML = '<strong>Select Active Group</strong><br><p style="margin: 10px 0; font-size: 0.85rem;">Choose which group to display in rankings:</p><select id="active-group-select" class="form-control" onchange="window.setActiveGroupFromSelect()"><option value="">-- Select Group --</option>' + options + '</select>';
       }
     } else {
-      status.innerHTML =
-        '<div class="group-card">' +
-        '<strong style="font-size: 1.1rem;">📍 ' + activeGroup.name + '</strong><br>' +
-        '<div style="margin: 10px 0; font-size: 0.85rem; color: #555;">' +
-        'Join Code: <strong style="color: var(--primary); font-size: 1rem;">' + activeGroup.group_code + '</strong><br>' +
-        '<span style="font-size: 0.75rem;">Share this code with friends to invite them</span>' +
-        '</div>' +
-        '<button class="btn-sm" onclick="window.clearActiveGroup()" style="margin-top: 8px;">Switch to Solo Play</button>' +
-        '</div>';
+      status.innerHTML = '<div class="group-card"><strong style="font-size: 1.1rem;">📍 ' + activeGroup.name + '</strong><br><div style="margin: 10px 0; font-size: 0.85rem; color: #555;">Join Code: <strong style="color: var(--primary); font-size: 1rem;">' + activeGroup.group_code + '</strong><br><span style="font-size: 0.75rem;">Share this code with friends to invite them</span></div><button class="btn-sm" onclick="window.clearActiveGroup()" style="margin-top: 8px;">Switch to Solo Play</button></div>';
     }
   };
 
@@ -637,11 +563,7 @@
     const gid = sel.value || null;
     if (!gid) return;
 
-    const { data: g } = await sb
-      .from('groups')
-      .select('id, name, group_code')
-      .eq('id', gid)
-      .single();
+    const { data: g } = await sb.from('groups').select('id, name, group_code').eq('id', gid).single();
     if (!g) return;
 
     activeGroup = g;
@@ -673,10 +595,7 @@
         mSel.innerHTML = '<option value="new">-- Add New Course --</option>';
       }
     } else {
-      const opts = masterCourses.map(c =>
-        '<option value="' + c.id + '">' + c.name +
-        (c.tee ? ' (' + c.tee + ')' : '') + '</option>'
-      ).join('');
+      const opts = masterCourses.map(c => '<option value="' + c.id + '">' + c.name + (c.tee ? ' (' + c.tee + ')' : '') + '</option>').join('');
       sel.innerHTML = '<option value="">-- Select Course --</option>' + opts;
       if (mSel) {
         mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
@@ -685,8 +604,7 @@
     
     const countDisplay = document.getElementById('course-count');
     if (countDisplay) {
-      countDisplay.textContent =
-        masterCourses.length + ' course' + (masterCourses.length !== 1 ? 's' : '') + ' in system';
+      countDisplay.textContent = masterCourses.length + ' course' + (masterCourses.length !== 1 ? 's' : '') + ' in system';
     }
   };
 
@@ -707,92 +625,87 @@
     }
   };
 
-  window.loadLeaderboard = async function() {
-    const lbDiv = document.getElementById('lb-list');
-    
-    if (!activeGroup) {
-      lbDiv.innerHTML =
-        '<p style="color: #666; font-size: 0.85rem; padding: 20px 0;">' +
-        'Select a group in the Groups tab to view rankings.</p>';
+ window.loadLeaderboard = async function() {
+  const lbDiv = document.getElementById('lb-list');
+  
+  if (!activeGroup) {
+    lbDiv.innerHTML = '<p style="color: #666; font-size: 0.85rem; padding: 20px 0;">Select a group in the Groups tab to view rankings.</p>';
+    return;
+  }
+
+  try {
+    console.log('=== LEADERBOARD DEBUG ===');
+    console.log('Active group:', activeGroup);
+
+    // First, get all group members
+    const { data: members, error: memberError } = await sb
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', activeGroup.id);
+
+    console.log('Members query result:', { members, memberError });
+
+    if (memberError || !members || !members.length) {
+      lbDiv.innerHTML = '<p style="color: #666; padding: 20px 0;">No players in this group yet.</p>';
       return;
     }
 
-    try {
-      const { data: members, error: memberError } = await sb
-        .from('group_members')
-        .select('user_id')
-        .eq('group_id', activeGroup.id);
+    // Then get profiles separately
+    const memberIds = members.map(m => m.user_id);
+    console.log('Member IDs:', memberIds);
 
-      if (memberError || !members || !members.length) {
-        lbDiv.innerHTML =
-          '<p style="color: #666; padding: 20px 0;">No players in this group yet.</p>';
-        return;
-      }
+    const { data: profiles, error: profileError } = await sb
+      .from('profiles')
+      .select('id, display_name, handicap_index')
+      .in('id', memberIds);
 
-      const memberIds = members.map(m => m.user_id);
-      const { data: profilesData, error: profileError } = await sb
-        .from('profiles')
-        .select('id, display_name, handicap_index')
-        .in('id', memberIds);
+    console.log('Profiles query result:', { profiles, profileError });
 
-      if (profileError || !profilesData) {
-        lbDiv.innerHTML = '<p style="color: var(--danger);">Error loading leaderboard.</p>';
-        return;
-      }
-
-      const { data: roundCounts } = await sb
-        .from('rounds')
-        .select('user_id')
-        .in('user_id', memberIds);
-
-      const countMap = {};
-      if (roundCounts) {
-        roundCounts.forEach(r => {
-          countMap[r.user_id] = (countMap[r.user_id] || 0) + 1;
-        });
-      }
-
-      const golfers = profilesData
-        .map(p => ({
-          ...p,
-          round_count: countMap[p.id] || 0
-        }))
-        .sort((a, b) => {
-          if (a.handicap_index == null) return 1;
-          if (b.handicap_index == null) return -1;
-          return a.handicap_index - b.handicap_index;
-        });
-
-      lbDiv.innerHTML = golfers.map((p, i) =>
-        '<div class="lb-row">' +
-          '<span style="color:#aaa; font-weight:bold;">' + (i + 1) + '</span>' +
-          '<span style="font-weight:bold;">' + (p.display_name || 'Unknown') + '</span>' +
-          '<span style="color:var(--primary); font-weight:900;">' +
-            (p.handicap_index !== null && p.handicap_index !== undefined
-              ? p.handicap_index.toFixed(1) : '--') +
-          '</span>' +
-          '<span style="font-size:0.7rem; color:#888; text-align:center;">' + p.round_count + '</span>' +
-        '</div>'
-      ).join('');
-    } catch (e) {
-      console.error('Leaderboard error:', e);
-      lbDiv.innerHTML = '<p style="color: var(--danger);">Error: ' + e.message + '</p>';
+    if (profileError) {
+      console.error('Profile error:', profileError);
+      lbDiv.innerHTML = '<p style="color: var(--danger);">Error loading leaderboard: ' + profileError.message + '</p>';
+      return;
     }
-  };
 
-  window.toggleSub = function(id) {
-    ['set-courses', 'set-help', 'set-privacy', 'set-terms'].forEach(subId => {
-      document.getElementById(subId).classList.add('hidden');
-    });
-    document.getElementById(id).classList.remove('hidden');
-    
-    if (id === 'set-courses') {
-      window.loadCourses().then(() => {
-        document.getElementById('m-course-select').value = 'new';
-        window.prepCourseEdit();
+    if (!profiles || profiles.length === 0) {
+      console.error('No profiles returned!');
+      lbDiv.innerHTML = '<p style="color: var(--danger);">No profiles found. Check console for details.</p>';
+      return;
+    }
+
+    // Get round counts
+    const { data: roundCounts } = await sb.from('rounds').select('user_id').in('user_id', memberIds);
+    console.log('Round counts:', roundCounts);
+
+    const countMap = {};
+    if (roundCounts) {
+      roundCounts.forEach(r => {
+        countMap[r.user_id] = (countMap[r.user_id] || 0) + 1;
       });
     }
-  };
+    console.log('Count map:', countMap);
+
+    const golfers = profiles
+      .map(p => ({
+        ...p,
+        round_count: countMap[p.id] || 0
+      }))
+      .sort((a, b) => {
+        if (a.handicap_index == null) return 1;
+        if (b.handicap_index == null) return -1;
+        return a.handicap_index - b.handicap_index;
+      });
+
+    console.log('Final golfers array:', golfers);
+
+    lbDiv.innerHTML = golfers.map((p, i) => 
+      '<div class="lb-row"><span style="color:#aaa; font-weight:bold;">' + (i + 1) + '</span><span style="font-weight:bold;">' + (p.display_name || 'Unknown') + '</span><span style="color:var(--primary); font-weight:900;">' + (p.handicap_index !== null && p.handicap_index !== undefined ? p.handicap_index.toFixed(1) : '--') + '</span><span style="font-size:0.7rem; color:#888; text-align:center;">' + p.round_count + '</span></div>'
+    ).join('');
+  } catch (e) {
+    console.error('Leaderboard error:', e);
+    lbDiv.innerHTML = '<p style="color: var(--danger);">Error: ' + e.message + '</p>';
+  }
+};
 
   window.prepCourseEdit = function() {
     const sel = document.getElementById('m-course-select');
@@ -942,9 +855,7 @@
 
     if (!confirm('Leave "' + activeGroup.name + '"? Your scores will remain but you won\'t see this group\'s leaderboard.')) return;
 
-    await sb.from('group_members').delete()
-      .eq('group_id', activeGroup.id)
-      .eq('user_id', user.id);
+    await sb.from('group_members').delete().eq('group_id', activeGroup.id).eq('user_id', user.id);
     await sb.from('profiles').update({ current_group_id: null }).eq('id', user.id);
 
     activeGroup = null;
@@ -1032,10 +943,7 @@
 
     if (!rounds || !rounds.length) return;
 
-    const diffs = rounds
-      .map(r => parseFloat(r.differential))
-      .filter(d => !isNaN(d))
-      .sort((a, b) => a - b);
+    const diffs = rounds.map(r => parseFloat(r.differential)).filter(d => !isNaN(d)).sort((a, b) => a - b);
     if (!diffs.length) return;
 
     let numToUse = 1;
@@ -1058,46 +966,25 @@
 
   window.loadHistory = async function() {
     const listDiv = document.getElementById('recent-list');
-    
-    try {
-      const { data: rounds, error } = await sb
-        .from('rounds')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date_played', { ascending: false });
+    const { data: rounds, error } = await sb
+      .from('rounds')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date_played', { ascending: false });
 
-      if (error) {
-        console.error('Load history error:', error);
-        listDiv.innerHTML =
-          '<div class="card"><p style="color: var(--danger);">Error loading scores.</p></div>';
-        return;
-      }
-
-      if (!rounds || !rounds.length) {
-        listDiv.innerHTML =
-          '<div class="card"><p>No rounds recorded yet. Add your first score in the "Add Scores" tab!</p></div>';
-        return;
-      }
-
-      listDiv.innerHTML = rounds.map(r =>
-        '<div class="card" style="border-left: 5px solid var(--primary);">' +
-          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-            '<div>' +
-              '<small style="color: #666;">' + new Date(r.date_played).toLocaleDateString() + '</small><br>' +
-              '<strong>' + r.course_name + '</strong><br>' +
-              '<span style="font-size: 0.75rem; color: #888;">' +
-                'Rating: ' + r.course_rating + ' | Slope: ' + r.slope_rating + ' | Diff: ' + r.differential +
-              '</span>' +
-            '</div>' +
-            '<div style="font-size: 2rem; font-weight: 900; color: var(--primary);">' + r.score + '</div>' +
-          '</div>' +
-        '</div>'
-      ).join('');
-    } catch (e) {
-      console.error('Load history exception:', e);
-      listDiv.innerHTML =
-        '<div class="card"><p style="color: var(--danger);">Error: ' + e.message + '</p></div>';
+    if (error) {
+      listDiv.innerHTML = '<div class="card"><p style="color: var(--danger);">Error loading scores.</p></div>';
+      return;
     }
+
+    if (!rounds || !rounds.length) {
+      listDiv.innerHTML = '<div class="card"><p>No rounds recorded yet. Add your first score in the "Add Scores" tab!</p></div>';
+      return;
+    }
+
+    listDiv.innerHTML = rounds.map(r => 
+      '<div class="card" style="border-left: 5px solid var(--primary);"><div style="display:flex; justify-content:space-between; align-items:center;"><div><small style="color: #666;">' + new Date(r.date_played).toLocaleDateString() + '</small><br><strong>' + r.course_name + '</strong><br><span style="font-size: 0.75rem; color: #888;">Rating: ' + r.course_rating + ' | Slope: ' + r.slope_rating + ' | Diff: ' + r.differential + '</span></div><div style="font-size: 2rem; font-weight: 900; color: var(--primary);">' + r.score + '</div></div></div>'
+    ).join('');
   };
 
   window.showTab = function(name, el) {
@@ -1111,4 +998,5 @@
 
 </body>
 </html>
+
 
