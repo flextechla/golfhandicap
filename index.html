@@ -347,15 +347,28 @@
   let authMode = 'signin';
   let activeGroup = null;
 
-  // Timeout wrapper - prevents queries from hanging forever
-  function withTimeout(promise, timeoutMs = 10000) {
-    return Promise.race([
-      promise,
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout')), timeoutMs)
-      )
-    ]);
-  }
+  // Initial session check so UI doesn't get stuck on Loading...
+  (async function initSession() {
+    try {
+      const { data: { session }, error } = await sb.auth.getSession();
+      if (error) {
+        console.error('getSession error:', error);
+        return;
+      }
+      if (session && session.user) {
+        user = session.user;
+        document.getElementById('view-auth').classList.add('hidden');
+        document.getElementById('view-app').classList.remove('hidden');
+        window.setDefaultDate();
+        await window.refreshData();
+      } else {
+        document.getElementById('view-auth').classList.remove('hidden');
+        document.getElementById('view-app').classList.add('hidden');
+      }
+    } catch (e) {
+      console.error('initSession exception:', e);
+    }
+  })();
 
   window.setDefaultDate = function() {
     const dateInput = document.getElementById('r-date');
@@ -443,8 +456,17 @@
           window.setAuthMode('signin');
         }
       } else {
-        const { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) alert(error.message);
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+          alert(error.message);
+        } else if (data && data.session && data.session.user) {
+          // Fallback in case the auth listener is delayed
+          user = data.session.user;
+          document.getElementById('view-auth').classList.add('hidden');
+          document.getElementById('view-app').classList.remove('hidden');
+          window.setDefaultDate();
+          await window.refreshData();
+        }
       }
     } catch (e) {
       alert('Error: ' + e.message);
@@ -469,96 +491,87 @@
     }
   };
 
-  window.handleLogout = function() {
-    sb.auth.signOut();
+  window.handleLogout = async function() {
+    try {
+      const { error } = await sb.auth.signOut();
+      if (error) {
+        alert(error.message);
+      }
+      // UI will be updated by onAuthStateChange
+    } catch (e) {
+      console.error('Logout exception:', e);
+    }
   };
 
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'PASSWORD_RECOVERY') {
-      const newPassword = prompt('Enter a new password:');
-      if (newPassword) {
-        const { error } = await sb.auth.updateUser({ password: newPassword });
-        if (error) alert(error.message);
-        else alert('Password updated successfully. Please sign in with your new password.');
+    try {
+      if (event === 'PASSWORD_RECOVERY') {
+        const newPassword = prompt('Enter a new password:');
+        if (newPassword) {
+          const { error } = await sb.auth.updateUser({ password: newPassword });
+          if (error) alert(error.message);
+          else alert('Password updated successfully. Please sign in with your new password.');
+        }
+        return;
       }
-      return;
-    }
 
-    if (session) {
-      user = session.user;
-      document.getElementById('view-auth').classList.add('hidden');
-      document.getElementById('view-app').classList.remove('hidden');
-      window.setDefaultDate();
-      await window.refreshData();
-    } else {
-      user = null;
-      profile = null;
-      activeGroup = null;
-      document.getElementById('view-auth').classList.remove('hidden');
-      document.getElementById('view-app').classList.add('hidden');
+      if (session && session.user) {
+        user = session.user;
+        document.getElementById('view-auth').classList.add('hidden');
+        document.getElementById('view-app').classList.remove('hidden');
+        window.setDefaultDate();
+        await window.refreshData();
+      } else {
+        user = null;
+        profile = null;
+        activeGroup = null;
+        document.getElementById('view-auth').classList.remove('hidden');
+        document.getElementById('view-app').classList.add('hidden');
+        const nameEl = document.getElementById('user-display-name');
+        if (nameEl) nameEl.textContent = 'Not signed in';
+        document.getElementById('dash-hcp').textContent = '--';
+      }
+    } catch (e) {
+      console.error('onAuthStateChange exception:', e);
     }
   });
 
   window.refreshData = async function() {
-    if (!user) {
-      console.log('refreshData: no user');
-      return;
-    }
-
-    console.log('refreshData: starting for user', user.id);
+    if (!user) return;
 
     try {
-      // Load profile with timeout
-      console.log('refreshData: loading profile...');
-      const profileResult = await withTimeout(
-        sb.from('profiles').select('*').eq('id', user.id).single(),
-        10000
-      ).catch(err => {
-        console.error('Profile query failed:', err);
-        return { data: null, error: err };
-      });
+      const { data: pData, error: pError } = await sb
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-      if (profileResult.error) {
-        console.error('Profile error:', profileResult.error);
+      if (pError) {
+        console.error('Profile error:', pError);
         document.getElementById('dash-hcp').textContent = '--';
-        document.getElementById('user-display-name').textContent = 'Profile Error';
+        document.getElementById('user-display-name').textContent = 'Error';
       } else {
-        profile = profileResult.data;
-        console.log('refreshData: profile loaded', profile.display_name);
+        profile = pData;
         const hcp = profile.handicap_index;
-        document.getElementById('dash-hcp').textContent = (hcp !== null && hcp !== undefined) ? hcp.toFixed(1) : '--';
+        document.getElementById('dash-hcp').textContent =
+          (hcp !== null && hcp !== undefined) ? hcp.toFixed(1) : '--';
       }
 
-      // Load group memberships with timeout
-      console.log('refreshData: loading memberships...');
-      const membershipResult = await withTimeout(
-        sb.from('group_members').select('group_id').eq('user_id', user.id),
-        10000
-      ).catch(err => {
-        console.error('Memberships query failed:', err);
-        return { data: null, error: err };
-      });
+      const { data: memberships } = await sb
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user.id);
 
-      const memberships = membershipResult.data;
-      console.log('refreshData: memberships loaded', memberships?.length || 0);
-
-      // Load actual groups
       let groups = [];
       if (memberships && memberships.length) {
-        console.log('refreshData: loading groups...');
         const ids = memberships.map(m => m.group_id);
-        const groupResult = await withTimeout(
-          sb.from('groups').select('id, name, group_code').in('id', ids),
-          10000
-        ).catch(err => {
-          console.error('Groups query failed:', err);
-          return { data: [], error: err };
-        });
-        groups = groupResult.data || [];
-        console.log('refreshData: groups loaded', groups.length);
+        const { data: groupRows } = await sb
+          .from('groups')
+          .select('id, name, group_code')
+          .in('id', ids);
+        groups = groupRows || [];
       }
 
-      // Determine active group
       activeGroup = null;
       if (profile?.current_group_id) {
         activeGroup = groups.find(g => g.id === profile.current_group_id) || null;
@@ -566,33 +579,18 @@
       
       if (!activeGroup && groups.length > 0) {
         activeGroup = groups[0];
-        await withTimeout(
-          sb.from('profiles').update({ current_group_id: activeGroup.id }).eq('id', user.id),
-          10000
-        ).catch(err => {
-          console.error('Update profile group failed:', err);
-        });
+        await sb.from('profiles').update({ current_group_id: activeGroup.id }).eq('id', user.id);
         if (profile) profile.current_group_id = activeGroup.id;
       }
-
-      console.log('refreshData: active group', activeGroup?.name || 'none');
 
       window.updateHeaderName();
       window.updateGroupStatus(groups);
 
-      // Load data - continue even if some fail
-      console.log('refreshData: loading history, courses, leaderboard...');
-      await Promise.allSettled([
-        window.loadHistory().catch(e => console.error('loadHistory failed:', e)),
-        window.loadCourses().catch(e => console.error('loadCourses failed:', e)),
-        window.loadLeaderboard().catch(e => console.error('loadLeaderboard failed:', e))
-      ]);
-
-      console.log('refreshData: complete');
+      await window.loadHistory();
+      await window.loadCourses();
+      await window.loadLeaderboard();
     } catch (e) {
-      console.error('refreshData: critical error', e);
-      document.getElementById('user-display-name').textContent = 'Error: ' + e.message;
-      document.getElementById('dash-hcp').textContent = '--';
+      console.error('Refresh data error:', e);
     }
   };
 
@@ -601,13 +599,29 @@
 
     if (!activeGroup) {
       if (!groups || !groups.length) {
-        status.innerHTML = '<strong>No Groups</strong><br><p style="margin: 10px 0; font-size: 0.9rem;">You\'re playing solo. Create or join a group to compete with friends!</p>';
+        status.innerHTML =
+          '<strong>No Groups</strong><br>' +
+          '<p style="margin: 10px 0; font-size: 0.9rem;">You\'re playing solo. Create or join a group to compete with friends!</p>';
       } else {
-        const options = groups.map(g => '<option value="' + g.id + '">' + g.name + '</option>').join('');
-        status.innerHTML = '<strong>Select Active Group</strong><br><p style="margin: 10px 0; font-size: 0.85rem;">Choose which group to display in rankings:</p><select id="active-group-select" class="form-control" onchange="window.setActiveGroupFromSelect()"><option value="">-- Select Group --</option>' + options + '</select>';
+        const options = groups
+          .map(g => '<option value="' + g.id + '">' + g.name + '</option>')
+          .join('');
+        status.innerHTML =
+          '<strong>Select Active Group</strong><br>' +
+          '<p style="margin: 10px 0; font-size: 0.85rem;">Choose which group to display in rankings:</p>' +
+          '<select id="active-group-select" class="form-control" onchange="window.setActiveGroupFromSelect()">' +
+          '<option value="">-- Select Group --</option>' + options + '</select>';
       }
     } else {
-      status.innerHTML = '<div class="group-card"><strong style="font-size: 1.1rem;">📍 ' + activeGroup.name + '</strong><br><div style="margin: 10px 0; font-size: 0.85rem; color: #555;">Join Code: <strong style="color: var(--primary); font-size: 1rem;">' + activeGroup.group_code + '</strong><br><span style="font-size: 0.75rem;">Share this code with friends to invite them</span></div><button class="btn-sm" onclick="window.clearActiveGroup()" style="margin-top: 8px;">Switch to Solo Play</button></div>';
+      status.innerHTML =
+        '<div class="group-card">' +
+        '<strong style="font-size: 1.1rem;">📍 ' + activeGroup.name + '</strong><br>' +
+        '<div style="margin: 10px 0; font-size: 0.85rem; color: #555;">' +
+        'Join Code: <strong style="color: var(--primary); font-size: 1rem;">' + activeGroup.group_code + '</strong><br>' +
+        '<span style="font-size: 0.75rem;">Share this code with friends to invite them</span>' +
+        '</div>' +
+        '<button class="btn-sm" onclick="window.clearActiveGroup()" style="margin-top: 8px;">Switch to Solo Play</button>' +
+        '</div>';
     }
   };
 
@@ -617,7 +631,11 @@
     const gid = sel.value || null;
     if (!gid) return;
 
-    const { data: g } = await sb.from('groups').select('id, name, group_code').eq('id', gid).single();
+    const { data: g } = await sb
+      .from('groups')
+      .select('id, name, group_code')
+      .eq('id', gid)
+      .single();
     if (!g) return;
 
     activeGroup = g;
@@ -637,17 +655,8 @@
   };
 
   window.loadCourses = async function() {
-    console.log('loadCourses: starting...');
-    const result = await withTimeout(
-      sb.from('courses').select('*').order('name'),
-      10000
-    ).catch(err => {
-      console.error('Courses query failed:', err);
-      return { data: [], error: err };
-    });
-
-    masterCourses = result.data || [];
-    console.log('loadCourses: loaded', masterCourses.length, 'courses');
+    const { data } = await sb.from('courses').select('*').order('name');
+    masterCourses = data || [];
 
     const sel = document.getElementById('r-course-select');
     const mSel = document.getElementById('m-course-select');
@@ -658,7 +667,10 @@
         mSel.innerHTML = '<option value="new">-- Add New Course --</option>';
       }
     } else {
-      const opts = masterCourses.map(c => '<option value="' + c.id + '">' + c.name + (c.tee ? ' (' + c.tee + ')' : '') + '</option>').join('');
+      const opts = masterCourses.map(c =>
+        '<option value="' + c.id + '">' + c.name +
+        (c.tee ? ' (' + c.tee + ')' : '') + '</option>'
+      ).join('');
       sel.innerHTML = '<option value="">-- Select Course --</option>' + opts;
       if (mSel) {
         mSel.innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
@@ -667,7 +679,8 @@
     
     const countDisplay = document.getElementById('course-count');
     if (countDisplay) {
-      countDisplay.textContent = masterCourses.length + ' course' + (masterCourses.length !== 1 ? 's' : '') + ' in system';
+      countDisplay.textContent =
+        masterCourses.length + ' course' + (masterCourses.length !== 1 ? 's' : '') + ' in system';
     }
   };
 
@@ -692,62 +705,48 @@
     const lbDiv = document.getElementById('lb-list');
     
     if (!activeGroup) {
-      lbDiv.innerHTML = '<p style="color: #666; font-size: 0.85rem; padding: 20px 0;">Select a group in the Groups tab to view rankings.</p>';
+      lbDiv.innerHTML =
+        '<p style="color: #666; font-size: 0.85rem; padding: 20px 0;">' +
+        'Select a group in the Groups tab to view rankings.</p>';
       return;
     }
 
     try {
-      console.log('loadLeaderboard: starting for group', activeGroup.name);
-      
-      // Get all group members with timeout
-      const memberResult = await withTimeout(
-        sb.from('group_members').select('user_id').eq('group_id', activeGroup.id),
-        10000
-      ).catch(err => {
-        console.error('Members query failed:', err);
-        return { data: null, error: err };
-      });
+      const { data: members, error: memberError } = await sb
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', activeGroup.id);
 
-      if (memberResult.error || !memberResult.data || !memberResult.data.length) {
-        lbDiv.innerHTML = '<p style="color: #666; padding: 20px 0;">No players in this group yet.</p>';
+      if (memberError || !members || !members.length) {
+        lbDiv.innerHTML =
+          '<p style="color: #666; padding: 20px 0;">No players in this group yet.</p>';
         return;
       }
 
-      const memberIds = memberResult.data.map(m => m.user_id);
-      console.log('loadLeaderboard: found', memberIds.length, 'members');
+      const memberIds = members.map(m => m.user_id);
+      const { data: profilesData, error: profileError } = await sb
+        .from('profiles')
+        .select('id, display_name, handicap_index')
+        .in('id', memberIds);
 
-      // Get profiles separately with timeout
-      const profileResult = await withTimeout(
-        sb.from('profiles').select('id, display_name, handicap_index').in('id', memberIds),
-        10000
-      ).catch(err => {
-        console.error('Profiles query failed:', err);
-        return { data: null, error: err };
-      });
-
-      if (profileResult.error || !profileResult.data) {
+      if (profileError || !profilesData) {
         lbDiv.innerHTML = '<p style="color: var(--danger);">Error loading leaderboard.</p>';
         return;
       }
 
-      console.log('loadLeaderboard: loaded', profileResult.data.length, 'profiles');
+      const { data: roundCounts } = await sb
+        .from('rounds')
+        .select('user_id')
+        .in('user_id', memberIds);
 
-      // Get round counts with timeout
-      const roundResult = await withTimeout(
-        sb.from('rounds').select('user_id').in('user_id', memberIds),
-        10000
-      ).catch(err => {
-        console.error('Rounds query failed:', err);
-        return { data: [], error: err };
-      });
-
-      const roundCounts = roundResult.data || [];
       const countMap = {};
-      roundCounts.forEach(r => {
-        countMap[r.user_id] = (countMap[r.user_id] || 0) + 1;
-      });
+      if (roundCounts) {
+        roundCounts.forEach(r => {
+          countMap[r.user_id] = (countMap[r.user_id] || 0) + 1;
+        });
+      }
 
-      const golfers = profileResult.data
+      const golfers = profilesData
         .map(p => ({
           ...p,
           round_count: countMap[p.id] || 0
@@ -758,13 +757,17 @@
           return a.handicap_index - b.handicap_index;
         });
 
-      console.log('loadLeaderboard: rendering', golfers.length, 'golfers');
-
-      lbDiv.innerHTML = golfers.map((p, i) => 
-        '<div class="lb-row"><span style="color:#aaa; font-weight:bold;">' + (i + 1) + '</span><span style="font-weight:bold;">' + (p.display_name || 'Unknown') + '</span><span style="color:var(--primary); font-weight:900;">' + (p.handicap_index !== null && p.handicap_index !== undefined ? p.handicap_index.toFixed(1) : '--') + '</span><span style="font-size:0.7rem; color:#888; text-align:center;">' + p.round_count + '</span></div>'
+      lbDiv.innerHTML = golfers.map((p, i) =>
+        '<div class="lb-row">' +
+          '<span style="color:#aaa; font-weight:bold;">' + (i + 1) + '</span>' +
+          '<span style="font-weight:bold;">' + (p.display_name || 'Unknown') + '</span>' +
+          '<span style="color:var(--primary); font-weight:900;">' +
+            (p.handicap_index !== null && p.handicap_index !== undefined
+              ? p.handicap_index.toFixed(1) : '--') +
+          '</span>' +
+          '<span style="font-size:0.7rem; color:#888; text-align:center;">' + p.round_count + '</span>' +
+        '</div>'
       ).join('');
-      
-      console.log('loadLeaderboard: complete');
     } catch (e) {
       console.error('Leaderboard error:', e);
       lbDiv.innerHTML = '<p style="color: var(--danger);">Error: ' + e.message + '</p>';
@@ -933,7 +936,9 @@
 
     if (!confirm('Leave "' + activeGroup.name + '"? Your scores will remain but you won\'t see this group\'s leaderboard.')) return;
 
-    await sb.from('group_members').delete().eq('group_id', activeGroup.id).eq('user_id', user.id);
+    await sb.from('group_members').delete()
+      .eq('group_id', activeGroup.id)
+      .eq('user_id', user.id);
     await sb.from('profiles').update({ current_group_id: null }).eq('id', user.id);
 
     activeGroup = null;
@@ -1021,7 +1026,10 @@
 
     if (!rounds || !rounds.length) return;
 
-    const diffs = rounds.map(r => parseFloat(r.differential)).filter(d => !isNaN(d)).sort((a, b) => a - b);
+    const diffs = rounds
+      .map(r => parseFloat(r.differential))
+      .filter(d => !isNaN(d))
+      .sort((a, b) => a - b);
     if (!diffs.length) return;
 
     let numToUse = 1;
@@ -1046,36 +1054,43 @@
     const listDiv = document.getElementById('recent-list');
     
     try {
-      console.log('loadHistory: starting...');
-      const result = await withTimeout(
-        sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', { ascending: false }),
-        10000
-      ).catch(err => {
-        console.error('Rounds query failed:', err);
-        return { data: null, error: err };
-      });
+      const { data: rounds, error } = await sb
+        .from('rounds')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date_played', { ascending: false });
 
-      if (result.error) {
-        console.error('Load history error:', result.error);
-        listDiv.innerHTML = '<div class="card"><p style="color: var(--danger);">Error loading scores. Try refreshing.</p></div>';
+      if (error) {
+        console.error('Load history error:', error);
+        listDiv.innerHTML =
+          '<div class="card"><p style="color: var(--danger);">Error loading scores.</p></div>';
         return;
       }
-
-      const rounds = result.data;
-      console.log('loadHistory: loaded', rounds?.length || 0, 'rounds');
 
       if (!rounds || !rounds.length) {
-        listDiv.innerHTML = '<div class="card"><p>No rounds recorded yet. Add your first score in the "Add Scores" tab!</p></div>';
+        listDiv.innerHTML =
+          '<div class="card"><p>No rounds recorded yet. Add your first score in the "Add Scores" tab!</p></div>';
         return;
       }
 
-      listDiv.innerHTML = rounds.map(r => 
-        '<div class="card" style="border-left: 5px solid var(--primary);"><div style="display:flex; justify-content:space-between; align-items:center;"><div><small style="color: #666;">' + new Date(r.date_played).toLocaleDateString() + '</small><br><strong>' + r.course_name + '</strong><br><span style="font-size: 0.75rem; color: #888;">Rating: ' + r.course_rating + ' | Slope: ' + r.slope_rating + ' | Diff: ' + r.differential + '</span></div><div style="font-size: 2rem; font-weight: 900; color: var(--primary);">' + r.score + '</div></div></div>'
+      listDiv.innerHTML = rounds.map(r =>
+        '<div class="card" style="border-left: 5px solid var(--primary);">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+            '<div>' +
+              '<small style="color: #666;">' + new Date(r.date_played).toLocaleDateString() + '</small><br>' +
+              '<strong>' + r.course_name + '</strong><br>' +
+              '<span style="font-size: 0.75rem; color: #888;">' +
+                'Rating: ' + r.course_rating + ' | Slope: ' + r.slope_rating + ' | Diff: ' + r.differential +
+              '</span>' +
+            '</div>' +
+            '<div style="font-size: 2rem; font-weight: 900; color: var(--primary);">' + r.score + '</div>' +
+          '</div>' +
+        '</div>'
       ).join('');
-      console.log('loadHistory: complete');
     } catch (e) {
       console.error('Load history exception:', e);
-      listDiv.innerHTML = '<div class="card"><p style="color: var(--danger);">Error: ' + e.message + '</p></div>';
+      listDiv.innerHTML =
+        '<div class="card"><p style="color: var(--danger);">Error: ' + e.message + '</p></div>';
     }
   };
 
