@@ -24,7 +24,8 @@
     .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
     .hidden { display: none !important; }
     .lb-row { display: grid; grid-template-columns: 30px 1fr 60px 50px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; cursor: pointer; }
-    .legal-text { font-size: 0.75rem; color: #333; background: #f9f9f9; padding: 15px; border: 1px solid #eee; max-height: 300px; overflow-y: auto; margin: 10px 0; border-radius: 5px; line-height: 1.6; }
+    .legal-text { font-size: 0.8rem; color: #333; background: #f9f9f9; padding: 15px; border: 1px solid #eee; max-height: 400px; overflow-y: auto; margin: 10px 0; border-radius: 8px; line-height: 1.6; }
+    .legal-text h4 { color: var(--primary); margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
     .group-card { background: #f0f7f0; border-left: 4px solid var(--primary); padding: 15px; margin-bottom: 15px; border-radius: 8px; }
   </style>
 </head>
@@ -111,26 +112,94 @@
 
     <div id="tab-settings" class="hidden">
       <button class="btn btn-outline" onclick="window.toggleSub('set-courses')">Manage Courses</button>
-      <button class="btn btn-outline" onclick="window.toggleSub('set-help')">Help & Support</button>
+      <button class="btn btn-outline" onclick="window.toggleSub('set-help')">Help & FAQ</button>
       <button class="btn btn-outline" onclick="window.toggleSub('set-privacy')">Privacy Policy</button>
-      <button class="btn btn-outline" onclick="window.toggleSub('set-terms')">Terms of Use</button>
+      <button class="btn btn-outline" onclick="window.toggleSub('set-terms')">Terms of Service</button>
 
       <div id="set-courses" class="card hidden" style="margin-top: 15px;">
         <h3>Course Manager</h3>
         <select id="m-course-select" class="form-control" onchange="window.prepCourseEdit()"><option value="new">-- Add New Course --</option></select>
         <hr>
         <div id="course-form">
-          <input type="hidden" id="edit-c-id"><input type="text" id="edit-c-name" class="form-control" placeholder="Course Name"><input type="text" id="edit-c-tee" class="form-control" placeholder="Tee Box">
+          <input type="hidden" id="edit-c-id">
+          <input type="text" id="edit-c-name" class="form-control" placeholder="Course Name">
+          <input type="text" id="edit-c-tee" class="form-control" placeholder="Tee Box">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <input type="number" step="0.1" id="edit-c-rating" class="form-control" placeholder="Rating"><input type="number" id="edit-c-slope" class="form-control" placeholder="Slope">
+            <input type="number" step="0.1" id="edit-c-rating" class="form-control" placeholder="Rating">
+            <input type="number" id="edit-c-slope" class="form-control" placeholder="Slope">
           </div>
           <button class="btn btn-primary" onclick="window.saveCourse()">Save Course</button>
           <button id="btn-c-del" class="btn btn-danger-outline hidden" onclick="window.deleteCourse()">Delete Course</button>
         </div>
       </div>
-      <div id="set-help" class="card hidden">Email: support@lazybstudios.com</div>
-      <div id="set-privacy" class="card hidden">We only store your golf data.</div>
-      <div id="set-terms" class="card hidden">Play honest golf.</div>
+
+      <div id="set-help" class="card hidden" style="margin-top: 15px;">
+        <h3>Help & Frequently Asked Questions</h3>
+        <div class="legal-text">
+          <h4>What is a Golf Handicap?</h4>
+          <p>A handicap is a numerical measure of a golfer's potential ability. It allows players of different skill levels to compete fairly. A lower handicap indicates a more skilled player.</p>
+          
+          <h4>How is my Index calculated?</h4>
+          <p>This app uses the World Handicap System (WHS) logic. We take your "Score Differentials" from your most recent rounds. Specifically:</p>
+          <ul>
+            <li>If you have 20+ rounds, we average the <strong>best 8</strong> of your last 20.</li>
+            <li>For fewer rounds, we use a sliding scale (e.g., best 3 of last 10).</li>
+            <li>We then multiply that average by <strong>0.96</strong> to get your Index.</li>
+          </ul>
+
+          <h4>What are Rating and Slope?</h4>
+          <p>These numbers are found on your scorecard:</p>
+          <ul>
+            <li><strong>Course Rating:</strong> Tells you how many strokes a "scratch" (0 handicap) golfer should take.</li>
+            <li><strong>Slope Rating:</strong> Tells you how much harder the course is for a "bogey" golfer compared to a scratch golfer (Standard is 113).</li>
+          </ul>
+
+          <h4>Why is my Index different from my score?</h4>
+          <p>Your Handicap Index is not your average score; it represents your <strong>potential</strong> on a good day. It also adjusts for the difficulty of the course (Rating/Slope).</p>
+          
+          <h4>Need Support?</h4>
+          <p>Contact us at: <strong>support@lazybstudios.com</strong></p>
+        </div>
+      </div>
+      
+      <div id="set-privacy" class="card hidden" style="margin-top: 15px;">
+        <h3>Privacy Policy</h3>
+        <div class="legal-text">
+          <p><strong>Last Updated: January 19, 2026</strong></p>
+          <h4>Information We Collect</h4>
+          <p>We collect your email address for account authentication and your golf scores/course details to provide the handicap calculation service.</p>
+          
+          <h4>Data Usage</h4>
+          <p>Your data is used strictly for:</p>
+          <ul>
+            <li>Calculating and displaying your handicap history.</li>
+            <li>Displaying your name and index to members of groups you choose to join.</li>
+          </ul>
+
+          <h4>Third Parties</h4>
+          <p>We do not sell or share your personal information with third-party advertisers. We use Supabase for secure data storage.</p>
+
+          <h4>Your Rights</h4>
+          <p>You can delete your account and all associated rounds at any time. For a full data export, please email support.</p>
+        </div>
+      </div>
+
+      <div id="set-terms" class="card hidden" style="margin-top: 15px;">
+        <h3>Terms of Service</h3>
+        <div class="legal-text">
+          <h4>1. Acceptance of Terms</h4>
+          <p>By using Golf Tracker, you agree to these terms. If you do not agree, please discontinue use of the app.</p>
+          
+          <h4>2. Honesty Policy</h4>
+          <p>Golf is a game of integrity. Users are expected to report honest gross scores. Manipulating scores to artificially lower or raise a handicap ("sandbagging") is discouraged and may result in removal from group leaderboards.</p>
+
+          <h4>3. Limitations</h4>
+          <p>This app is for recreational use only. While we follow the WHS formula, this is <strong>not</strong> an official USGA/R&A GHIN index. For official tournament play, please register with your local golf association.</p>
+
+          <h4>4. Disclaimer</h4>
+          <p>Lazy B Studios provides this service "as-is." We are not responsible for data loss or discrepancies in calculations.</p>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -141,25 +210,23 @@
   const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmJpYnJvbmNzeHJnc3RldG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1MjExMTQsImV4cCI6MjA4NDA5NzExNH0.z0x4uu-34dc2cpWK2CTZSGW9gY2a3pl-t1ANk7gyouk';
   const sb = supabase.createClient(S_URL, S_KEY);
 
-  let user = null, profile = null, activeGroup = null, masterCourses = [], editingRoundId = null;
+  let user = null, profile = null, activeGroup = null, masterCourses = [], editingRoundId = null, authMode = 'signin';
 
-  // --- THE PIECE THAT FIXES THE LOGOUT/HANG ---
   async function handleSessionChange(session) {
     user = session?.user || null;
     const authView = document.getElementById('view-auth');
     const appView = document.getElementById('view-app');
 
     if (user) {
-      // 1. Instantly show the app so Logout is available
       authView.classList.add('hidden');
       appView.classList.remove('hidden');
       document.getElementById('user-display-name').textContent = user.email.split('@')[0];
-      
-      // 2. Load data, but don't let it "lock" the screen if it's slow
       window.refreshData(); 
     } else {
       authView.classList.remove('hidden');
       appView.classList.add('hidden');
+      profile = null;
+      activeGroup = null;
     }
   }
 
@@ -191,18 +258,14 @@
     document.getElementById('dash-hcp').textContent = profile?.handicap_index?.toFixed(1) || '--';
   };
 
-  window.handleLogout = async () => { 
-    await sb.auth.signOut(); 
-    window.location.reload(); 
-  };
+  window.handleLogout = async () => { await sb.auth.signOut(); window.location.reload(); };
 
-  // --- RESTORED COURSE MGT ---
   window.loadCourses = async () => {
     const { data } = await sb.from('courses').select('*').order('name');
     masterCourses = data || [];
     const opts = '<option value="">-- Select --</option>' + masterCourses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     document.getElementById('r-course-select').innerHTML = opts;
-    document.getElementById('m-course-select').innerHTML = '<option value="new">-- Add New --</option>' + opts;
+    document.getElementById('m-course-select').innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
   };
 
   window.prepCourseEdit = () => {
@@ -213,6 +276,7 @@
       btnDel.classList.add('hidden');
     } else {
       const c = masterCourses.find(x => x.id == id);
+      if (!c) return;
       document.getElementById('edit-c-id').value = c.id;
       document.getElementById('edit-c-name').value = c.name;
       document.getElementById('edit-c-tee').value = c.tee || '';
@@ -224,18 +288,27 @@
 
   window.saveCourse = async () => {
     const id = document.getElementById('edit-c-id').value;
-    const payload = { name: document.getElementById('edit-c-name').value, tee: document.getElementById('edit-c-tee').value, course_rating: parseFloat(document.getElementById('edit-c-rating').value), slope_rating: parseInt(document.getElementById('edit-c-slope').value) };
+    const payload = { 
+      name: document.getElementById('edit-c-name').value, 
+      tee: document.getElementById('edit-c-tee').value, 
+      course_rating: parseFloat(document.getElementById('edit-c-rating').value), 
+      slope_rating: parseInt(document.getElementById('edit-c-slope').value) 
+    };
     if (id) await sb.from('courses').update(payload).eq('id', id);
     else await sb.from('courses').insert(payload);
-    alert("Saved"); window.loadCourses();
+    alert("Saved"); 
+    window.loadCourses();
   };
 
   window.deleteCourse = async () => {
     const id = document.getElementById('edit-c-id').value;
-    if (id && confirm("Delete course?")) { await sb.from('courses').delete().eq('id', id); window.loadCourses(); window.prepCourseEdit(); }
+    if (id && confirm("Delete course?")) { 
+      await sb.from('courses').delete().eq('id', id); 
+      window.loadCourses(); 
+      window.prepCourseEdit(); 
+    }
   };
 
-  // --- RESTORED EDIT/DELETE ROUNDS ---
   window.loadHistory = async () => {
     const { data } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending:false});
     document.getElementById('recent-list').innerHTML = (data || []).map(r => `
@@ -243,7 +316,7 @@
         <div><b>${r.score}</b> @ ${r.course_name}<br><small>${r.date_played}</small></div>
         <div>
           <button class="btn-xs" onclick="window.editRound('${r.id}')">Edit</button>
-          <button class="btn-xs" style="color:red" onclick="window.deleteRound('${r.id}')">Del</button>
+          <button class="btn-xs" style="color:var(--danger); border-color:var(--danger);" onclick="window.deleteRound('${r.id}')">Del</button>
         </div>
       </div>`).join('') || "No rounds.";
   };
@@ -255,6 +328,7 @@
     document.getElementById('r-rating').value = data.course_rating;
     document.getElementById('r-slope').value = data.slope_rating;
     document.getElementById('r-date').value = data.date_played;
+    document.getElementById('add-title').textContent = "Edit Score";
     document.getElementById('btn-save-round').textContent = "Update Round";
     window.showTab('add', document.querySelectorAll('.tab-link')[1]);
   };
@@ -265,8 +339,8 @@
 
   window.saveRound = async () => {
     const score = parseInt(document.getElementById('r-score').value), rating = parseFloat(document.getElementById('r-rating').value), slope = parseInt(document.getElementById('r-slope').value), date = document.getElementById('r-date').value;
-    const diff = ((score - rating) * 113) / slope;
     const course = document.getElementById('r-course-select').selectedOptions[0]?.text || "Course";
+    const diff = ((score - rating) * 113) / slope;
     if (editingRoundId) { await sb.from('rounds').update({ score, course_rating: rating, slope_rating: slope, differential: diff.toFixed(1), date_played: date, course_name: course }).eq('id', editingRoundId); editingRoundId = null; }
     else { await sb.from('rounds').insert({ user_id: user.id, score, course_rating: rating, slope_rating: slope, differential: diff.toFixed(1), date_played: date, course_name: course }); }
     await window.recalcHcp(); window.refreshData(); window.showTab('history', document.querySelector('.tab-link'));
@@ -281,15 +355,15 @@
     await sb.from('profiles').update({ handicap_index: avg * 0.96 }).eq('id', user.id);
   };
 
-  // --- BOILERPLATE ---
   window.setAuthMode = (m) => {
+    authMode = m;
     document.getElementById('display-name-wrapper').classList.toggle('hidden', m === 'signin');
     document.getElementById('password-confirm-wrapper').classList.toggle('hidden', m === 'signin');
     document.getElementById('auth-btn-label').textContent = m === 'signin' ? 'Sign In' : 'Create Account';
   };
   window.handleAuth = async () => {
     const email = document.getElementById('email').value, pass = document.getElementById('password').value;
-    if (!document.getElementById('display-name-wrapper').classList.contains('hidden')) {
+    if (authMode === 'signup') {
       const { data, error } = await sb.auth.signUp({ email, password: pass });
       if (error) return alert(error.message);
       await sb.from('profiles').upsert({ id: data.user.id, display_name: document.getElementById('display-name').value || email.split('@')[0] });
@@ -299,17 +373,22 @@
       if (error) alert(error.message);
     }
   };
-  window.autoFillCourse = () => {
-    const c = masterCourses.find(x => x.id == document.getElementById('r-course-select').value);
-    if (c) { document.getElementById('r-rating').value = c.course_rating; document.getElementById('r-slope').value = c.slope_rating; }
-  };
   window.showTab = (n, el) => {
     document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
     document.getElementById('tab-' + n).classList.remove('hidden');
     document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
     if (el) el.classList.add('active');
+    if (n !== 'leader') document.getElementById('lb-history-card').classList.add('hidden');
   };
-  window.toggleSub = (id) => { document.querySelectorAll('#tab-settings .card').forEach(c => c.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); };
+  window.toggleSub = (id) => { 
+    document.querySelectorAll('#tab-settings .card').forEach(c => {
+        if(c.id !== 'm-course-select-parent') c.classList.add('hidden');
+    }); 
+    // Re-hide specific sub sections
+    ['set-courses','set-help','set-privacy','set-terms'].forEach(s => document.getElementById(s).classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden'); 
+  };
+  window.togglePassword = (id, btn) => { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; btn.textContent = el.type === 'password' ? 'Show' : 'Hide'; };
   window.handleGenerateCode = () => document.getElementById('new-group-code').value = Math.random().toString(36).substring(2, 8).toUpperCase();
   window.createGroup = async () => {
     const name = document.getElementById('new-group-name').value, code = document.getElementById('new-group-code').value;
@@ -335,9 +414,11 @@
     const { data } = await sb.from('rounds').select('*').eq('user_id', id).order('date_played', {ascending:false});
     document.getElementById('lb-history-list').innerHTML = (data || []).map(r => `<div class="card">${r.date_played}: <b>${r.score}</b> @ ${r.course_name}</div>`).join('');
   };
-  window.togglePassword = (id, btn) => { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; btn.textContent = el.type === 'password' ? 'Show' : 'Hide'; };
+  window.autoFillCourse = () => {
+    const c = masterCourses.find(x => x.id == document.getElementById('r-course-select').value);
+    if (c) { document.getElementById('r-rating').value = c.course_rating; document.getElementById('r-slope').value = c.slope_rating; }
+  };
 
-  // --- BOOTSTRAP ---
   sb.auth.onAuthStateChange((e, s) => handleSessionChange(s));
   (async () => { const { data: { session } } = await sb.auth.getSession(); handleSessionChange(session); })();
   document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
