@@ -224,7 +224,7 @@
         </div>
         
         <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com?subject=Golf%20Tracker%20Support'">
-          📧 Email support@lazybstudios.com
+          📧 Email <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5f2c2a2f2f302d2b1f333e25263d2c2b2a3b36302c713c3032">[email&#160;protected]</a>
         </button>
       </div>
 
@@ -271,7 +271,7 @@
           </ul>
           
           <h4>Contact</h4>
-          <p>For privacy concerns, email support@lazybstudios.com</p>
+          <p>For privacy concerns, email <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f685838686998482b69a978c8f94858283929f9985d895999b">[email&#160;protected]</a></p>
         </div>
       </div>
 
@@ -327,14 +327,14 @@
           <p>Golf Tracker is provided "as is" without warranties. Lazy B Studios is not liable for any damages arising from use of this service.</p>
           
           <h4>Contact</h4>
-          <p>Questions about these terms? Email support@lazybstudios.com</p>
+          <p>Questions about these terms? Email <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ff8c8a8f8f908d8bbf939e85869d8c8b8a9b96908cd19c9092">[email&#160;protected]</a></p>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 (function() {
   'use strict';
   
@@ -370,12 +370,12 @@
   let authMode = 'signin';
   let activeGroup = null;
 
-  // Timeout wrapper - kills hanging queries after 3 seconds
-  function withTimeout(promise, ms = 3000) {
+  // Timeout wrapper - kills hanging queries after specified time
+  function withTimeout(promise, ms = 10000) {
     return Promise.race([
       promise,
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout - check browser settings')), ms)
+        setTimeout(() => reject(new Error('Query timeout')), ms)
       )
     ]);
   }
@@ -538,7 +538,7 @@
       if (pError) {
         console.error('Profile error:', pError);
         document.getElementById('dash-hcp').textContent = '--';
-        document.getElementById('user-display-name').textContent = 'Error loading profile';
+        document.getElementById('user-display-name').textContent = 'Error';
       } else {
         profile = pData;
         const hcp = profile.handicap_index;
@@ -577,15 +577,17 @@
       window.updateHeaderName();
       window.updateGroupStatus(groups);
 
-      // Load data with timeouts
+      // Load data with timeouts - continue even if some fail
       await Promise.allSettled([
         window.loadHistory(),
         window.loadCourses(),
         window.loadLeaderboard()
       ]);
     } catch (e) {
+      // Log error but don't alert - show graceful error states instead
       console.error('Refresh data error:', e);
-      alert('Error loading data. Try refreshing the page or use a different browser.');
+      document.getElementById('user-display-name').textContent = 'Error loading data';
+      document.getElementById('dash-hcp').textContent = '--';
     }
   };
 
@@ -1061,18 +1063,3 @@
       ).join('');
     } catch (e) {
       console.error('Load history exception:', e);
-      listDiv.innerHTML = '<div class="card"><p style="color: var(--danger);">Error: ' + e.message + '</p></div>';
-    }
-  };
-
-  window.showTab = function(name, el) {
-    document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
-    document.getElementById('tab-' + name).classList.remove('hidden');
-    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
-    if (el) el.classList.add('active');
-  };
-})();
-</script>
-
-</body>
-</html>
