@@ -18,7 +18,6 @@
     .container { max-width: 600px; margin: 0 auto; padding: 15px; }
     .card { background: var(--card-bg); border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; transition: opacity 0.2s; }
-    .btn:active { opacity: 0.8; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-outline { background: none; border: 1px solid var(--primary); color: var(--primary); }
     .btn-danger-outline { background: none; border: 1px solid var(--danger); color: var(--danger); }
@@ -65,12 +64,11 @@
 
   <div class="nav-tabs">
     <div class="tab-link active" onclick="window.showTab('history', this)">HISTORY</div>
-    <div class="tab-link" onclick="window.showTab('add', this)">ADD</div>
+    <div class="tab-link" onclick="window.showTab('add', this)">ADD SCORES</div>
     <div class="tab-link" onclick="window.showTab('leader', this)">RANKINGS</div>
     <div class="tab-link" onclick="window.showTab('groups', this)">GROUPS</div>
     <div class="tab-link" onclick="window.showTab('settings', this)">SETTINGS</div>
     <div class="tab-link" onclick="window.showTab('help-main', this)">HELP</div>
-    <div class="tab-link" onclick="window.showTab('contact', this)">CONTACT US</div>
   </div>
 
   <div class="container">
@@ -141,69 +139,61 @@
     </div>
 
     <div id="tab-help-main" class="hidden">
-      <button class="btn btn-outline" onclick="window.toggleHelpSub('set-help')">FAQ</button>
-      <button class="btn btn-outline" onclick="window.toggleHelpSub('set-privacy')">Privacy Policy</button>
-      <button class="btn btn-outline" onclick="window.toggleHelpSub('set-terms')">Terms of Service</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+        <button class="btn btn-outline" onclick="window.toggleHelpSub('set-help')">FAQ</button>
+        <button class="btn btn-outline" onclick="window.toggleHelpSub('set-contact')">Contact Us</button>
+        <button class="btn btn-outline" onclick="window.toggleHelpSub('set-privacy')">Privacy</button>
+        <button class="btn btn-outline" onclick="window.toggleHelpSub('set-terms')">Terms</button>
+      </div>
 
-      <div id="set-help" class="card hidden" style="margin-top: 15px;">
+      <div id="set-help" class="card hidden">
         <h3>Frequently Asked Questions</h3>
         <div class="legal-text">
           <h4>How is my handicap calculated?</h4>
-          <p>This app uses the World Handicap System (WHS) logic to calculate your <strong>Handicap Index</strong>.</p>
           
+          <p>This app uses the World Handicap System (WHS) logic. Your Index represents your potential playing ability on a good day.</p>
           <ul>
-            <li><strong>Score Differentials:</strong> Every round is converted into a differential using the Course Rating and Slope.</li>
+            <li><strong>Score Differentials:</strong> Every round is adjusted based on the difficulty of the course (Rating and Slope).</li>
             <li><strong>The "Best 8":</strong> Once you have 20 rounds, the app averages your lowest 8 differentials.</li>
             <li><strong>The 0.96 Factor:</strong> The final average is multiplied by 0.96 to produce your Index.</li>
           </ul>
-
           <h4>Where do I find Course Rating and Slope?</h4>
-          <p>These values are on your scorecard near the Tee Box names. Look for something like <strong>72.1 / 125</strong>.</p>
           
-
+          <p>Check your scorecard near the Tee Box names. Look for a small number like <strong>72.1 / 125</strong>.</p>
           <h4>What does the Trend Arrow mean?</h4>
-          <p>The arrow compares your current Index to your previous one:</p>
           <ul>
-            <li><strong style="color:#2e7d32">↓ Green Arrow:</strong> Index improved (went down).</li>
-            <li><strong style="color:#d32f2f">↑ Red Arrow:</strong> Index rose.</li>
-            <li><strong style="color:#ffa000">↔ Orange Icon:</strong> No change since last round.</li>
+            <li><strong style="color:#2e7d32">↓ Green:</strong> Handicap improved (down).</li>
+            <li><strong style="color:#d32f2f">↑ Red:</strong> Handicap rose.</li>
+            <li><strong style="color:#ffa000">↔ Orange:</strong> No change.</li>
           </ul>
         </div>
       </div>
 
-      <div id="set-privacy" class="card hidden" style="margin-top: 15px;">
-        <h3>Privacy Policy</h3>
-        <div class="legal-text">
-          <p><strong>Effective Date: January 19, 2026</strong></p>
-          <h4>1. Information Collection</h4>
-          <p>We collect your email for security and your golf scores to provide handicap tracking. We do not track location or access private files.</p>
-          <h4>2. Data Visibility</h4>
-          <p>Data is private unless you join a "Group". Members of your active Group can see your display name, Index, and round history.</p>
-          <h4>3. Security</h4>
-          <p>We use encrypted database storage via Supabase. We never sell your personal information.</p>
-        </div>
-      </div>
-
-      <div id="set-terms" class="card hidden" style="margin-top: 15px;">
-        <h3>Terms of Service</h3>
-        <div class="legal-text">
-          <h4>1. Recreational Use Only</h4>
-          <p>This app is for personal use. It is not an official GHIN provider and may not be accepted for sanctioned USGA tournaments.</p>
-          <h4>2. Integrity of Scoring</h4>
-          <p>Golf is a game of integrity. Users agree to report honest scores. Sandbagging or fraudulent scoring to manipulate rankings may result in group removal.</p>
-          <h4>3. Limitation of Liability</h4>
-          <p>Lazy B Studios is not liable for data loss or incorrect calculations. Use is at your own risk.</p>
-        </div>
-      </div>
-    </div>
-
-    <div id="tab-contact" class="hidden">
-      <div class="card" style="text-align: center;">
+      <div id="set-contact" class="card hidden" style="text-align: center;">
         <h3>Contact Us</h3>
-        <p>Found a bug or have a suggestion? We're here to help.</p>
+        <p>Found a bug or have a suggestion? We'd love to hear from you.</p>
         <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com?subject=Golf%20Tracker%20Support'">
           📧 Email support@lazybstudios.com
         </button>
+      </div>
+
+      <div id="set-privacy" class="card hidden">
+        <h3>Privacy Policy</h3>
+        <div class="legal-text">
+          <p><strong>Effective: January 19, 2026</strong></p>
+          <h4>1. Information Collection</h4>
+          <p>We collect your email for security and your golf scores to provide handicap tracking. We do not sell your personal data.</p>
+        </div>
+      </div>
+
+      <div id="set-terms" class="card hidden">
+        <h3>Terms of Service</h3>
+        <div class="legal-text">
+          <h4>1. Recreational Use Only</h4>
+          <p>This app is for personal use and is not an official GHIN provider.</p>
+          <h4>2. Integrity</h4>
+          <p>Golf is a game of honor. Please record scores honestly.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -217,48 +207,37 @@
 
   let user = null, profile = null, activeGroup = null, masterCourses = [], editingRoundId = null, authMode = 'signin';
 
-  // --- DARK MODE ---
   window.toggleDarkMode = () => {
     const isDark = document.body.classList.toggle('dark-mode');
     localStorage.setItem('golf-dark-mode', isDark);
     document.getElementById('dark-mode-toggle').textContent = isDark ? '☀️ Switch to Light Mode' : '🌙 Switch to Dark Mode';
     window.updateHeader(profile?.handicap_index);
   };
-  if (localStorage.getItem('golf-dark-mode') === 'true') {
-     document.body.classList.add('dark-mode');
-  }
+  if (localStorage.getItem('golf-dark-mode') === 'true') document.body.classList.add('dark-mode');
 
-  // --- EXPORT DATA ---
   window.exportDataCSV = async () => {
     const { data, error } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
-    if (error || !data.length) return alert("No scores found to export.");
-    
+    if (error || !data.length) return alert("No scores found.");
     let csv = "Date,Course,Score,Rating,Slope,Differential\n";
     data.forEach(r => { csv += `${r.date_played},"${r.course_name}",${r.score},${r.course_rating},${r.slope_rating},${r.differential}\n`; });
-    
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.setAttribute('hidden', '');
     a.setAttribute('href', url);
     a.setAttribute('download', 'golf_scores.csv');
-    document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
   };
 
   async function handleSessionChange(session) {
     user = session?.user || null;
-    const authView = document.getElementById('view-auth');
-    const appView = document.getElementById('view-app');
     if (user) {
-      authView.classList.add('hidden');
-      appView.classList.remove('hidden');
+      document.getElementById('view-auth').classList.add('hidden');
+      document.getElementById('view-app').classList.remove('hidden');
       document.getElementById('user-display-name').textContent = user.email.split('@')[0];
       window.refreshData(); 
     } else {
-      authView.classList.remove('hidden');
-      appView.classList.add('hidden');
+      document.getElementById('view-auth').classList.remove('hidden');
+      document.getElementById('view-app').classList.add('hidden');
     }
   }
 
@@ -386,18 +365,20 @@
     document.getElementById('password-confirm-wrapper').classList.toggle('hidden', m === 'signin');
     document.getElementById('auth-btn-label').textContent = m === 'signin' ? 'Sign In' : 'Create Account';
   };
+
   window.handleAuth = async () => {
     const email = document.getElementById('email').value, pass = document.getElementById('password').value;
     if (authMode === 'signup') {
       const { data, error } = await sb.auth.signUp({ email, password: pass });
       if (error) return alert(error.message);
       await sb.from('profiles').upsert({ id: data.user.id, display_name: document.getElementById('display-name').value || email.split('@')[0] });
-      alert('Check email then sign in.');
+      alert('Verify email then sign in.');
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
       if (error) alert(error.message);
     }
   };
+
   window.showTab = (n, el) => {
     document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
     document.getElementById('tab-' + n).classList.remove('hidden');
@@ -405,11 +386,12 @@
     if (el) el.classList.add('active');
     if (n !== 'leader') document.getElementById('lb-history-card').classList.add('hidden');
   };
+
   window.toggleHelpSub = (id) => {
-    ['set-help','set-privacy','set-terms'].forEach(s => document.getElementById(s).classList.add('hidden'));
+    ['set-help','set-contact','set-privacy','set-terms'].forEach(s => document.getElementById(s).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
   };
-  window.togglePassword = (id, btn) => { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; btn.textContent = el.type === 'password' ? 'Show' : 'Hide'; };
+
   window.handleGenerateCode = () => document.getElementById('new-group-code').value = Math.random().toString(36).substring(2, 8).toUpperCase();
   window.createGroup = async () => {
     const name = document.getElementById('new-group-name').value, code = document.getElementById('new-group-code').value;
