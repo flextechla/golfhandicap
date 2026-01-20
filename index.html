@@ -2,45 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Golf Tracker | Lazy B Studios</title>
-
-  <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Golf Tracker">
-
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#2e7d32"> ```
-  <link rel="manifest" href="manifest.json">
-
-  <link rel="apple-touch-icon" href="icon.png">
-
-<link rel="icon" type="image/png" sizes="192x192" href="icon.png">
   
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Golf Tracker">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#2e7d32">
+
+  <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMyZTdkMzIiLz48Y2lyY2xlIGN4PSIyNTYiIGN5PSIyMTAiIHI9Ijk1IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTIzNiAyOTUgSDI3NiBMMjY2IDQzMCBIMjQ2IFoiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMyZTdkMzIiLz48Y2lyY2xlIGN4PSIyNTYiIGN5PSIyMTAiIHI9Ijk1IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTIzNiAyOTUgSDI3NiBMMjY2IDQzMCBIMjQ2IFoiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=">
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root { --primary: #2e7d32; --dark: #1b5e20; --accent: #ffa000; --bg: #f4f6f8; --card-bg: #ffffff; --text: #333333; --danger: #d32f2f; --border: #dddddd; }
     body.dark-mode { --bg: #121212; --card-bg: #1e1e1e; --text: #e0e0e0; --border: #333333; }
-    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 20px; transition: background 0.3s, color 0.3s; }
+
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 20px; transition: background 0.3s, color 0.3s; -webkit-tap-highlight-color: transparent; }
     .header { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 25px 20px; text-align: center; border-bottom: 5px solid var(--accent); }
     .hcp-display { font-size: 3.5rem; font-weight: 900; margin: 5px 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .trend-arrow { font-size: 1.5rem; padding: 5px 10px; border-radius: 50%; background: rgba(255,255,255,0.2); font-weight: bold; }
+    .trend-arrow { font-size: 1.5rem; padding: 5px 10px; border-radius: 50%; background: rgba(255,255,255,0.2); }
+    
     .nav-tabs { display: flex; background: var(--card-bg); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-x: auto; border-bottom: 1px solid var(--border); }
     .tab-link { flex: 1; padding: 15px; text-align: center; font-size: 0.7rem; font-weight: bold; cursor: pointer; color: #888; border-bottom: 3px solid transparent; white-space: nowrap; }
     .tab-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+    
     .container { max-width: 600px; margin: 0 auto; padding: 15px; }
     .card { background: var(--card-bg); border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; transition: opacity 0.2s; }
+    
+    .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-outline { background: none; border: 1px solid var(--primary); color: var(--primary); }
     .btn-danger-outline { background: none; border: 1px solid var(--danger); color: var(--danger); }
     .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); }
     .btn-xs { padding: 4px 8px; font-size: 0.7rem; margin-left: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); cursor: pointer; }
+    
     .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 16px; background: var(--card-bg); color: var(--text); }
     .hidden { display: none !important; }
-    .legal-text { font-size: 0.85rem; color: var(--text); background: var(--bg); padding: 15px; border: 1px solid var(--border); max-height: 450px; overflow-y: auto; margin: 10px 0; border-radius: 8px; line-height: 1.6; }
-    .legal-text h4 { color: var(--primary); margin-top: 20px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
     .lb-row { display: grid; grid-template-columns: 30px 1fr 60px 50px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .legal-text { font-size: 0.85rem; color: var(--text); background: var(--bg); padding: 15px; border: 1px solid var(--border); max-height: 400px; overflow-y: auto; margin: 10px 0; border-radius: 8px; line-height: 1.6; }
+    .legal-text h4 { color: var(--primary); margin-top: 15px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
     .group-card { background: #f0f7f0; color: #333; border-left: 4px solid var(--primary); padding: 15px; margin-bottom: 15px; border-radius: 8px; }
     body.dark-mode .group-card { background: #1a2e1a; color: #e0e0e0; }
   </style>
@@ -164,15 +166,10 @@
         <div class="legal-text">
           <h4>How is my handicap calculated?</h4>
           
-          <p>This app uses the World Handicap System (WHS) logic. Your Index represents your potential playing ability on a good day.</p>
-          <ul>
-            <li><strong>Score Differentials:</strong> Every round is adjusted based on the difficulty of the course (Rating and Slope).</li>
-            <li><strong>The "Best 8":</strong> Once you have 20 rounds, the app averages your lowest 8 differentials.</li>
-            <li><strong>The 0.96 Factor:</strong> The final average is multiplied by 0.96 to produce your Index.</li>
-          </ul>
-          <h4>Where do I find Course Rating and Slope?</h4>
-          
-          <p>Check your scorecard near the Tee Box names. Look for a small number like <strong>72.1 / 125</strong>.</p>
+          <p>Every time you post a score, we calculate a "Score Differential" using the Course Rating and Slope. When you have 20 rounds, the app averages your <strong>best 8</strong> differentials and multiplies the result by <strong>0.96</strong>.</p>
+          <h4>What are Rating and Slope?</h4>
+          <p><strong>Course Rating:</strong> Strokes a scratch golfer should take.</p>
+          <p><strong>Slope Rating:</strong> Relative difficulty for a non-scratch player compared to scratch (Standard is 113).</p>
           <h4>What does the Trend Arrow mean?</h4>
           <ul>
             <li><strong style="color:#2e7d32">↓ Green:</strong> Handicap improved (down).</li>
@@ -193,27 +190,15 @@
       <div id="set-privacy" class="card hidden">
         <h3>Privacy Policy</h3>
         <div class="legal-text">
-          <p><strong>Effective Date: January 19, 2026</strong></p>
-          <h4>1. Information Collection</h4>
-          <p>We collect your email for security and your golf scores to provide handicap tracking. We do not track location or access private files.</p>
-          <h4>2. Data Visibility</h4>
-          <p>Data is private unless you join a "Group". Members of your active Group can see your display name, Index, and round history.</p>
-          <h4>3. Security</h4>
-          <p>We use encrypted database storage via Supabase. We never sell your personal information.</p>
-
+          <p><strong>Effective: January 19, 2026</strong></p>
+          <p>We collect your email for account security and golf scores for tracking. We do not sell your data to advertisers. Your rounds are private unless you join a Group.</p>
         </div>
       </div>
 
       <div id="set-terms" class="card hidden">
         <h3>Terms of Service</h3>
         <div class="legal-text">
-          <h4>1. Recreational Use Only</h4>
-          <p>This app is for personal use. It is not an official GHIN provider and may not be accepted for sanctioned USGA tournaments.</p>
-          <h4>2. Integrity of Scoring</h4>
-          <p>Golf is a game of integrity. Users agree to report honest scores. Sandbagging or fraudulent scoring to manipulate rankings may result in group removal.</p>
-          <h4>3. Limitation of Liability</h4>
-          <p>Lazy B Studios is not liable for data loss or incorrect calculations. Use is at your own risk.</p>
-
+          <p>By using Golf Tracker, you agree to report scores honestly. This app is for recreational use and is not an official GHIN-certified provider. Lazy B Studios is not liable for data loss or incorrect calculations.</p>
         </div>
       </div>
     </div>
@@ -386,20 +371,18 @@
     document.getElementById('password-confirm-wrapper').classList.toggle('hidden', m === 'signin');
     document.getElementById('auth-btn-label').textContent = m === 'signin' ? 'Sign In' : 'Create Account';
   };
-
   window.handleAuth = async () => {
     const email = document.getElementById('email').value, pass = document.getElementById('password').value;
     if (authMode === 'signup') {
       const { data, error } = await sb.auth.signUp({ email, password: pass });
       if (error) return alert(error.message);
       await sb.from('profiles').upsert({ id: data.user.id, display_name: document.getElementById('display-name').value || email.split('@')[0] });
-      alert('Verify email then sign in.');
+      alert('Check email then sign in.');
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
       if (error) alert(error.message);
     }
   };
-
   window.showTab = (n, el) => {
     document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
     document.getElementById('tab-' + n).classList.remove('hidden');
@@ -407,12 +390,11 @@
     if (el) el.classList.add('active');
     if (n !== 'leader') document.getElementById('lb-history-card').classList.add('hidden');
   };
-
   window.toggleHelpSub = (id) => {
     ['set-help','set-contact','set-privacy','set-terms'].forEach(s => document.getElementById(s).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
   };
-
+  window.togglePassword = (id, btn) => { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; btn.textContent = el.type === 'password' ? 'Show' : 'Hide'; };
   window.handleGenerateCode = () => document.getElementById('new-group-code').value = Math.random().toString(36).substring(2, 8).toUpperCase();
   window.createGroup = async () => {
     const name = document.getElementById('new-group-name').value, code = document.getElementById('new-group-code').value;
@@ -450,7 +432,3 @@
 </script>
 </body>
 </html>
-
-
-
-
