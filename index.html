@@ -11,7 +11,7 @@
     body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 20px; transition: background 0.3s, color 0.3s; }
     .header { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 25px 20px; text-align: center; border-bottom: 5px solid var(--accent); }
     .hcp-display { font-size: 3.5rem; font-weight: 900; margin: 5px 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .trend-arrow { font-size: 1.5rem; padding: 5px 10px; border-radius: 50%; background: rgba(255,255,255,0.2); }
+    .trend-arrow { font-size: 1.5rem; padding: 5px 10px; border-radius: 50%; background: rgba(255,255,255,0.2); font-weight: bold; }
     .nav-tabs { display: flex; background: var(--card-bg); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-x: auto; border-bottom: 1px solid var(--border); }
     .tab-link { flex: 1; padding: 15px; text-align: center; font-size: 0.7rem; font-weight: bold; cursor: pointer; color: #888; border-bottom: 3px solid transparent; white-space: nowrap; }
     .tab-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
@@ -21,11 +21,11 @@
     .btn-primary { background: var(--primary); color: white; }
     .btn-outline { background: none; border: 1px solid var(--primary); color: var(--primary); }
     .btn-danger-outline { background: none; border: 1px solid var(--danger); color: var(--danger); }
-    .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); }
+    .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); }
     .btn-xs { padding: 4px 8px; font-size: 0.7rem; margin-left: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); cursor: pointer; }
     .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 16px; background: var(--card-bg); color: var(--text); }
     .hidden { display: none !important; }
-    .legal-text { font-size: 0.85rem; color: var(--text); background: var(--bg); padding: 15px; border: 1px solid var(--border); max-height: 400px; overflow-y: auto; margin: 10px 0; border-radius: 8px; line-height: 1.6; }
+    .legal-text { font-size: 0.85rem; color: var(--text); background: var(--bg); padding: 15px; border: 1px solid var(--border); max-height: 450px; overflow-y: auto; margin: 10px 0; border-radius: 8px; line-height: 1.6; }
     .legal-text h4 { color: var(--primary); margin-top: 20px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
     .lb-row { display: grid; grid-template-columns: 30px 1fr 60px 50px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
     .group-card { background: #f0f7f0; color: #333; border-left: 4px solid var(--primary); padding: 15px; margin-bottom: 15px; border-radius: 8px; }
@@ -68,7 +68,8 @@
     <div class="tab-link" onclick="window.showTab('leader', this)">RANKINGS</div>
     <div class="tab-link" onclick="window.showTab('groups', this)">GROUPS</div>
     <div class="tab-link" onclick="window.showTab('settings', this)">SETTINGS</div>
-    <div class="tab-link" onclick="window.showTab('faq-main', this)">Help</div>
+    <div class="tab-link" onclick="window.showTab('help-main', this)">HELP</div>
+    <div class="tab-link" onclick="window.showTab('contact', this)">CONTACT US</div>
   </div>
 
   <div class="container">
@@ -137,8 +138,8 @@
       </div>
     </div>
 
-    <div id="tab-faq-main" class="hidden">
-      <button class="btn btn-outline" onclick="window.toggleHelpSub('set-help')">Education & FAQ</button>
+    <div id="tab-help-main" class="hidden">
+      <button class="btn btn-outline" onclick="window.toggleHelpSub('set-help')">FAQ</button>
       <button class="btn btn-outline" onclick="window.toggleHelpSub('set-privacy')">Privacy Policy</button>
       <button class="btn btn-outline" onclick="window.toggleHelpSub('set-terms')">Terms of Service</button>
 
@@ -146,21 +147,28 @@
         <h3>Frequently Asked Questions</h3>
         <div class="legal-text">
           <h4>How is my handicap calculated?</h4>
-          <p>This app uses the World Handicap System (WHS) logic to calculate your <strong>Handicap Index</strong>. Your Index represents your <em>potential</em> playing ability rather than your average score.</p>
+          <p>This app uses the World Handicap System (WHS) formula to calculate your <strong>Handicap Index</strong>. Your Index represents your potential playing ability on a good day, not your average score.</p>
           <ul>
-            <li><strong>Score Differentials:</strong> Every time you post a score, we calculate a "differential" which adjusts your score based on the difficulty of the course (Rating and Slope).</li>
-            <li><strong>The "Best 8":</strong> Once you have 20 rounds recorded, the app averages the lowest 8 differentials from those 20 rounds.</li>
-            <li><strong>Fewer than 20:</strong> If you have fewer rounds, the app uses a sliding scale (e.g., your best 1 out of 3 rounds, or best 3 out of 6).</li>
-            <li><strong>0.96 Factor:</strong> The final average is multiplied by 0.96 to produce your final Index.</li>
+            <li><strong>Score Differentials:</strong> Every time you post a score, it's converted into a differential using the Course Rating and Slope. This "levels the playing field" between easy and hard courses.</li>
+            <li><strong>The "Best 8":</strong> When you reach 20 rounds, the app averages your lowest 8 differentials.</li>
+            <li><strong>Fewer than 20:</strong> If you have 3 to 19 rounds, the app uses a specific sliding scale (e.g., your best 3 of your last 6) to find your current index.</li>
+            <li><strong>The 0.96 Factor:</strong> The resulting average is multiplied by 0.96 to finalize your Index.</li>
           </ul>
 
-          <h4>Where do I find Rating and Slope?</h4>
-          <p>These values are essential for accurate tracking and can be found on your scorecard or the course website. Look for a small number like <strong>72.1 / 125</strong> near the tee names.</p>
+          <h4>Where do I find Course Rating and Slope?</h4>
+          <p>Look at your course scorecard. These numbers are usually listed next to each set of tees. For example, the "White" tees might say <strong>70.2 / 125</strong>. 70.2 is the Rating; 125 is the Slope.</p>
+          
 
-          <h4>Can my handicap go up?</h4>
-          <p>Yes. If your recent best rounds are replaced by slightly higher scores in your most recent 20, your Index may rise. The app's **Trend Arrow** (↑) will indicate this.</p>
+          <h4>What does the Trend Arrow mean?</h4>
+          <p>The arrow on your dashboard compares your current Index to your previous one:</p>
+          <ul>
+            <li><strong style="color:#2e7d32">↓ Green Arrow:</strong> Your handicap is improving (going down).</li>
+            <li><strong style="color:#d32f2f">↑ Red Arrow:</strong> Your handicap is rising.</li>
+            <li><strong style="color:#ffa000">↔ Orange Icon:</strong> No change since your last round.</li>
+          </ul>
 
-          <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com?subject=Golf%20Tracker%20Support'">📧 Email Support</button>
+          <h4>How do Groups work?</h4>
+          <p>Groups allow you to share a leaderboard with friends. When you are in an active group, your index and round history are visible to other members of that group.</p>
         </div>
       </div>
 
@@ -169,24 +177,39 @@
         <div class="legal-text">
           <p><strong>Effective Date: January 19, 2026</strong></p>
           <h4>1. Information Collection</h4>
-          <p>We collect your email for authentication and your golf scores to provide handicap tracking. We do not track your location or access your contacts.</p>
-          <h4>2. Data Sharing</h4>
-          <p>Your golf data is private to your account unless you join a <strong>Group</strong>. Members of your active Group can see your display name, Index, and recent round history.</p>
-          <h4>3. Security</h4>
-          <p>We use Supabase (an industry leader) to encrypt and store your data securely. We will never sell your personal information.</p>
+          <p>We collect your email address purely for account management and security. We collect your golf scores and course data to calculate your handicap.</p>
+          <h4>2. Data Visibility</h4>
+          <p>Your golf data is private by default. If you voluntarily join a "Group" using a join code, your display name, handicap index, and round history will be visible to other members of that specific group.</p>
+          <h4>3. Third Parties</h4>
+          <p>Lazy B Studios does not sell, rent, or trade your personal data to third-party advertisers. Your data is stored securely using Supabase encryption.</p>
         </div>
       </div>
 
       <div id="set-terms" class="card hidden" style="margin-top: 15px;">
         <h3>Terms of Service</h3>
         <div class="legal-text">
-          <h4>1. Use of Service</h4>
-          <p>Golf Tracker is for personal, recreational use. It is not an official USGA GHIN provider.</p>
-          <h4>2. Honesty Policy</h4>
-          <p>Golf is a game of integrity. Users agree to report honest gross scores. Fraudulent scoring to manipulate leaderboards may result in account restriction.</p>
-          <h4>3. Limitation of Liability</h4>
-          <p>Lazy B Studios is not liable for data loss or incorrect handicap calculations. Use at your own risk.</p>
+          <h4>1. Recreational Use Only</h4>
+          <p>This application is intended for recreational purposes. While we follow WHS guidelines, this is not a GHIN-certified index and may not be accepted for official USGA or R&A sanctioned tournaments.</p>
+          <h4>2. Integrity of Scoring</h4>
+          <p>Golf is a game of honor. By using this app, you agree to post honest and accurate gross scores. Posting fraudulent scores to manipulate leaderboards or "sandbag" is a violation of service.</p>
+          <h4>3. Account Responsibility</h4>
+          <p>You are responsible for maintaining the confidentiality of your login credentials. Lazy B Studios is not responsible for data loss resulting from unauthorized account access.</p>
+          <h4>4. Modification of Service</h4>
+          <p>We reserve the right to modify or discontinue features to improve the user experience or comply with new golf regulations.</p>
+          <h4>5. Limitation of Liability</h4>
+          <p>Lazy B Studios provides this service "as-is" without warranties of any kind. We are not liable for any discrepancies in handicap calculations or loss of data.</p>
         </div>
+      </div>
+    </div>
+
+    <div id="tab-contact" class="hidden">
+      <div class="card" style="text-align: center;">
+        <h3>Contact Us</h3>
+        <p>Having trouble? Found a bug? Or just want to suggest a feature? We would love to hear from you.</p>
+        <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com?subject=Golf%20Tracker%20Support'">
+          📧 Email support@lazybstudios.com
+        </button>
+        <p style="font-size: 0.8rem; margin-top: 15px; color: #888;">We typically respond within 24-48 hours.</p>
       </div>
     </div>
   </div>
@@ -200,23 +223,31 @@
 
   let user = null, profile = null, activeGroup = null, masterCourses = [], editingRoundId = null, authMode = 'signin';
 
+  // --- DARK MODE ---
   window.toggleDarkMode = () => {
     const isDark = document.body.classList.toggle('dark-mode');
     localStorage.setItem('golf-dark-mode', isDark);
-    document.getElementById('dark-mode-toggle').textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+    document.getElementById('dark-mode-toggle').textContent = isDark ? '☀️ Switch to Light Mode' : '🌙 Switch to Dark Mode';
+    // Update trend icon visibility specifically for neutral
+    window.updateHeader(profile?.handicap_index);
   };
-  if (localStorage.getItem('golf-dark-mode') === 'true') window.toggleDarkMode();
+  if (localStorage.getItem('golf-dark-mode') === 'true') {
+     document.body.classList.add('dark-mode');
+     document.getElementById('dark-mode-toggle').textContent = '☀️ Switch to Light Mode';
+  }
 
   async function handleSessionChange(session) {
     user = session?.user || null;
+    const authView = document.getElementById('view-auth');
+    const appView = document.getElementById('view-app');
     if (user) {
-      document.getElementById('view-auth').classList.add('hidden');
-      document.getElementById('view-app').classList.remove('hidden');
+      authView.classList.add('hidden');
+      appView.classList.remove('hidden');
       document.getElementById('user-display-name').textContent = user.email.split('@')[0];
       window.refreshData(); 
     } else {
-      document.getElementById('view-auth').classList.remove('hidden');
-      document.getElementById('view-app').classList.add('hidden');
+      authView.classList.remove('hidden');
+      appView.classList.add('hidden');
     }
   }
 
@@ -249,7 +280,11 @@
       arrow.classList.remove('hidden');
       if (currentHcp < prevHcp) { arrow.textContent = '↓'; arrow.style.color = '#2e7d32'; }
       else if (currentHcp > prevHcp) { arrow.textContent = '↑'; arrow.style.color = '#d32f2f'; }
-      else { arrow.textContent = '↔'; arrow.style.color = '#888'; }
+      else { 
+          arrow.textContent = '↔'; 
+          // Set orange for high visibility on both light/dark backgrounds
+          arrow.style.color = '#ffa000'; 
+      }
     }
   };
 
@@ -260,7 +295,7 @@
     masterCourses = data || [];
     const opts = '<option value="">-- Select --</option>' + masterCourses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     document.getElementById('r-course-select').innerHTML = opts;
-    document.getElementById('m-course-select').innerHTML = '<option value="new">-- Add New --</option>' + opts;
+    document.getElementById('m-course-select').innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
   };
 
   window.prepCourseEdit = () => {
@@ -292,7 +327,7 @@
 
   window.deleteCourse = async () => {
     const id = document.getElementById('edit-c-id').value;
-    if (id && confirm("Delete?")) { await sb.from('courses').delete().eq('id', id); window.loadCourses(); window.prepCourseEdit(); }
+    if (id && confirm("Delete course?")) { await sb.from('courses').delete().eq('id', id); window.loadCourses(); window.prepCourseEdit(); }
   };
 
   window.loadHistory = async () => {
@@ -300,7 +335,7 @@
     document.getElementById('recent-list').innerHTML = (data || []).map(r => `
       <div class="card" style="border-left:5px solid var(--primary); display:flex; justify-content:space-between; align-items:center;">
         <div><b>${r.score}</b> @ ${r.course_name}<br><small>${r.date_played}</small></div>
-        <div><button class="btn-xs" onclick="window.editRound('${r.id}')">Edit</button><button class="btn-xs" style="color:red" onclick="window.deleteRound('${r.id}')">Del</button></div>
+        <div><button class="btn-xs" onclick="window.editRound('${r.id}')">Edit</button><button class="btn-xs" style="color:var(--danger); border-color:var(--danger);" onclick="window.deleteRound('${r.id}')">Del</button></div>
       </div>`).join('') || "No rounds.";
   };
 
@@ -344,7 +379,6 @@
     document.getElementById('password-confirm-wrapper').classList.toggle('hidden', m === 'signin');
     document.getElementById('auth-btn-label').textContent = m === 'signin' ? 'Sign In' : 'Create Account';
   };
-
   window.handleAuth = async () => {
     const email = document.getElementById('email').value, pass = document.getElementById('password').value;
     if (authMode === 'signup') {
@@ -357,7 +391,6 @@
       if (error) alert(error.message);
     }
   };
-
   window.showTab = (n, el) => {
     document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
     document.getElementById('tab-' + n).classList.remove('hidden');
@@ -365,14 +398,12 @@
     if (el) el.classList.add('active');
     if (n !== 'leader') document.getElementById('lb-history-card').classList.add('hidden');
   };
-
   window.toggleHelpSub = (id) => {
     ['set-help','set-privacy','set-terms'].forEach(s => document.getElementById(s).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
   };
-
+  window.togglePassword = (id, btn) => { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; btn.textContent = el.type === 'password' ? 'Show' : 'Hide'; };
   window.handleGenerateCode = () => document.getElementById('new-group-code').value = Math.random().toString(36).substring(2, 8).toUpperCase();
-
   window.createGroup = async () => {
     const name = document.getElementById('new-group-name').value, code = document.getElementById('new-group-code').value;
     const { data: g } = await sb.from('groups').insert({ name, group_code: code, owner_id: user.id }).select().single();
@@ -380,28 +411,23 @@
     await sb.from('profiles').update({ current_group_id: g.id }).eq('id', user.id);
     window.refreshData();
   };
-
   window.joinGroup = async () => {
     const { data: g } = await sb.from('groups').select('*').eq('group_code', document.getElementById('join-code').value.toUpperCase()).single();
     if (g) { await sb.from('group_members').upsert({ group_id: g.id, user_id: user.id }); await sb.from('profiles').update({ current_group_id: g.id }).eq('id', user.id); window.refreshData(); }
   };
-
   window.updateGroupUI = () => { document.getElementById('group-status').innerHTML = activeGroup ? `<div class="group-card"><b>Active: ${activeGroup.name}</b><br>Code: ${activeGroup.group_code}</div>` : "No group."; };
-
   window.loadLeaderboard = async () => {
     const lbDiv = document.getElementById('lb-list'); if (!activeGroup) return;
     const { data: mems } = await sb.from('group_members').select('user_id').eq('group_id', activeGroup.id);
     const { data: pros } = await sb.from('profiles').select('*').in('id', (mems || []).map(m => m.user_id));
     lbDiv.innerHTML = (pros || []).sort((a,b) => (a.handicap_index ?? 99)-(b.handicap_index ?? 99)).map((p, i) => `<div class="lb-row" onclick="window.viewMemberHistory('${p.id}', '${p.display_name}')"><span>${i+1}</span><strong>${p.display_name}</strong><span>${p.handicap_index?.toFixed(1) || '--'}</span><span>View</span></div>`).join('');
   };
-
   window.viewMemberHistory = async (id, name) => {
     document.getElementById('lb-history-card').classList.remove('hidden');
     document.getElementById('lb-history-title').textContent = `${name}'s History`;
     const { data } = await sb.from('rounds').select('*').eq('user_id', id).order('date_played', {ascending:false});
     document.getElementById('lb-history-list').innerHTML = (data || []).map(r => `<div class="card">${r.date_played}: <b>${r.score}</b> @ ${r.course_name}</div>`).join('');
   };
-
   window.autoFillCourse = () => {
     const c = masterCourses.find(x => x.id == document.getElementById('r-course-select').value);
     if (c) { document.getElementById('r-rating').value = c.course_rating; document.getElementById('r-slope').value = c.slope_rating; }
