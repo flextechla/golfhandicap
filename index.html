@@ -6,27 +6,32 @@
   <title>Golf Tracker | Lazy B Studios</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root { --primary: #2e7d32; --dark: #1b5e20; --accent: #ffa000; --bg: #f4f6f8; --danger: #d32f2f; }
-    body { font-family: system-ui, sans-serif; background: var(--bg); margin: 0; padding-bottom: 20px; }
+    :root { --primary: #2e7d32; --dark: #1b5e20; --accent: #ffa000; --bg: #f4f6f8; --card-bg: #ffffff; --text: #333333; --danger: #d32f2f; --border: #dddddd; }
+    
+    /* Dark Mode Variables */
+    body.dark-mode { --bg: #121212; --card-bg: #1e1e1e; --text: #e0e0e0; --border: #333333; }
+
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 20px; transition: background 0.3s, color 0.3s; }
     .header { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 25px 20px; text-align: center; border-bottom: 5px solid var(--accent); }
     .hcp-display { font-size: 3.5rem; font-weight: 900; margin: 5px 0; }
-    .nav-tabs { display: flex; background: white; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-x: auto; }
-    .tab-link { flex: 1; padding: 15px; text-align: center; font-size: 0.7rem; font-weight: bold; cursor: pointer; color: #666; border-bottom: 3px solid transparent; white-space: nowrap; }
+    .nav-tabs { display: flex; background: var(--card-bg); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-x: auto; border-bottom: 1px solid var(--border); }
+    .tab-link { flex: 1; padding: 15px; text-align: center; font-size: 0.7rem; font-weight: bold; cursor: pointer; color: #888; border-bottom: 3px solid transparent; white-space: nowrap; }
     .tab-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
     .container { max-width: 600px; margin: 0 auto; padding: 15px; }
-    .card { background: white; border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-outline { background: none; border: 1px solid var(--primary); color: var(--primary); }
     .btn-danger-outline { background: none; border: 1px solid var(--danger); color: var(--danger); }
-    .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; border: 1px solid #ccc; background: white; }
-    .btn-xs { padding: 4px 8px; font-size: 0.7rem; margin-left: 6px; border-radius: 4px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
-    .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+    .btn-sm { padding: 5px 10px; font-size: 0.7rem; width: auto; margin: 0; cursor: pointer; border-radius: 4px; font-weight: bold; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); }
+    .btn-xs { padding: 4px 8px; font-size: 0.7rem; margin-left: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); cursor: pointer; }
+    .form-control { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 16px; background: var(--card-bg); color: var(--text); }
     .hidden { display: none !important; }
-    .lb-row { display: grid; grid-template-columns: 30px 1fr 60px 50px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; cursor: pointer; }
-    .legal-text { font-size: 0.8rem; color: #333; background: #f9f9f9; padding: 15px; border: 1px solid #eee; max-height: 400px; overflow-y: auto; margin: 10px 0; border-radius: 8px; line-height: 1.6; }
-    .legal-text h4 { color: var(--primary); margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-    .group-card { background: #f0f7f0; border-left: 4px solid var(--primary); padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+    .lb-row { display: grid; grid-template-columns: 30px 1fr 60px 50px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .legal-text { font-size: 0.8rem; color: var(--text); background: var(--bg); padding: 15px; border: 1px solid var(--border); max-height: 400px; overflow-y: auto; margin: 10px 0; border-radius: 8px; line-height: 1.6; }
+    .legal-text h4 { color: var(--primary); margin-top: 20px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+    .group-card { background: #f0f7f0; color: #333; border-left: 4px solid var(--primary); padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+    body.dark-mode .group-card { background: #1a2e1a; color: #e0e0e0; }
   </style>
 </head>
 <body>
@@ -62,6 +67,7 @@
     <div class="tab-link" onclick="window.showTab('leader', this)">RANKINGS</div>
     <div class="tab-link" onclick="window.showTab('groups', this)">GROUPS</div>
     <div class="tab-link" onclick="window.showTab('settings', this)">SETTINGS</div>
+    <div class="tab-link" onclick="window.showTab('help-main', this)">HELP</div>
   </div>
 
   <div class="container">
@@ -111,12 +117,12 @@
     </div>
 
     <div id="tab-settings" class="hidden">
-      <button class="btn btn-outline" onclick="window.toggleSub('set-courses')">Manage Courses</button>
-      <button class="btn btn-outline" onclick="window.toggleSub('set-help')">Help & FAQ</button>
-      <button class="btn btn-outline" onclick="window.toggleSub('set-privacy')">Privacy Policy</button>
-      <button class="btn btn-outline" onclick="window.toggleSub('set-terms')">Terms of Service</button>
-
-      <div id="set-courses" class="card hidden" style="margin-top: 15px;">
+      <div class="card">
+        <h3>App Preferences</h3>
+        <button class="btn btn-outline" id="dark-mode-toggle" onclick="window.toggleDarkMode()">🌙 Switch to Dark Mode</button>
+      </div>
+      
+      <div class="card">
         <h3>Course Manager</h3>
         <select id="m-course-select" class="form-control" onchange="window.prepCourseEdit()"><option value="new">-- Add New Course --</option></select>
         <hr>
@@ -132,54 +138,40 @@
           <button id="btn-c-del" class="btn btn-danger-outline hidden" onclick="window.deleteCourse()">Delete Course</button>
         </div>
       </div>
+    </div>
 
-      <div id="set-help" class="card hidden" style="margin-top: 15px;">
-        <h3>Help & Frequently Asked Questions</h3>
+    <div id="tab-help-main" class="hidden">
+      <button class="btn btn-outline" onclick="window.toggleHelpSub('set-help')">FAQ & Education</button>
+      <button class="btn btn-outline" onclick="window.toggleHelpSub('set-privacy')">Privacy Policy</button>
+      <button class="btn btn-outline" onclick="window.toggleHelpSub('set-terms')">Terms of Service</button>
+
+      <div id="set-help" class="card hidden" style="margin-top:15px;">
+        <h3>Frequently Asked Questions</h3>
         <div class="legal-text">
           <h4>What is a Golf Handicap?</h4>
-          <p>A handicap is a numerical measure of a golfer's potential ability. It allows players of different skill levels to compete fairly. A lower handicap indicates a more skilled player.</p>
-          
+          <p>A handicap allows players of different skill levels to compete fairly. A lower handicap indicates a more skilled player.</p>
           <h4>Where do I find Rating and Slope?</h4>
-          <p>These are located on your scorecard, usually next to the Tee Box names (Blue, White, Red, etc.).</p>
-          
-          
-          <h4>How is my Index calculated?</h4>
-          <p>This app uses the World Handicap System (WHS) logic. We take your "Score Differentials" from your most recent rounds. Specifically:</p>
-          <ul>
-            <li>If you have 20+ rounds, we average the <strong>best 8</strong> of your last 20.</li>
-            <li>For fewer rounds, we use a sliding scale (e.g., best 3 of last 10).</li>
-            <li>We then multiply that average by <strong>0.96</strong> to get your Index.</li>
-          </ul>
-
-          <h4>Need Support?</h4>
-          <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com?subject=Golf%20Tracker%20Support'">
-            📧 Email Support
-          </button>
+          <p>These are on your scorecard next to the Tee Box names.</p>
+          [Image of a golf course scorecard showing rating and slope]
+          <h4>Calculation Method</h4>
+          <p>This app uses the World Handicap System (WHS) logic: averaging your best 8 score differentials from your last 20 rounds, multiplied by 0.96.</p>
+          <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com?subject=Golf%20Tracker%20Support'">📧 Email Support</button>
         </div>
       </div>
-      
-      <div id="set-privacy" class="card hidden" style="margin-top: 15px;">
+
+      <div id="set-privacy" class="card hidden" style="margin-top:15px;">
         <h3>Privacy Policy</h3>
         <div class="legal-text">
-          <p><strong>Last Updated: January 19, 2026</strong></p>
-          <h4>Information We Collect</h4>
-          <p>We collect your email address for account authentication and your golf scores/course details to provide the handicap calculation service.</p>
           <h4>Data Usage</h4>
-          <p>Your data is used strictly for calculating and displaying your handicap history and displaying your name to members of groups you join.</p>
-          <h4>Data Security</h4>
-          <p>We use Supabase for secure data storage with industry-standard encryption.</p>
+          <p>We only store your email and golf data to provide calculations and group features. We never sell your personal information.</p>
         </div>
       </div>
 
-      <div id="set-terms" class="card hidden" style="margin-top: 15px;">
+      <div id="set-terms" class="card hidden" style="margin-top:15px;">
         <h3>Terms of Service</h3>
         <div class="legal-text">
-          <h4>1. Acceptance of Terms</h4>
-          <p>By using Golf Tracker, you agree to these terms.</p>
-          <h4>2. Honesty Policy</h4>
-          <p>Golf is a game of integrity. Users are expected to report honest gross scores.</p>
-          <h4>3. Recreational Use</h4>
-          <p>This app is for recreational use only. For official tournament play, please register with an official GHIN provider.</p>
+          <h4>Honesty</h4>
+          <p>Golf is a game of integrity. Please report scores honestly to keep leaderboards fair.</p>
         </div>
       </div>
     </div>
@@ -194,19 +186,24 @@
 
   let user = null, profile = null, activeGroup = null, masterCourses = [], editingRoundId = null, authMode = 'signin';
 
+  // --- DARK MODE LOGIC ---
+  window.toggleDarkMode = () => {
+    const isDark = document.body.classList.toggle('dark-mode');
+    localStorage.setItem('golf-dark-mode', isDark);
+    document.getElementById('dark-mode-toggle').textContent = isDark ? '☀️ Switch to Light Mode' : '🌙 Switch to Dark Mode';
+  };
+  if (localStorage.getItem('golf-dark-mode') === 'true') window.toggleDarkMode();
+
   async function handleSessionChange(session) {
     user = session?.user || null;
-    const authView = document.getElementById('view-auth');
-    const appView = document.getElementById('view-app');
-
     if (user) {
-      authView.classList.add('hidden');
-      appView.classList.remove('hidden');
+      document.getElementById('view-auth').classList.add('hidden');
+      document.getElementById('view-app').classList.remove('hidden');
       document.getElementById('user-display-name').textContent = user.email.split('@')[0];
       window.refreshData(); 
     } else {
-      authView.classList.remove('hidden');
-      appView.classList.add('hidden');
+      document.getElementById('view-auth').classList.remove('hidden');
+      document.getElementById('view-app').classList.add('hidden');
     }
   }
 
@@ -215,7 +212,6 @@
     try {
       const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
       if(p) profile = p;
-      
       const { data: mems } = await sb.from('group_members').select('group_id').eq('user_id', user.id);
       let groups = [];
       if (mems?.length) {
@@ -223,7 +219,6 @@
         groups = gRows || [];
       }
       activeGroup = profile?.current_group_id ? groups.find(g => g.id === profile.current_group_id) : groups[0] || null;
-      
       window.updateHeader();
       window.updateGroupUI();
       window.loadHistory(); 
@@ -342,7 +337,7 @@
       const { data, error } = await sb.auth.signUp({ email, password: pass });
       if (error) return alert(error.message);
       await sb.from('profiles').upsert({ id: data.user.id, display_name: document.getElementById('display-name').value || email.split('@')[0] });
-      alert('Check email then sign in.');
+      alert('Verify email then sign in.');
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
       if (error) alert(error.message);
@@ -355,9 +350,13 @@
     if (el) el.classList.add('active');
     if (n !== 'leader') document.getElementById('lb-history-card').classList.add('hidden');
   };
+  window.toggleHelpSub = (id) => {
+    ['set-help','set-privacy','set-terms'].forEach(s => document.getElementById(s).classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+  };
   window.toggleSub = (id) => { 
-    ['set-courses','set-help','set-privacy','set-terms'].forEach(s => document.getElementById(s).classList.add('hidden'));
-    document.getElementById(id).classList.remove('hidden'); 
+    // This is for settings sub-cards
+    document.getElementById(id).classList.toggle('hidden');
   };
   window.togglePassword = (id, btn) => { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; btn.textContent = el.type === 'password' ? 'Show' : 'Hide'; };
   window.handleGenerateCode = () => document.getElementById('new-group-code').value = Math.random().toString(36).substring(2, 8).toUpperCase();
