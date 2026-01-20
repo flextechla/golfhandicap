@@ -17,7 +17,8 @@
     .tab-link.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
     .container { max-width: 600px; margin: 0 auto; padding: 15px; }
     .card { background: var(--card-bg); border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+    .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; transition: opacity 0.2s; }
+    .btn:active { opacity: 0.8; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-outline { background: none; border: 1px solid var(--primary); color: var(--primary); }
     .btn-danger-outline { background: none; border: 1px solid var(--danger); color: var(--danger); }
@@ -122,6 +123,7 @@
       <div class="card">
         <h3>Preferences</h3>
         <button class="btn btn-outline" id="dark-mode-toggle" onclick="window.toggleDarkMode()">🌙 Switch to Dark Mode</button>
+        <button class="btn btn-outline" style="margin-top:10px;" onclick="window.exportDataCSV()">📊 Export Scores (CSV)</button>
       </div>
       <div class="card">
         <h3>Course Manager</h3>
@@ -147,28 +149,25 @@
         <h3>Frequently Asked Questions</h3>
         <div class="legal-text">
           <h4>How is my handicap calculated?</h4>
-          <p>This app uses the World Handicap System (WHS) formula to calculate your <strong>Handicap Index</strong>. Your Index represents your potential playing ability on a good day, not your average score.</p>
+          <p>This app uses the World Handicap System (WHS) logic to calculate your <strong>Handicap Index</strong>.</p>
+          
           <ul>
-            <li><strong>Score Differentials:</strong> Every time you post a score, it's converted into a differential using the Course Rating and Slope. This "levels the playing field" between easy and hard courses.</li>
-            <li><strong>The "Best 8":</strong> When you reach 20 rounds, the app averages your lowest 8 differentials.</li>
-            <li><strong>Fewer than 20:</strong> If you have 3 to 19 rounds, the app uses a specific sliding scale (e.g., your best 3 of your last 6) to find your current index.</li>
-            <li><strong>The 0.96 Factor:</strong> The resulting average is multiplied by 0.96 to finalize your Index.</li>
+            <li><strong>Score Differentials:</strong> Every round is converted into a differential using the Course Rating and Slope.</li>
+            <li><strong>The "Best 8":</strong> Once you have 20 rounds, the app averages your lowest 8 differentials.</li>
+            <li><strong>The 0.96 Factor:</strong> The final average is multiplied by 0.96 to produce your Index.</li>
           </ul>
 
           <h4>Where do I find Course Rating and Slope?</h4>
-          <p>Look at your course scorecard. These numbers are usually listed next to each set of tees. For example, the "White" tees might say <strong>70.2 / 125</strong>. 70.2 is the Rating; 125 is the Slope.</p>
+          <p>These values are on your scorecard near the Tee Box names. Look for something like <strong>72.1 / 125</strong>.</p>
           
 
           <h4>What does the Trend Arrow mean?</h4>
-          <p>The arrow on your dashboard compares your current Index to your previous one:</p>
+          <p>The arrow compares your current Index to your previous one:</p>
           <ul>
-            <li><strong style="color:#2e7d32">↓ Green Arrow:</strong> Your handicap is improving (going down).</li>
-            <li><strong style="color:#d32f2f">↑ Red Arrow:</strong> Your handicap is rising.</li>
-            <li><strong style="color:#ffa000">↔ Orange Icon:</strong> No change since your last round.</li>
+            <li><strong style="color:#2e7d32">↓ Green Arrow:</strong> Index improved (went down).</li>
+            <li><strong style="color:#d32f2f">↑ Red Arrow:</strong> Index rose.</li>
+            <li><strong style="color:#ffa000">↔ Orange Icon:</strong> No change since last round.</li>
           </ul>
-
-          <h4>How do Groups work?</h4>
-          <p>Groups allow you to share a leaderboard with friends. When you are in an active group, your index and round history are visible to other members of that group.</p>
         </div>
       </div>
 
@@ -177,11 +176,11 @@
         <div class="legal-text">
           <p><strong>Effective Date: January 19, 2026</strong></p>
           <h4>1. Information Collection</h4>
-          <p>We collect your email address purely for account management and security. We collect your golf scores and course data to calculate your handicap.</p>
+          <p>We collect your email for security and your golf scores to provide handicap tracking. We do not track location or access private files.</p>
           <h4>2. Data Visibility</h4>
-          <p>Your golf data is private by default. If you voluntarily join a "Group" using a join code, your display name, handicap index, and round history will be visible to other members of that specific group.</p>
-          <h4>3. Third Parties</h4>
-          <p>Lazy B Studios does not sell, rent, or trade your personal data to third-party advertisers. Your data is stored securely using Supabase encryption.</p>
+          <p>Data is private unless you join a "Group". Members of your active Group can see your display name, Index, and round history.</p>
+          <h4>3. Security</h4>
+          <p>We use encrypted database storage via Supabase. We never sell your personal information.</p>
         </div>
       </div>
 
@@ -189,15 +188,11 @@
         <h3>Terms of Service</h3>
         <div class="legal-text">
           <h4>1. Recreational Use Only</h4>
-          <p>This application is intended for recreational purposes. While we follow WHS guidelines, this is not a GHIN-certified index and may not be accepted for official USGA or R&A sanctioned tournaments.</p>
+          <p>This app is for personal use. It is not an official GHIN provider and may not be accepted for sanctioned USGA tournaments.</p>
           <h4>2. Integrity of Scoring</h4>
-          <p>Golf is a game of honor. By using this app, you agree to post honest and accurate gross scores. Posting fraudulent scores to manipulate leaderboards or "sandbag" is a violation of service.</p>
-          <h4>3. Account Responsibility</h4>
-          <p>You are responsible for maintaining the confidentiality of your login credentials. Lazy B Studios is not responsible for data loss resulting from unauthorized account access.</p>
-          <h4>4. Modification of Service</h4>
-          <p>We reserve the right to modify or discontinue features to improve the user experience or comply with new golf regulations.</p>
-          <h4>5. Limitation of Liability</h4>
-          <p>Lazy B Studios provides this service "as-is" without warranties of any kind. We are not liable for any discrepancies in handicap calculations or loss of data.</p>
+          <p>Golf is a game of integrity. Users agree to report honest scores. Sandbagging or fraudulent scoring to manipulate rankings may result in group removal.</p>
+          <h4>3. Limitation of Liability</h4>
+          <p>Lazy B Studios is not liable for data loss or incorrect calculations. Use is at your own risk.</p>
         </div>
       </div>
     </div>
@@ -205,11 +200,10 @@
     <div id="tab-contact" class="hidden">
       <div class="card" style="text-align: center;">
         <h3>Contact Us</h3>
-        <p>Having trouble? Found a bug? Or just want to suggest a feature? We would love to hear from you.</p>
+        <p>Found a bug or have a suggestion? We're here to help.</p>
         <button class="btn btn-primary" onclick="window.location.href='mailto:support@lazybstudios.com?subject=Golf%20Tracker%20Support'">
           📧 Email support@lazybstudios.com
         </button>
-        <p style="font-size: 0.8rem; margin-top: 15px; color: #888;">We typically respond within 24-48 hours.</p>
       </div>
     </div>
   </div>
@@ -228,13 +222,30 @@
     const isDark = document.body.classList.toggle('dark-mode');
     localStorage.setItem('golf-dark-mode', isDark);
     document.getElementById('dark-mode-toggle').textContent = isDark ? '☀️ Switch to Light Mode' : '🌙 Switch to Dark Mode';
-    // Update trend icon visibility specifically for neutral
     window.updateHeader(profile?.handicap_index);
   };
   if (localStorage.getItem('golf-dark-mode') === 'true') {
      document.body.classList.add('dark-mode');
-     document.getElementById('dark-mode-toggle').textContent = '☀️ Switch to Light Mode';
   }
+
+  // --- EXPORT DATA ---
+  window.exportDataCSV = async () => {
+    const { data, error } = await sb.from('rounds').select('*').eq('user_id', user.id).order('date_played', {ascending: false});
+    if (error || !data.length) return alert("No scores found to export.");
+    
+    let csv = "Date,Course,Score,Rating,Slope,Differential\n";
+    data.forEach(r => { csv += `${r.date_played},"${r.course_name}",${r.score},${r.course_rating},${r.slope_rating},${r.differential}\n`; });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'golf_scores.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   async function handleSessionChange(session) {
     user = session?.user || null;
@@ -280,11 +291,7 @@
       arrow.classList.remove('hidden');
       if (currentHcp < prevHcp) { arrow.textContent = '↓'; arrow.style.color = '#2e7d32'; }
       else if (currentHcp > prevHcp) { arrow.textContent = '↑'; arrow.style.color = '#d32f2f'; }
-      else { 
-          arrow.textContent = '↔'; 
-          // Set orange for high visibility on both light/dark backgrounds
-          arrow.style.color = '#ffa000'; 
-      }
+      else { arrow.textContent = '↔'; arrow.style.color = '#ffa000'; }
     }
   };
 
@@ -295,7 +302,7 @@
     masterCourses = data || [];
     const opts = '<option value="">-- Select --</option>' + masterCourses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     document.getElementById('r-course-select').innerHTML = opts;
-    document.getElementById('m-course-select').innerHTML = '<option value="new">-- Add New Course --</option>' + opts;
+    document.getElementById('m-course-select').innerHTML = '<option value="new">-- Add New --</option>' + opts;
   };
 
   window.prepCourseEdit = () => {
@@ -335,7 +342,7 @@
     document.getElementById('recent-list').innerHTML = (data || []).map(r => `
       <div class="card" style="border-left:5px solid var(--primary); display:flex; justify-content:space-between; align-items:center;">
         <div><b>${r.score}</b> @ ${r.course_name}<br><small>${r.date_played}</small></div>
-        <div><button class="btn-xs" onclick="window.editRound('${r.id}')">Edit</button><button class="btn-xs" style="color:var(--danger); border-color:var(--danger);" onclick="window.deleteRound('${r.id}')">Del</button></div>
+        <div><button class="btn-xs" onclick="window.editRound('${r.id}')">Edit</button><button class="btn-xs" style="color:red" onclick="window.deleteRound('${r.id}')">Del</button></div>
       </div>`).join('') || "No rounds.";
   };
 
