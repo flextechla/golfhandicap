@@ -35,8 +35,15 @@ export default function RoundForm({
       setRating(String(editingRound.course_rating));
       setSlope(String(editingRound.slope_rating));
       setDate(editingRound.date_played);
+      const match = courses.find(
+        (c) =>
+          c.name === editingRound.course_name &&
+          c.course_rating === editingRound.course_rating &&
+          c.slope_rating === editingRound.slope_rating
+      );
+      setCourseId(match?.id || "");
     }
-  }, [editingRound]);
+  }, [editingRound, courses]);
 
   const handleCourseChange = (id: string) => {
     setCourseId(id);
@@ -49,9 +56,10 @@ export default function RoundForm({
 
   const handleSubmit = async () => {
     if (!score || !rating || !slope || !date) return;
-    setSaving(true);
-    const courseName =
-      courses.find((c) => c.id === courseId)?.name || "Course";
+    setSaving(true);const courseName =
+      courses.find((c) => c.id === courseId)?.name ||
+      editingRound?.course_name ||
+      "Course";
 
     await onSave(
       {
